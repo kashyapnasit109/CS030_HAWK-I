@@ -48,11 +48,17 @@ export interface MatchResult {
   clip_url?: string;
   confidence: number;
   label: string;
-  search_type: "face_recognition" | "keyword" | "lpr";
+  search_type: "face_recognition" | "keyword" | "lpr" | "object_detection" | "activity_analysis";
   box?: { x1: number; y1: number; x2: number; y2: number };
   frame_hash?: string;
   clip_hash?: string;
   ocr_text?: string;
+  detections?: Array<{
+    class_name: string;
+    confidence: number;
+    box: { x1: number; y1: number; x2: number; y2: number };
+  }>;
+  object_count?: number;
 }
 
 export interface SearchJob {
@@ -61,6 +67,62 @@ export interface SearchJob {
   match_count: number;
   matches?: MatchResult[];
   error?: string;
+  activity_data?: {
+    heatmap_url?: string;
+    total_frames_analyzed?: number;
+    average_motion_intensity?: number;
+    total_motion_events?: number;
+    total_scene_changes?: number;
+    max_persons_detected?: number;
+    average_persons_per_frame?: number;
+    total_crowd_events?: number;
+    activity_level?: string;
+  };
+}
+
+// ─── Camera Types ───────────────────────────────────
+
+export interface CameraInfo {
+  id: string;
+  name: string;
+  url: string;
+  brand: string;
+  is_connected: boolean;
+  is_running?: boolean;
+  detection_active?: boolean;
+  width: number;
+  height: number;
+  fps: number;
+  error?: string | null;
+  added_at?: number;
+  last_frame_age?: number | null;
+}
+
+export interface DiscoveredCamera {
+  ip: string;
+  port: number;
+  url: string;
+  brand: string;
+  width: number;
+  height: number;
+  fps: number;
+  credentials_used: string;
+}
+
+export interface DetectionAlert {
+  id: string;
+  camera_id: string;
+  camera_name: string;
+  timestamp: number;
+  timestamp_str: string;
+  detections: Array<{
+    type: string;
+    label: string;
+    confidence: number;
+    box: { x1: number; y1: number; x2: number; y2: number };
+  }>;
+  detection_count: number;
+  snapshot_url: string;
 }
 
 // ─── Videos ─────────────────────────────────────────
@@ -173,8 +235,130 @@ export async function startLprSearch(
   });
 }
 
+export async function startObjectSearch(
+  videoIds: string[],
+  targetClasses: string[] = [],
+  confidenceThreshold = 0.40,
+  sampleFps = 1.0,
+  startTime: number | null = null,
+  endTime: number | null = null
+): Promise<{ job_id: string; status: string }> {
+  return apiFetch("/api/search/by-object", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      video_ids: videoIds,
+      target_classes: targetClasses,
+      confidence_threshold: confidenceThreshold,
+      sample_fps: sampleFps,
+      start_time: startTime,
+      end_time: endTime,
+    }),
+  });
+}
+
+export async function startActivityAnalysis(
+  videoIds: string[],
+  sampleFps = 2.0,
+  crowdThreshold = 3,
+  motionThreshold = 0.03,
+  sceneChangeThreshold = 0.35,
+  startTime: number | null = null,
+  endTime: number | null = null
+): Promise<{ job_id: string; status: string }> {
+  return apiFetch("/api/search/activity-analysis", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      video_ids: videoIds,
+      sample_fps: sampleFps,
+      crowd_threshold: crowdThreshold,
+      motion_threshold: motionThreshold,
+      scene_change_threshold: sceneChangeThreshold,
+      start_time: startTime,
+      end_time: endTime,
+    }),
+  });
+}
+
 export async function getJobStatus(jobId: string): Promise<SearchJob> {
   return apiFetch(`/api/search/job/${jobId}`);
+}
+
+// ─── Cameras ────────────────────────────────────────
+
+export async function addCamera(
+  url: string,
+  name = "",
+  brand = "generic",
+  username = "admin",
+  password = "admin",
+  channel = 1
+): Promise<{ success: boolean; camera: CameraInfo }> {
+  return apiFetch("/api/cameras/add", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, name, brand, username, password, channel }),
+  });
+}
+
+export async function removeCamera(id: string): Promise<void> {
+  await apiFetch(`/api/cameras/${id}`, { method: "DELETE" });
+}
+
+export async function listCameras(): Promise<{ cameras: CameraInfo[]; count: number }> {
+  return apiFetch("/api/cameras/list");
+}
+
+export async function discoverCameras(
+  subnet?: string,
+  timeout = 0.5
+): Promise<{ discovered: DiscoveredCamera[]; count: number }> {
+  return apiFetch("/api/cameras/discover", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ subnet, timeout }),
+  });
+}
+
+export function getCameraStreamUrl(cameraId: string): string {
+  return `${BASE_URL}/api/cameras/${cameraId}/stream`;
+}
+
+export function getCameraSnapshotUrl(cameraId: string): string {
+  return `${BASE_URL}/api/cameras/${cameraId}/snapshot`;
+}
+
+export async function startCameraDetection(
+  cameraId: string,
+  detectionType = "face",
+  targetClasses?: string[],
+  intervalSeconds = 2.0
+): Promise<{ success: boolean }> {
+  return apiFetch(`/api/cameras/${cameraId}/start-detection`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      detection_type: detectionType,
+      target_classes: targetClasses,
+      interval_seconds: intervalSeconds,
+    }),
+  });
+}
+
+export async function stopCameraDetection(cameraId: string): Promise<{ success: boolean }> {
+  return apiFetch(`/api/cameras/${cameraId}/stop-detection`, { method: "POST" });
+}
+
+export async function getCameraDetections(
+  cameraId: string,
+  since = 0
+): Promise<{ alerts: DetectionAlert[]; count: number }> {
+  return apiFetch(`/api/cameras/${cameraId}/detections?since=${since}`);
+}
+
+export async function getAllAlerts(since = 0): Promise<{ alerts: DetectionAlert[]; count: number }> {
+  return apiFetch(`/api/cameras/alerts/all?since=${since}`);
 }
 
 // ─── Export ──────────────────────────────────────────

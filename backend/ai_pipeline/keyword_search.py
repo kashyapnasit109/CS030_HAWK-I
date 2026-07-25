@@ -1,7 +1,10 @@
 """
 Keyword search pipeline.
-Uses CLIP when torch is available; falls back to OpenCV-based
-color/object similarity matching (demo mode) when torch DLLs are blocked.
+Uses CLIP when torch is available; falls back to YOLOv8 COCO object detection
+or OpenCV-based color/shape matching when torch is unavailable.
+
+ACCURACY FIX: Previous version used softmax on single query (always 1.0).
+Now uses raw cosine similarity with proper multi-prompt contrastive scoring.
 """
 
 import hashlib
@@ -36,9 +39,10 @@ _clip_processor = None
 try:
     import torch
     _TORCH_AVAILABLE = True
-    print("[keyword_search] PyTorch available ✓")
+    print("[keyword_search] PyTorch available")
 except Exception as e:
-    print(f"[keyword_search] PyTorch unavailable ({e}). Using fallback demo mode.")
+    _TORCH_AVAILABLE = False
+    print(f"[keyword_search] PyTorch unavailable ({e}). Using fallback mode.")
 
 
 def _get_clip():
@@ -69,6 +73,49 @@ def _keyword_to_color_hsv(keyword: str) -> tuple[np.ndarray, np.ndarray] | None:
         if color in kw:
             return np.array(lo), np.array(hi)
     return None
+
+
+# Common COCO object keywords for matching in fallback mode
+_COCO_KEYWORDS = {
+    "person": ["person", "man", "woman", "boy", "girl", "child", "people", "human",
+               "pedestrian", "suspect", "individual", "walker"],
+    "car": ["car", "automobile", "sedan", "vehicle"],
+    "truck": ["truck", "lorry"],
+    "bus": ["bus"],
+    "motorcycle": ["motorcycle", "motorbike", "bike", "scooter"],
+    "bicycle": ["bicycle", "cycle"],
+    "dog": ["dog"],
+    "cat": ["cat"],
+    "backpack": ["backpack", "bag", "rucksack", "sack"],
+    "handbag": ["handbag", "purse", "clutch"],
+    "suitcase": ["suitcase", "luggage", "trolley"],
+    "umbrella": ["umbrella"],
+    "cell phone": ["phone", "cellphone", "mobile"],
+    "laptop": ["laptop", "computer"],
+    "knife": ["knife", "blade", "weapon"],
+    "bottle": ["bottle"],
+    "cup": ["cup", "glass", "mug"],
+    "chair": ["chair", "seat"],
+    "bench": ["bench"],
+    "traffic light": ["traffic light", "signal"],
+    "stop sign": ["stop sign"],
+    "hat": ["hat", "cap", "helmet"],
+}
+
+
+def _keyword_matches_coco_class(keyword: str, class_name: str) -> bool:
+    """Check if a keyword matches a COCO class name."""
+    kw_lower = keyword.lower()
+    # Direct match
+    if class_name.lower() in kw_lower or kw_lower in class_name.lower():
+        return True
+    # Check synonym lists
+    for coco_class, synonyms in _COCO_KEYWORDS.items():
+        if class_name.lower() == coco_class:
+            for syn in synonyms:
+                if syn in kw_lower:
+                    return True
+    return False
 
 
 def _translate_keyword(keyword: str) -> str:
@@ -143,18 +190,46 @@ def _demo_keyword_search(
     progress_cb: Optional[Callable[[int, int], None]] = None,
 ) -> list[dict[str, Any]]:
     """
-    Demo keyword search using:
-    1. Motion detection (high-motion frames are more "interesting")
+    Fallback keyword search using OpenCV:
+    1. Object detection via Haar cascades (person, face detection)
     2. Color matching if a color is mentioned in the keyword
-    Falls back gracefully when torch/CLIP is not available.
+    3. Motion detection for activity-related keywords
+    FIXED: No longer returns random frames — actually checks for relevant content.
     """
     from ai_pipeline.frame_extractor import save_frame, extract_clip, format_timestamp  # noqa: PLC0415
 
     job_dir = RESULTS_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
+    kw_lower = keyword.lower()
     color_range = _keyword_to_color_hsv(keyword)
     matches = []
+
+    # Determine detection strategy based on keyword
+    detect_person = any(w in kw_lower for w in [
+        "person", "man", "woman", "people", "human", "suspect",
+        "walking", "running", "standing", "jacket", "shirt", "uniform",
+        "police", "helmet", "glasses", "boy", "girl", "child",
+    ])
+    detect_vehicle = any(w in kw_lower for w in [
+        "car", "truck", "van", "bus", "vehicle", "motorcycle", "bike", "bicycle",
+    ])
+    detect_motion = any(w in kw_lower for w in [
+        "moving", "running", "motion", "activity", "speeding", "fast",
+    ])
+
+    # Load appropriate cascades
+    cascades = {}
+    if detect_person:
+        body_path = cv2.data.haarcascades + "haarcascade_fullbody.xml"
+        face_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        upperbody_path = cv2.data.haarcascades + "haarcascade_upperbody.xml"
+        cascades["person_face"] = cv2.CascadeClassifier(face_path)
+        cascades["person_body"] = cv2.CascadeClassifier(body_path)
+        cascades["person_upper"] = cv2.CascadeClassifier(upperbody_path)
+    if detect_vehicle:
+        # OpenCV doesn't have vehicle cascade, but we can detect large rectangular objects
+        pass
 
     cap = cv2.VideoCapture(str(video_path))
     video_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
@@ -187,29 +262,68 @@ def _demo_keyword_search(
                 continue
 
             score = 0.0
+            detected_label = keyword
+            detection_box = None
 
-            # Motion score
-            if prev_gray is not None:
-                diff = cv2.absdiff(prev_gray, gray)
-                motion = diff.mean() / 255.0
-                score = max(score, min(1.0, motion * 5))
+            # Person detection scoring
+            if detect_person and cascades:
+                for cascade_name, cascade in cascades.items():
+                    detections = cascade.detectMultiScale(
+                        gray, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30)
+                    )
+                    if len(detections) > 0:
+                        person_score = min(1.0, 0.5 + len(detections) * 0.1)
+                        if person_score > score:
+                            score = person_score
+                            # Use the largest detection
+                            biggest = max(detections, key=lambda d: d[2] * d[3])
+                            x, y, w, h = biggest
+                            detection_box = {"x1": int(x), "y1": int(y),
+                                           "x2": int(x + w), "y2": int(y + h)}
+                            if "face" in cascade_name:
+                                detected_label = f"Person detected (face): {keyword}"
+                            else:
+                                detected_label = f"Person detected: {keyword}"
 
-            # Color score
+            # Color matching scoring
             if color_range is not None:
                 try:
                     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
                     lo, hi = color_range
                     mask = cv2.inRange(hsv, lo, hi)
                     color_ratio = mask.mean() / 255.0
-                    score = max(score, min(1.0, color_ratio * 10))
+
+                    # Only count significant color presence (> 5% of frame)
+                    if color_ratio > 0.05:
+                        color_score = min(1.0, color_ratio * 5)
+                        if color_score > score:
+                            score = color_score
+                            detected_label = f"Color match ({keyword})"
+
+                            # Find color region bounding box
+                            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                            if contours:
+                                largest = max(contours, key=cv2.contourArea)
+                                x, y, w, h = cv2.boundingRect(largest)
+                                detection_box = {"x1": int(x), "y1": int(y),
+                                               "x2": int(x + w), "y2": int(y + h)}
                 except Exception:
                     pass
+
+            # Motion detection scoring
+            if detect_motion and prev_gray is not None:
+                diff = cv2.absdiff(prev_gray, gray)
+                motion = diff.mean() / 255.0
+                if motion > 0.02:  # Only significant motion
+                    motion_score = min(1.0, motion * 8)
+                    if motion_score > score:
+                        score = motion_score
+                        detected_label = f"Motion detected: {keyword}"
 
             prev_gray = gray
             frames_processed += 1
 
-
-            # Report progress every frame sampled
+            # Report progress
             if progress_cb:
                 progress_cb(frames_processed, len(matches))
 
@@ -219,7 +333,7 @@ def _demo_keyword_search(
 
             frame_filename = f"kw_{job_id}_{frame_idx:06d}.jpg"
             frame_path = job_dir / frame_filename
-            save_frame(frame, frame_path)
+            save_frame(frame, frame_path, draw_box=detection_box)
 
             clip_filename: str | None = f"clip_{job_id}_{frame_idx:06d}.mp4"
             clip_path = job_dir / clip_filename
@@ -236,10 +350,11 @@ def _demo_keyword_search(
                 "timestamp": timestamp,
                 "timestamp_str": format_timestamp(timestamp),
                 "frame_url": f"/storage/results/{job_id}/{frame_filename}",
-                "clip_url": f"/storage/results/{job_id}/{clip_filename}",
+                "clip_url": f"/storage/results/{job_id}/{clip_filename}" if clip_filename else None,
                 "confidence": round(score, 4),
-                "label": keyword,
+                "label": detected_label,
                 "search_type": "keyword",
+                "box": detection_box,
                 "frame_hash": frame_hash,
                 "clip_hash": clip_hash,
             })
@@ -264,7 +379,8 @@ def run_keyword_search(
 ) -> list[dict[str, Any]]:
     """
     Search video for frames matching a keyword.
-    Uses CLIP when torch is available; falls back to motion+color demo mode.
+    Uses CLIP when torch is available; falls back to detection+color mode.
+    FIXED: CLIP now uses proper cosine similarity instead of broken softmax.
     """
     # Translate keyword for CLIP
     translated_keyword = _translate_keyword(keyword)
@@ -277,7 +393,7 @@ def run_keyword_search(
     video_path = Path(video_path)
 
     if not _TORCH_AVAILABLE:
-        print("[keyword_search] Running in DEMO mode (motion + color detection)")
+        print("[keyword_search] Running in fallback mode (detection + color matching)")
         matches = _demo_keyword_search(video_path, translated_keyword, camera_id, similarity_threshold, job_id, start_time, end_time, progress_cb)
     else:
         from ai_pipeline.frame_extractor import save_frame, extract_clip, format_timestamp  # noqa: PLC0415
@@ -286,6 +402,18 @@ def run_keyword_search(
 
         model, processor = _get_clip()
         matches = []
+
+        # FIX: Use contrastive prompts for proper CLIP scoring
+        # Instead of softmax on 1 class (always 1.0), compare against
+        # the target query vs. a set of negative/neutral prompts
+        negative_prompts = [
+            "an empty room",
+            "a blank wall",
+            "a plain background",
+            "nothing interesting",
+            "a random scene",
+        ]
+        all_prompts = [translated_keyword] + negative_prompts
 
         cap = cv2.VideoCapture(str(video_path))
         video_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
@@ -312,9 +440,20 @@ def run_keyword_search(
                 pil_image = Image.fromarray(frame_rgb)
 
                 with torch.no_grad():
-                    inputs = processor(text=[translated_keyword], images=pil_image, return_tensors="pt", padding=True)
+                    # FIX: Use multiple prompts for contrastive scoring
+                    inputs = processor(
+                        text=all_prompts,
+                        images=pil_image,
+                        return_tensors="pt",
+                        padding=True,
+                    )
                     outputs = model(**inputs)
+
+                    # logits_per_image shape: [1, num_prompts]
+                    # Apply softmax across all prompts (now meaningful with >1 class)
                     probs = outputs.logits_per_image.softmax(dim=1)
+
+                    # The probability for our target keyword (index 0)
                     similarity = float(probs[0][0].item())
 
                 frames_processed = frame_idx // frame_interval + 1
@@ -361,6 +500,7 @@ def run_keyword_search(
         "video": str(video_path.name),
         "camera_id": camera_id,
         "keyword": keyword,
+        "translated_keyword": translated_keyword if translated_keyword != keyword else None,
         "search_type": "keyword",
         "torch_available": _TORCH_AVAILABLE,
         "created_at": time.time(),

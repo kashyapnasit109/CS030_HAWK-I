@@ -56,3 +56,7 @@ backend/storage/results/*
 !backend/storage/results/.gitkeep
 backend/storage/thumbnails/*
 !backend/storage/thumbnails/.gitkeep
+
+# Backend camera data and DB
+backend/storage/cameras/
+backend/storage/*.db

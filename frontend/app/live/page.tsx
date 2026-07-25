@@ -3,11 +3,16 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
-import { listReferences, ReferenceMeta, resolveStorageUrl } from "@/lib/api";
+import {
+  listReferences, ReferenceMeta, resolveStorageUrl,
+  listCameras, startCameraDetection, stopCameraDetection,
+  getCameraStreamUrl, getCameraSnapshotUrl, CameraInfo, DetectionAlert
+} from "@/lib/api";
 
 interface AlertItem {
   id: string;
   cameraId: string;
+  cameraName: string;
   time: string;
   label: string;
   confidence: number;
@@ -20,6 +25,10 @@ export default function LivePage() {
   const [isScanning, setIsScanning] = useState(false);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [activeCam, setActiveCam] = useState<string>("CAM-02");
+
+  // Real camera registry states
+  const [cameras, setCameras] = useState<CameraInfo[]>([]);
+  const [loadingCams, setLoadingCams] = useState(true);
 
   const canvasRef1 = useRef<HTMLCanvasElement>(null);
   const canvasRef3 = useRef<HTMLCanvasElement>(null);
@@ -42,8 +51,70 @@ export default function LivePage() {
     load();
   }, []);
 
-  // Canvas animations for cameras (mock noise + scanlines)
+  // Load registered cameras
+  const loadCams = useCallback(async () => {
+    try {
+      const res = await listCameras();
+      setCameras(res.cameras);
+      if (res.cameras.length > 0) {
+        // Automatically scan all cameras when scanning is toggled
+        const activeDetection = res.cameras.some(c => c.detection_active);
+        setIsScanning(activeDetection);
+      }
+    } catch {
+      console.error("Failed to load real cameras");
+    } finally {
+      setLoadingCams(false);
+    }
+  }, []);
+
   useEffect(() => {
+    loadCams();
+  }, [loadCams]);
+
+  // Real backend alerts polling
+  useEffect(() => {
+    if (!isScanning) return;
+
+    const interval = setInterval(async () => {
+      try {
+        if (cameras.length > 0) {
+          // Fetch genuine alerts from backend
+          const since = Date.now() / 1000 - 15;
+          const res = await fetch(`http://localhost:8000/api/cameras/alerts/all?since=${since}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.alerts && data.alerts.length > 0) {
+              const newAlerts: AlertItem[] = data.alerts.map((a: DetectionAlert) => ({
+                id: a.id,
+                cameraId: a.camera_id,
+                cameraName: a.camera_name,
+                time: a.timestamp_str,
+                label: a.detections.map(d => d.label).join(", "),
+                confidence: a.detections[0]?.confidence || 0.8,
+                frameUrl: a.snapshot_url
+              }));
+
+              setAlerts((prev) => {
+                const merged = [...newAlerts, ...prev];
+                return merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i).slice(0, 20);
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch live alerts:", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isScanning, cameras]);
+
+  // Mock Canvas animations for fallback mode
+  useEffect(() => {
+    // Only run mock noise if we have no real cameras configured or less than 4
+    if (cameras.length >= 4) return;
+
     const drawNoise = (canvas: HTMLCanvasElement | null, label: string) => {
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
@@ -136,17 +207,15 @@ export default function LivePage() {
       cleanup3 && cleanup3();
       cleanup4 && cleanup4();
     };
-  }, [isScanning]);
+  }, [isScanning, cameras]);
 
-  // Alert simulation triggers
-  const triggerAlert = useCallback(() => {
+  // Mock Alert simulation triggers
+  const triggerMockAlert = useCallback(() => {
     if (!selectedRef) return;
-    const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==\n");
-    audio.play().catch(() => {});
-
     const newAlert: AlertItem = {
       id: Math.random().toString(36).slice(2, 6).toUpperCase(),
       cameraId: ["CAM-01", "CAM-02", "CAM-03", "CAM-04"][Math.floor(Math.random() * 4)],
+      cameraName: "Mock Feed Sighting",
       time: new Date().toLocaleTimeString(),
       label: selectedRef.label,
       confidence: 0.82 + Math.random() * 0.16,
@@ -157,23 +226,55 @@ export default function LivePage() {
     showToast(`🚨 TARGET SPOTTED on ${newAlert.cameraId}!`, "error");
   }, [selectedRef]);
 
+  // Simulated Alert timer (only runs when scanning and no real cameras exist)
   useEffect(() => {
-    if (!isScanning) return;
+    if (!isScanning || cameras.length > 0) return;
     const timer = setInterval(() => {
       if (Math.random() > 0.6) {
-        triggerAlert();
+        triggerMockAlert();
       }
     }, 6000);
     return () => clearInterval(timer);
-  }, [isScanning, triggerAlert]);
+  }, [isScanning, triggerMockAlert, cameras]);
 
-  const toggleScan = () => {
-    if (!selectedRef) {
-      showToast("Please upload a reference suspect first.", "error");
-      return;
+  const toggleScan = async () => {
+    if (cameras.length > 0) {
+      // Toggle real live scan on connected cameras
+      const targetState = !isScanning;
+      setLoadingCams(true);
+      try {
+        for (const cam of cameras) {
+          if (targetState) {
+            await startCameraDetection(cam.id, "face");
+          } else {
+            await stopCameraDetection(cam.id);
+          }
+        }
+        setIsScanning(targetState);
+        showToast(targetState ? "Live AI scan active across all connected feeds." : "Live scanning paused.", targetState ? "success" : "info");
+        await loadCams();
+      } catch {
+        showToast("Error configuring scan state on camera threads", "error");
+      } finally {
+        setLoadingCams(false);
+      }
+    } else {
+      // Fallback mock toggle
+      if (!selectedRef) {
+        showToast("Please upload a reference suspect first.", "error");
+        return;
+      }
+      setIsScanning(!isScanning);
+      showToast(isScanning ? "Live scan stopped." : "Live scanning started on mock feeds...", isScanning ? "info" : "success");
     }
-    setIsScanning(!isScanning);
-    showToast(isScanning ? "Live scan stopped." : "Live scanning started on 4 feeds...", isScanning ? "info" : "success");
+  };
+
+  // Get stream source for Cam 2
+  const getCam2Src = () => {
+    if (cameras.length > 1) {
+      return getCameraStreamUrl(cameras[1].id);
+    }
+    return "http://localhost:8000/storage/uploads/subway.mp4";
   };
 
   return (
@@ -213,16 +314,29 @@ export default function LivePage() {
               }}
               onClick={() => setActiveCam("CAM-01")}
             >
-              <canvas ref={canvasRef1} style={{ width: "100%", height: 210, borderRadius: 6, display: "block" }} />
+              {cameras.length > 0 ? (
+                <div style={{ width: "100%", height: 210, borderRadius: 6, overflow: "hidden", background: "#000" }}>
+                  <img
+                    src={getCameraStreamUrl(cameras[0].id)}
+                    alt={cameras[0].name}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    onError={(e) => { (e.target as HTMLElement).src = getCameraSnapshotUrl(cameras[0].id); }}
+                  />
+                </div>
+              ) : (
+                <canvas ref={canvasRef1} style={{ width: "100%", height: 210, borderRadius: 6, display: "block" }} />
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, padding: "0 4px" }}>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>CAM-01 · Lobby Lobby</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>
+                  {cameras.length > 0 ? cameras[0].name : "CAM-01 · Lobby Lobby"}
+                </span>
                 <span className={`status-pill ${isScanning ? "status-running" : "status-queued"}`} style={{ fontSize: "0.6rem" }}>
                   {isScanning ? "ACTIVE" : "STANDBY"}
                 </span>
               </div>
             </div>
 
-            {/* Feed 2 - Play subway video */}
+            {/* Feed 2 - Subway video or Camera 2 stream */}
             <div
               className="card"
               style={{
@@ -235,14 +349,22 @@ export default function LivePage() {
               onClick={() => setActiveCam("CAM-02")}
             >
               <div style={{ position: "relative", width: "100%", height: 210, borderRadius: 6, overflow: "hidden", background: "#000" }}>
-                <video
-                  ref={videoRef}
-                  src="http://localhost:8000/storage/uploads/subway.mp4"
-                  autoPlay
-                  loop
-                  muted
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
+                {cameras.length > 1 ? (
+                  <img
+                    src={getCameraStreamUrl(cameras[1].id)}
+                    alt={cameras[1].name}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                ) : (
+                  <video
+                    ref={videoRef}
+                    src="http://localhost:8000/storage/uploads/subway.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                )}
                 {isScanning && (
                   <div style={{
                     position: "absolute",
@@ -274,11 +396,13 @@ export default function LivePage() {
                 )}
                 {/* Overlay Text */}
                 <div style={{ position: "absolute", top: 12, left: 12, color: "rgba(0, 255, 136, 0.8)", font: "bold 10px monospace", zIndex: 1 }}>
-                  REC · CAM-02 (SUBWAY PLATFORM)
+                  REC · {cameras.length > 1 ? cameras[1].name : "CAM-02 (SUBWAY PLATFORM)"}
                 </div>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, padding: "0 4px" }}>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>CAM-02 · Subway Entrance</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>
+                  {cameras.length > 1 ? cameras[1].name : "CAM-02 · Subway Entrance"}
+                </span>
                 <span className={`status-pill ${isScanning ? "status-running" : "status-queued"}`} style={{ fontSize: "0.6rem" }}>
                   {isScanning ? "ACTIVE" : "STANDBY"}
                 </span>
@@ -296,9 +420,21 @@ export default function LivePage() {
               }}
               onClick={() => setActiveCam("CAM-03")}
             >
-              <canvas ref={canvasRef3} style={{ width: "100%", height: 210, borderRadius: 6, display: "block" }} />
+              {cameras.length > 2 ? (
+                <div style={{ width: "100%", height: 210, borderRadius: 6, overflow: "hidden", background: "#000" }}>
+                  <img
+                    src={getCameraStreamUrl(cameras[2].id)}
+                    alt={cameras[2].name}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                </div>
+              ) : (
+                <canvas ref={canvasRef3} style={{ width: "100%", height: 210, borderRadius: 6, display: "block" }} />
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, padding: "0 4px" }}>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>CAM-03 · Parking Lot A</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>
+                  {cameras.length > 2 ? cameras[2].name : "CAM-03 · Parking Lot A"}
+                </span>
                 <span className={`status-pill ${isScanning ? "status-running" : "status-queued"}`} style={{ fontSize: "0.6rem" }}>
                   {isScanning ? "ACTIVE" : "STANDBY"}
                 </span>
@@ -316,9 +452,21 @@ export default function LivePage() {
               }}
               onClick={() => setActiveCam("CAM-04")}
             >
-              <canvas ref={canvasRef4} style={{ width: "100%", height: 210, borderRadius: 6, display: "block" }} />
+              {cameras.length > 3 ? (
+                <div style={{ width: "100%", height: 210, borderRadius: 6, overflow: "hidden", background: "#000" }}>
+                  <img
+                    src={getCameraStreamUrl(cameras[3].id)}
+                    alt={cameras[3].name}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                </div>
+              ) : (
+                <canvas ref={canvasRef4} style={{ width: "100%", height: 210, borderRadius: 6, display: "block" }} />
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, padding: "0 4px" }}>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>CAM-04 · North Corridor</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>
+                  {cameras.length > 3 ? cameras[3].name : "CAM-04 · North Corridor"}
+                </span>
                 <span className={`status-pill ${isScanning ? "status-running" : "status-queued"}`} style={{ fontSize: "0.6rem" }}>
                   {isScanning ? "ACTIVE" : "STANDBY"}
                 </span>
@@ -348,7 +496,7 @@ export default function LivePage() {
                   >
                     {refs.map((r) => (
                       <option key={r.id} value={r.id}>
-                        {r.label} (#{r.id})
+                        {r.label} ({r.id})
                       </option>
                     ))}
                   </select>
@@ -399,7 +547,7 @@ export default function LivePage() {
                     >
                       {alert.frameUrl ? (
                         <img
-                          src={`http://localhost:8000${alert.frameUrl}`}
+                          src={alert.frameUrl.startsWith("http") ? alert.frameUrl : `http://localhost:8000${alert.frameUrl}`}
                           alt=""
                           style={{ width: 44, height: 44, borderRadius: 4, objectFit: "cover", flexShrink: 0 }}
                         />
@@ -412,7 +560,7 @@ export default function LivePage() {
                           <span style={{ fontSize: "0.6rem", color: "var(--text-muted)" }}>{alert.time}</span>
                         </div>
                         <div style={{ fontSize: "0.7rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {alert.label} on {alert.cameraId}
+                          {alert.label} on {alert.cameraName || alert.cameraId}
                         </div>
                         <div style={{ fontSize: "0.65rem", color: "var(--green)" }}>
                           Confidence: {(alert.confidence * 100).toFixed(1)}%

@@ -6,11 +6,11 @@ import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import {
   listVideos, listReferences,
-  startImageSearch, startKeywordSearch, startLprSearch, getJobStatus,
+  startImageSearch, startKeywordSearch, startLprSearch, startObjectSearch, startActivityAnalysis, getJobStatus,
   VideoMeta, ReferenceMeta, SearchJob
 } from "@/lib/api";
 
-type SearchMode = "image" | "keyword" | "lpr";
+type SearchMode = "image" | "keyword" | "lpr" | "object" | "activity" | "attributes";
 
 interface HistoryItem {
   jobId: string;
@@ -19,6 +19,21 @@ interface HistoryItem {
   query: string;
   videosCount: number;
 }
+
+const colorOptions = [
+  { value: "all", label: "Any Color" },
+  { value: "black", label: "Black" },
+  { value: "white", label: "White" },
+  { value: "gray", label: "Gray" },
+  { value: "red", label: "Red" },
+  { value: "blue", label: "Blue" },
+  { value: "green", label: "Green" },
+  { value: "yellow", label: "Yellow" },
+  { value: "orange", label: "Orange" },
+  { value: "purple", label: "Purple" },
+  { value: "pink", label: "Pink" },
+  { value: "brown", label: "Brown" }
+];
 
 export default function SearchPage() {
   const router = useRouter();
@@ -29,6 +44,10 @@ export default function SearchPage() {
   const [selectedRefs, setSelectedRefs] = useState<Set<string>>(new Set());
   const [keyword, setKeyword] = useState("");
   const [plateText, setPlateText] = useState("");
+  const [targetClassesStr, setTargetClassesStr] = useState("");
+  const [crowdThreshold, setCrowdThreshold] = useState(3);
+  const [motionThreshold, setMotionThreshold] = useState(0.03);
+  const [sceneChangeThreshold, setSceneChangeThreshold] = useState(0.35);
   const [startTimeStr, setStartTimeStr] = useState("");
   const [endTimeStr, setEndTimeStr] = useState("");
   const [sampleFps, setSampleFps] = useState(1.0);
@@ -43,11 +62,28 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // Update similarity threshold default based on mode
+  // Attribute Search states
+  const [topColor, setTopColor] = useState("all");
+  const [bottomColor, setBottomColor] = useState("all");
+  const [headgear, setHeadgear] = useState("all");
+  const [bagPresent, setBagPresent] = useState("all"); // all, yes, no
+  const [poseState, setPoseState] = useState("all"); // all, standing, running, crouching
+
+  // Update similarity/confidence threshold default based on mode
   useEffect(() => {
-    if (mode === "image") setSimilarityThreshold(0.70);
-    else if (mode === "keyword") setSimilarityThreshold(0.25);
-    else setSimilarityThreshold(0.50);
+    if (mode === "image") {
+      setSimilarityThreshold(0.70);
+      setConfidenceThreshold(0.65);
+    } else if (mode === "keyword") {
+      setSimilarityThreshold(0.25);
+    } else if (mode === "lpr") {
+      setSimilarityThreshold(0.50);
+    } else if (mode === "object") {
+      setConfidenceThreshold(0.40);
+      setSimilarityThreshold(0.40);
+    } else if (mode === "activity") {
+      setSampleFps(2.0);
+    }
   }, [mode]);
 
   // Load history & assets on mount
@@ -85,7 +121,6 @@ export default function SearchPage() {
     const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 min hard frontend timeout
 
     const interval = setInterval(async () => {
-      // Frontend timeout guard
       if (Date.now() - startTime > POLL_TIMEOUT_MS) {
         clearInterval(interval);
         setPolling(false);
@@ -121,7 +156,6 @@ export default function SearchPage() {
           setPollError(`Lost connection after ${consecutiveErrors} retries: ${msg}`);
           showToast("❌ Lost connection to backend", "error");
         }
-        // else silently retry
       }
     }, 2000);
   }, [router]);
@@ -163,7 +197,7 @@ export default function SearchPage() {
           endVal
         );
         queryStr = `Keyword: "${keyword.trim()}"`;
-      } else {
+      } else if (mode === "lpr") {
         result = await startLprSearch(
           Array.from(selectedVideos),
           plateText.trim(),
@@ -173,6 +207,57 @@ export default function SearchPage() {
           endVal
         );
         queryStr = `Plate: "${plateText.trim().toUpperCase()}"`;
+      } else if (mode === "object") {
+        const classes = targetClassesStr.trim() ? targetClassesStr.split(",").map(c => c.trim().toLowerCase()).filter(Boolean) : [];
+        result = await startObjectSearch(
+          Array.from(selectedVideos),
+          classes,
+          confidenceThreshold,
+          sampleFps,
+          startVal,
+          endVal
+        );
+        queryStr = `Object: "${classes.join(", ") || "All objects"}"`;
+      } else if (mode === "attributes") {
+        const token = localStorage.getItem("visioncctv_token");
+        const bagVal = bagPresent === "yes" ? true : bagPresent === "no" ? false : null;
+        
+        const res = await fetch("http://localhost:8000/api/search/by-attributes", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            video_ids: Array.from(selectedVideos),
+            top_color: topColor,
+            bottom_color: bottomColor,
+            headgear: headgear,
+            bag_present: bagVal,
+            pose_state: poseState,
+            start_time: startVal,
+            end_time: endVal
+          })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.detail || "Attribute search failed");
+        }
+
+        result = await res.json();
+        queryStr = `👕 Top: ${topColor}, Bottom: ${bottomColor}, Head: ${headgear}, Pose: ${poseState}`;
+      } else {
+        result = await startActivityAnalysis(
+          Array.from(selectedVideos),
+          sampleFps,
+          crowdThreshold,
+          motionThreshold,
+          sceneChangeThreshold,
+          startVal,
+          endVal
+        );
+        queryStr = `Activity: Crowd ≥ ${crowdThreshold}`;
       }
 
       // Save search in local history
@@ -188,9 +273,15 @@ export default function SearchPage() {
       localStorage.setItem("visioncctv_history", JSON.stringify(updatedHistory));
 
       setJobId(result.job_id);
-      setJob({ status: "queued", type: mode, match_count: 0 });
+      setJob({ status: result.status as any || "queued", type: mode, match_count: 0 });
       showToast(`🔍 Search job triggered (${result.job_id})`, "info");
-      pollJob(result.job_id);
+      
+      if (result.status === "completed") {
+        showToast("✅ Attributes query database fetch complete!", "success");
+        setTimeout(() => router.push(`/results#${result.job_id}`), 1200);
+      } else {
+        pollJob(result.job_id);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Search failed";
       showToast(msg, "error");
@@ -209,7 +300,7 @@ export default function SearchPage() {
         <div className="page-header">
           <h1 className="page-title">🔍 Search Footage</h1>
           <p className="page-subtitle">
-            Scan your uploaded CCTV videos using advanced Face Re-ID, Open-Vocab CLIP, or License Plate Detection.
+            Scan your uploaded CCTV videos using advanced Face Re-ID, Open-Vocab CLIP, License Plate Detection, or visual clothing filters.
           </p>
         </div>
 
@@ -221,8 +312,17 @@ export default function SearchPage() {
           <button className={`tab ${mode === "keyword" ? "active" : ""}`} onClick={() => setMode("keyword")}>
             💬 Keyword Search
           </button>
+          <button className={`tab ${mode === "attributes" ? "active" : ""}`} onClick={() => setMode("attributes")}>
+            👕 Visual Attributes
+          </button>
           <button className={`tab ${mode === "lpr" ? "active" : ""}`} onClick={() => setMode("lpr")}>
             🚗 License Plate (LPR)
+          </button>
+          <button className={`tab ${mode === "object" ? "active" : ""}`} onClick={() => setMode("object")}>
+            🎯 Object Detection
+          </button>
+          <button className={`tab ${mode === "activity" ? "active" : ""}`} onClick={() => setMode("activity")}>
+            📊 Activity Analysis
           </button>
         </div>
 
@@ -232,7 +332,11 @@ export default function SearchPage() {
             {/* Input Selection Card */}
             <div className="card">
               <div className="section-title">
-                {mode === "image" ? "Suspect Database References" : mode === "keyword" ? "Keyword Query Description" : "Target License Plate"}
+                {mode === "image" ? "Suspect Database References" :
+                 mode === "keyword" ? "Keyword Query Description" :
+                 mode === "lpr" ? "Target License Plate" :
+                 mode === "object" ? "Target Classes" :
+                 mode === "attributes" ? "Clothing & Accessories Filter" : "Activity Thresholds"}
               </div>
 
               {mode === "image" && (
@@ -304,6 +408,78 @@ export default function SearchPage() {
                 </>
               )}
 
+              {mode === "attributes" && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Top Clothing Color</label>
+                    <select
+                      className="input-field"
+                      value={topColor}
+                      onChange={(e) => setTopColor(e.target.value)}
+                      style={{ background: "#0B0F14", width: "100%", boxSizing: "border-box" }}
+                    >
+                      {colorOptions.map((o) => (
+                        <option key={o.value} value={o.value} style={{ background: "var(--bg-card)" }}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Bottom Clothing Color</label>
+                    <select
+                      className="input-field"
+                      value={bottomColor}
+                      onChange={(e) => setBottomColor(e.target.value)}
+                      style={{ background: "#0B0F14", width: "100%", boxSizing: "border-box" }}
+                    >
+                      {colorOptions.map((o) => (
+                        <option key={o.value} value={o.value} style={{ background: "var(--bg-card)" }}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0, marginTop: "8px" }}>
+                    <label className="input-label">Headgear Status</label>
+                    <select
+                      className="input-field"
+                      value={headgear}
+                      onChange={(e) => setHeadgear(e.target.value)}
+                      style={{ background: "#0B0F14", width: "100%", boxSizing: "border-box" }}
+                    >
+                      <option value="all">Any</option>
+                      <option value="none">No headgear</option>
+                      <option value="helmet">Helmet worn</option>
+                      <option value="cap">Cap worn</option>
+                    </select>
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0, marginTop: "8px" }}>
+                    <label className="input-label">Pose State</label>
+                    <select
+                      className="input-field"
+                      value={poseState}
+                      onChange={(e) => setPoseState(e.target.value)}
+                      style={{ background: "#0B0F14", width: "100%", boxSizing: "border-box" }}
+                    >
+                      <option value="all">Any</option>
+                      <option value="standing">Standing</option>
+                      <option value="running">Running</option>
+                      <option value="crouching">Crouching</option>
+                    </select>
+                  </div>
+                  <div className="input-group" style={{ gridColumn: "span 2", marginBottom: 0, marginTop: "8px" }}>
+                    <label className="input-label">Backpack / Handbag Present</label>
+                    <select
+                      className="input-field"
+                      value={bagPresent}
+                      onChange={(e) => setBagPresent(e.target.value)}
+                      style={{ background: "#0B0F14", width: "100%", boxSizing: "border-box" }}
+                    >
+                      <option value="all">Any</option>
+                      <option value="yes">Yes, bag detected</option>
+                      <option value="no">No bag</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
               {mode === "lpr" && (
                 <>
                   <div className="input-group" style={{ marginBottom: 0 }}>
@@ -320,6 +496,44 @@ export default function SearchPage() {
                     🔍 Scans video frames for vehicle license plates and matches the requested character sequences.
                   </div>
                 </>
+              )}
+
+              {mode === "object" && (
+                <>
+                  <div className="input-group">
+                    <label className="input-label">Target Classes (comma separated)</label>
+                    <input
+                      className="input-field"
+                      placeholder='e.g. "person, car, backpack, knife, cell phone" (empty = all)'
+                      value={targetClassesStr}
+                      onChange={(e) => setTargetClassesStr(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    />
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.5 }}>
+                    💡 Popular categories: <strong>weapons</strong> (knife, scissors), <strong>vehicles</strong> (car, truck, motorcycle), <strong>bags</strong> (backpack, handbag), <strong>persons</strong>.
+                  </div>
+                </>
+              )}
+
+              {mode === "activity" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Crowd Density Threshold: {crowdThreshold} persons</label>
+                    <input type="range" min={1} max={20} step={1} value={crowdThreshold} onChange={(e) => setCrowdThreshold(Number(e.target.value))} style={{ width: "100%", accentColor: "var(--accent)" }} />
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Flags events containing this count or more people.</div>
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Motion Sensitivity Threshold: {(motionThreshold * 100).toFixed(0)}%</label>
+                    <input type="range" min={0.01} max={0.20} step={0.01} value={motionThreshold} onChange={(e) => setMotionThreshold(Number(e.target.value))} style={{ width: "100%", accentColor: "var(--accent)" }} />
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Percentage of frame pixels changing to trigger high-motion warning.</div>
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Scene Change Threshold: {(sceneChangeThreshold * 100).toFixed(0)}%</label>
+                    <input type="range" min={0.10} max={0.80} step={0.05} value={sceneChangeThreshold} onChange={(e) => setSceneChangeThreshold(Number(e.target.value))} style={{ width: "100%", accentColor: "var(--accent)" }} />
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Dissimilarity factor required to register sudden camera shifts.</div>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -359,18 +573,20 @@ export default function SearchPage() {
               <div className="input-group">
                 <label className="input-label">Frame Sample Rate (per sec): {sampleFps} Hz</label>
                 <input type="range" min={0.1} max={5} step={0.1} value={sampleFps} onChange={(e) => setSampleFps(Number(e.target.value))} style={{ width: "100%", accentColor: "var(--accent)" }} />
-                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>1.0 fps recommended for surveillance. Higher rates parse more frames but run slower.</div>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>1.0/2.0 fps recommended for surveillance. Higher rates parse more frames but run slower.</div>
               </div>
-              {mode === "image" && (
+              {(mode === "image" || mode === "object") && (
                 <div className="input-group">
-                  <label className="input-label">YOLO Face Detection Confidence: {(confidenceThreshold * 100).toFixed(0)}%</label>
+                  <label className="input-label">{mode === "image" ? "YOLO Face" : "YOLO Object"} Detection Confidence: {(confidenceThreshold * 100).toFixed(0)}%</label>
                   <input type="range" min={0.3} max={0.95} step={0.05} value={confidenceThreshold} onChange={(e) => setConfidenceThreshold(Number(e.target.value))} style={{ width: "100%", accentColor: "var(--accent)" }} />
                 </div>
               )}
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label">Model Match Threshold: {(similarityThreshold * 100).toFixed(0)}%</label>
-                <input type="range" min={0.1} max={0.95} step={0.05} value={similarityThreshold} onChange={(e) => setSimilarityThreshold(Number(e.target.value))} style={{ width: "100%", accentColor: "var(--accent)" }} />
-              </div>
+              {mode !== "activity" && mode !== "attributes" && (
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label">Model Match Threshold: {(similarityThreshold * 100).toFixed(0)}%</label>
+                  <input type="range" min={0.1} max={0.95} step={0.05} value={similarityThreshold} onChange={(e) => setSimilarityThreshold(Number(e.target.value))} style={{ width: "100%", accentColor: "var(--accent)" }} />
+                </div>
+              )}
             </div>
 
             {/* Run Button */}
@@ -466,12 +682,11 @@ export default function SearchPage() {
                 {job?.status === "completed" && (
                   <div>
                     <div style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--green)", marginBottom: 6 }}>
-                      🎯 Extraction Success! {job.match_count} Match{job.match_count !== 1 ? "es" : ""}
+                      🎯 Search Success!
                     </div>
                     <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Auto-navigating to results grid…</div>
                   </div>
                 )}
-
 
                 {job?.status === "failed" && (
                   <div style={{ color: "var(--accent)", fontSize: "0.8rem" }}>

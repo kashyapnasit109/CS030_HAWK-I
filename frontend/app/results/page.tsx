@@ -490,7 +490,11 @@ export default function ResultsPage() {
                 }}>
                   <span style={{ color: "var(--text-muted)" }}>Search type:</span>
                   <span style={{ fontWeight: 700, color: "var(--cyan)" }}>
-                    {job.type === "face_recognition" ? "👤 Face Re-ID" : job.type === "lpr" ? "🚗 License Plate (LPR)" : "💬 Keyword"}
+                    {job.type === "face_recognition" ? "👤 Face Re-ID" :
+                     job.type === "lpr" ? "🚗 License Plate (LPR)" :
+                     job.type === "keyword" ? "💬 Keyword" :
+                     job.type === "object_detection" ? "🎯 Object Detection" :
+                     "📊 Activity Analysis"}
                   </span>
                   <span style={{ color: "var(--border)" }}>|</span>
                   <span style={{ color: "var(--text-muted)" }}>Job ID:</span>
@@ -513,6 +517,45 @@ export default function ResultsPage() {
                     ))}
                   </div>
                 </div>
+
+                {job.activity_data && (
+                  <div className="card" style={{ marginBottom: 24, padding: 20 }}>
+                    <div className="section-title">📊 Activity Analysis Summary</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
+                      <div>
+                        {job.activity_data.heatmap_url && (
+                          <div style={{ borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }}>
+                            <img src={resolveStorageUrl(job.activity_data.heatmap_url)} alt="Activity Heatmap" style={{ width: "100%", maxHeight: 300, objectFit: "contain" }} />
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                          {[
+                            ["Total Frames Analyzed", job.activity_data.total_frames_analyzed],
+                            ["Max Persons Detected", job.activity_data.max_persons_detected],
+                            ["Average Persons/Frame", job.activity_data.average_persons_per_frame],
+                            ["Total Crowd Events", job.activity_data.total_crowd_events],
+                            ["Average Motion Intensity", `${((job.activity_data.average_motion_intensity ?? 0) * 100).toFixed(1)}%`],
+                            ["Scene Changes Detected", job.activity_data.total_scene_changes],
+                          ].map(([k, v]) => (
+                            <div key={k as string} style={{ background: "var(--bg-elevated)", padding: 12, borderRadius: 8 }}>
+                              <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>{k as string}</div>
+                              <div style={{ fontSize: "1.1rem", fontWeight: 800, fontFamily: "JetBrains Mono, monospace" }}>{v as any}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ background: "var(--bg-elevated)", padding: "12px 16px", borderRadius: 8, marginTop: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-secondary)" }}>OVERALL ACTIVITY LEVEL</span>
+                          <span className={`status-pill ${job.activity_data.activity_level === "HIGH" ? "status-failed" : job.activity_data.activity_level === "MEDIUM" ? "status-queued" : "status-completed"}`} style={{ fontWeight: 800 }}>
+                            {job.activity_data.activity_level}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <CameraTrailMap matches={matches} />
               </>
             )}
@@ -640,7 +683,10 @@ export default function ResultsPage() {
                         background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
                         fontSize: "0.65rem", color: "var(--text-secondary)",
                       }}>
-                        {match.search_type === "face_recognition" ? "👤" : match.search_type === "lpr" ? "🚗" : "💬"}
+                        {match.search_type === "face_recognition" ? "👤" :
+                         match.search_type === "lpr" ? "🚗" :
+                         match.search_type === "keyword" ? "💬" :
+                         match.search_type === "object_detection" ? "🎯" : "📊"}
                       </div>
                     </div>
 

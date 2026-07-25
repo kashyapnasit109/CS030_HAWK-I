@@ -1,0 +1,222 @@
+-- VisionCCTV / SentinelVision SQLite Schema Spec
+
+-- Users Table
+CREATE TABLE IF NOT EXISTS users (
+  user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  name TEXT NOT NULL,
+  role_ext TEXT NOT NULL DEFAULT 'operator', -- admin, supervisor, investigator, operator, auditor
+  mfa_enabled INTEGER NOT NULL DEFAULT 0,    -- 0 = False, 1 = True
+  totp_secret TEXT NULL
+);
+
+-- Cameras Table
+CREATE TABLE IF NOT EXISTS cameras (
+  camera_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  brand TEXT NOT NULL DEFAULT 'generic',
+  is_connected INTEGER NOT NULL DEFAULT 0,
+  is_running INTEGER NOT NULL DEFAULT 0,
+  detection_active INTEGER NOT NULL DEFAULT 0,
+  width INTEGER NOT NULL DEFAULT 1920,
+  height INTEGER NOT NULL DEFAULT 1080,
+  fps REAL NOT NULL DEFAULT 25.0,
+  error TEXT NULL,
+  added_at REAL NOT NULL,
+  continuous_recording INTEGER NOT NULL DEFAULT 0,
+  ptz_capable INTEGER NOT NULL DEFAULT 0
+);
+
+-- Camera Zones Table
+CREATE TABLE IF NOT EXISTS zones (
+  zone_id TEXT PRIMARY KEY,
+  camera_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  zone_type TEXT NOT NULL DEFAULT 'general', -- restricted, general
+  points TEXT NOT NULL,                      -- JSON coordinate pairs array
+  active_from TEXT NOT NULL DEFAULT '00:00',
+  active_to TEXT NOT NULL DEFAULT '23:59',
+  FOREIGN KEY (camera_id) REFERENCES cameras(camera_id) ON DELETE CASCADE
+);
+
+-- Investigation Cases
+CREATE TABLE IF NOT EXISTS cases (
+  case_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_number TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NULL,
+  investigating_officer_id INTEGER NULL,
+  status TEXT NOT NULL DEFAULT 'open',      -- open, under_review, closed
+  created_at REAL NOT NULL,
+  closed_at REAL NULL,
+  FOREIGN KEY (investigating_officer_id) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+-- Case Media (Ingested Evidence Clips)
+CREATE TABLE IF NOT EXISTS case_media (
+  media_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_id INTEGER NOT NULL,
+  source_label TEXT NULL,
+  original_filename TEXT NULL,
+  file_path TEXT NOT NULL,
+  sha256_hash TEXT NOT NULL,                -- Forensic hash computed on upload
+  duration_seconds REAL NULL,
+  resolution TEXT NULL,
+  uploaded_by INTEGER NULL,
+  uploaded_at REAL NOT NULL,
+  processing_status TEXT NOT NULL DEFAULT 'queued', -- queued, processing, done, failed
+  FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE CASCADE,
+  FOREIGN KEY (uploaded_by) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+-- Reference Images (Suspect or Vehicle Photos)
+CREATE TABLE IF NOT EXISTS reference_images (
+  ref_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_id INTEGER NULL,
+  uploaded_by INTEGER NULL,
+  image_path TEXT NOT NULL,
+  subject_type TEXT NOT NULL,               -- person, vehicle
+  label TEXT NULL,
+  embedding TEXT NULL,                      -- JSON serialized vector embedding
+  created_at REAL NOT NULL,
+  FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE SET NULL,
+  FOREIGN KEY (uploaded_by) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+-- Detection Events (CCTV Frames matched by modules)
+CREATE TABLE IF NOT EXISTS detection_events (
+  event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_id INTEGER NULL,
+  camera_id TEXT NOT NULL,
+  module TEXT NOT NULL,                     -- ANPR, VELOCITY, INTRUSION, etc.
+  object_type TEXT NOT NULL,                -- person, vehicle, etc.
+  object_label TEXT NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'low',     -- low, medium, high
+  summary TEXT NOT NULL,
+  searchable TEXT NOT NULL,
+  plate TEXT NULL,
+  detected_at REAL NOT NULL,
+  reviewed INTEGER NOT NULL DEFAULT 0,
+  false_positive INTEGER NOT NULL DEFAULT 0,
+  heuristic INTEGER NOT NULL DEFAULT 1,
+  frame_hash TEXT NULL,                     -- Forensic hash of frame image file
+  frame_path TEXT NULL,
+  track_id TEXT NULL,
+  FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE SET NULL,
+  FOREIGN KEY (camera_id) REFERENCES cameras(camera_id) ON DELETE CASCADE
+);
+
+-- Re-ID Matches
+CREATE TABLE IF NOT EXISTS reid_matches (
+  match_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ref_id INTEGER NOT NULL,
+  event_id INTEGER NOT NULL,
+  similarity_score REAL NOT NULL,
+  reviewed INTEGER NOT NULL DEFAULT 0,
+  matched_at REAL NOT NULL,
+  FOREIGN KEY (ref_id) REFERENCES reference_images(ref_id) ON DELETE CASCADE,
+  FOREIGN KEY (event_id) REFERENCES detection_events(event_id) ON DELETE CASCADE
+);
+
+-- Person Visual Attributes
+CREATE TABLE IF NOT EXISTS person_attributes (
+  attribute_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_id INTEGER NOT NULL,
+  top_color TEXT NULL,
+  bottom_color TEXT NULL,
+  headgear TEXT NULL,                       -- helmet, cap, none
+  bag_present INTEGER NOT NULL DEFAULT 0,   -- 0 = False, 1 = True
+  pose_state TEXT NULL,                     -- standing, running, crouching
+  confidence REAL NOT NULL DEFAULT 1.0,
+  FOREIGN KEY (event_id) REFERENCES detection_events(event_id) ON DELETE CASCADE
+);
+
+-- Watchlists
+CREATE TABLE IF NOT EXISTS watchlists (
+  watchlist_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,                       -- face, plate
+  created_by INTEGER NULL,
+  created_at REAL NOT NULL,
+  FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+-- Watchlist Entries
+CREATE TABLE IF NOT EXISTS watchlist_entries (
+  entry_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  watchlist_id INTEGER NOT NULL,
+  reference_image_id INTEGER NULL,
+  plate_number TEXT NULL,
+  alert_severity TEXT NOT NULL DEFAULT 'high', -- low, medium, high
+  added_at REAL NOT NULL,
+  FOREIGN KEY (watchlist_id) REFERENCES watchlists(watchlist_id) ON DELETE CASCADE,
+  FOREIGN KEY (reference_image_id) REFERENCES reference_images(ref_id) ON DELETE CASCADE
+);
+
+-- Chain of Custody (tamper-evident audit log for evidence pieces)
+CREATE TABLE IF NOT EXISTS chain_of_custody (
+  custody_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  media_id INTEGER NULL,
+  event_id INTEGER NULL,
+  action TEXT NOT NULL,                     -- ingested, hashed, viewed, exported, annotated
+  user_id INTEGER NOT NULL,
+  hash_value TEXT NULL,
+  notes TEXT NULL,
+  created_at REAL NOT NULL,
+  FOREIGN KEY (media_id) REFERENCES case_media(media_id) ON DELETE SET NULL,
+  FOREIGN KEY (event_id) REFERENCES detection_events(event_id) ON DELETE SET NULL,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- Export Reports (Signed forensic exports)
+CREATE TABLE IF NOT EXISTS export_reports (
+  report_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_id INTEGER NOT NULL,
+  generated_by INTEGER NOT NULL,
+  file_path TEXT NOT NULL,
+  sha256_hash TEXT NOT NULL,
+  generated_at REAL NOT NULL,
+  FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE CASCADE,
+  FOREIGN KEY (generated_by) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- Continuous Playback Recording Chunks
+CREATE TABLE IF NOT EXISTS recordings (
+  recording_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  camera_id TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  start_time REAL NOT NULL,
+  end_time REAL NOT NULL,
+  sha256_hash TEXT NULL,
+  storage_tier TEXT NOT NULL DEFAULT 'hot', -- hot, archive
+  FOREIGN KEY (camera_id) REFERENCES cameras(camera_id) ON DELETE CASCADE
+);
+
+-- PTZ Presets
+CREATE TABLE IF NOT EXISTS ptz_presets (
+  preset_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  camera_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  pan REAL NOT NULL DEFAULT 0.0,
+  tilt REAL NOT NULL DEFAULT 0.0,
+  zoom REAL NOT NULL DEFAULT 1.0,
+  FOREIGN KEY (camera_id) REFERENCES cameras(camera_id) ON DELETE CASCADE
+);
+
+-- Global Auditing Operations Logs
+CREATE TABLE IF NOT EXISTS audit_log (
+  audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts REAL NOT NULL,
+  user TEXT NOT NULL,
+  action TEXT NOT NULL,
+  detail TEXT NOT NULL
+);
+
+-- Create Indexes for fast visual lookup and reports integrity
+CREATE INDEX IF NOT EXISTS idx_events_camera_time ON detection_events(camera_id, detected_at);
+CREATE INDEX IF NOT EXISTS idx_reid_ref_score ON reid_matches(ref_id, similarity_score);
+CREATE INDEX IF NOT EXISTS idx_custody_media ON chain_of_custody(media_id);
+CREATE INDEX IF NOT EXISTS idx_recordings_camera_time ON recordings(camera_id, start_time);
+CREATE INDEX IF NOT EXISTS idx_case_media_case ON case_media(case_id);

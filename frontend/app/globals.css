@@ -2,36 +2,36 @@
 
 /* ─── Design Tokens ─────────────────────────────── */
 :root {
-  --bg-base:       #0a0a0f;
-  --bg-surface:    #10101a;
-  --bg-card:       #14141f;
-  --bg-elevated:   #1a1a2e;
-  --border:        rgba(255,255,255,0.06);
-  --border-hover:  rgba(255,255,255,0.14);
+  --bg-base:       #0B0F14;
+  --bg-surface:    #121821;
+  --bg-card:       #161e27;
+  --bg-elevated:   #1A2129;
+  --border:        rgba(255,255,255,0.07);
+  --border-hover:  rgba(255,255,255,0.15);
 
-  --accent:        #e94560;
-  --accent-dim:    rgba(233,69,96,0.15);
-  --accent-glow:   rgba(233,69,96,0.35);
-  --blue:          #0f3460;
-  --blue-light:    #16213e;
-  --cyan:          #00d4ff;
-  --cyan-dim:      rgba(0,212,255,0.12);
-  --green:         #00ff88;
-  --green-dim:     rgba(0,255,136,0.12);
-  --yellow:        #ffd700;
+  --accent:        #2DD4BF;
+  --accent-dim:    rgba(45,212,191,0.12);
+  --accent-glow:   rgba(45,212,191,0.3);
+  --blue:          #16213e;
+  --blue-light:    #1a2d42;
+  --cyan:          #2DD4BF;
+  --cyan-dim:      rgba(45,212,191,0.12);
+  --green:         #10b981;
+  --green-dim:     rgba(16,185,129,0.12);
+  --yellow:        #F59E0B;
 
-  --text-primary:  #f0f0f8;
-  --text-secondary:#9999bb;
-  --text-muted:    #5a5a7a;
+  --text-primary:  #E6EDF3;
+  --text-secondary:#94a3b8;
+  --text-muted:    #64748b;
 
   --radius-sm:     6px;
   --radius-md:     12px;
   --radius-lg:     18px;
   --radius-xl:     24px;
 
-  --shadow-card:   0 4px 32px rgba(0,0,0,0.5);
-  --shadow-glow:   0 0 40px rgba(233,69,96,0.2);
-  --transition:    0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-card:   0 8px 32px rgba(0,0,0,0.6);
+  --shadow-glow:   0 0 40px rgba(45,212,191,0.15);
+  --transition:    0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ─── Reset & Base ──────────────────────────────── */
@@ -745,6 +745,27 @@ img { max-width: 100%; display: block; }
   .results-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 }
 
+/* ─── Hero Section Responsive ───────────────────── */
+@media (max-width: 780px) {
+  /* Hero wraps to column on small screens — padding reduced */
+  .hero-section {
+    padding: 28px 24px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  /* Terminal panel stretches full-width when stacked */
+  .hero-terminal {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: unset !important;
+  }
+}
+
+/* ─── Main content min-width guard ─────────────── */
+.main-content {
+  min-width: 0;
+}
+
 /* ─── Result Card Play Overlay ──────────────────── */
 .play-overlay { background: transparent !important; }
 .result-card:hover .play-overlay { background: rgba(0,0,0,0.45) !important; }
@@ -779,4 +800,52 @@ select.input-field {
   background-position: right 12px center;
   padding-right: 32px;
   cursor: pointer;
+}
+
+/* ─── Sidebar Branding ──────────────────────────── */
+.sidebar-branding {
+  margin-top: 12px;
+  padding: 10px 12px 6px;
+  border-top: 1px solid var(--border);
+}
+
+.branding-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  cursor: default;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-branding:hover .branding-label {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.branding-members {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+  margin-top: 0;
+}
+
+.sidebar-branding:hover .branding-members {
+  max-height: 120px;
+  opacity: 1;
+  margin-top: 6px;
+}
+
+.branding-members span {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  padding-left: 2px;
+  opacity: 0.8;
 }

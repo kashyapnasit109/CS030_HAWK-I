@@ -208,7 +208,7 @@ export default function DashboardPage() {
     <ToastProvider>
       <AppLayout>
         {/* ── Hero Section ─────────────────────────────── */}
-        <div style={{
+        <div className="hero-section" style={{
           position: "relative",
           borderRadius: "var(--radius-xl)",
           overflow: "hidden",
@@ -218,7 +218,9 @@ export default function DashboardPage() {
           minHeight: 280,
           display: "flex",
           alignItems: "center",
+          gap: 32,
           padding: "40px 48px",
+          flexWrap: "wrap",
         }}>
           {/* Canvas background */}
           <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />
@@ -302,13 +304,15 @@ export default function DashboardPage() {
           </div>
 
           {/* Right panel — terminal style */}
-          <div style={{
+          <div className="hero-terminal" style={{
             position: "relative",
             background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.06)",
             borderRadius: "var(--radius-md)", padding: "16px 20px",
             fontFamily: "JetBrains Mono, monospace", fontSize: "0.72rem",
             color: "var(--text-secondary)", minWidth: 260, maxWidth: 300,
             backdropFilter: "blur(8px)",
+            flexShrink: 0,
+            alignSelf: "center",
           }}>
             <div style={{ color: "var(--green)", marginBottom: 10, fontWeight: 600 }}>// system.status</div>
             {[
@@ -344,7 +348,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div className="grid-2" style={{ gap: 24, alignItems: "start", marginBottom: 32 }}>
+        <div className="grid-2" style={{ gap: 24, alignItems: "start", marginBottom: 32, rowGap: 24 }}>
           {/* Tag Cloud Card */}
           <div className="card">
             <div className="section-title">💬 Commonly Detected Tag Cloud</div>

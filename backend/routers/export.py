@@ -8,21 +8,24 @@ import re
 import time
 import uuid
 import zipfile
+import sqlite3
+import hashlib
 from io import BytesIO
 from pathlib import Path
 
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
+from database import get_db
+import auth_utils
 
 router = APIRouter()
 
 BASE_DIR = Path(__file__).parent.parent
 RESULTS_DIR = BASE_DIR / "storage" / "results"
+REPORTS_DIR = RESULTS_DIR / "reports"
+REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-
-import hashlib
 
 def _calculate_sha256(file_path: Path) -> str:
     """Calculate the SHA-256 hash of a file."""
@@ -211,8 +214,12 @@ def _generate_pdf(
 
 
 @router.post("/report")
-def export_report(request: ExportReportRequest):
-    """Generate and download a forensic PDF report for a completed search job."""
+def export_report(
+    request: ExportReportRequest,
+    db: sqlite3.Connection = Depends(get_db),
+    user = Depends(auth_utils.get_current_user)
+):
+    """Generate and download a forensic PDF report for a completed search job, registering its hash."""
     # Find manifest files for this job
     all_matches = []
 
@@ -243,13 +250,78 @@ def export_report(request: ExportReportRequest):
         notes=request.notes,
     )
 
+    # Calculate PDF forensic signature hash
+    pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
+
+    # Find matching case ID
+    cursor = db.cursor()
+    cursor.execute("SELECT case_id FROM cases WHERE case_number = ?;", (request.case_number,))
+    case_row = cursor.fetchone()
+    case_id = case_row["case_id"] if case_row else 1
+
+    # Save PDF copy on VMS server
+    pdf_name = f"report_{pdf_hash[:10]}.pdf"
+    pdf_local_path = REPORTS_DIR / pdf_name
+    pdf_local_path.write_bytes(pdf_bytes)
+
+    # Insert into export_reports catalog
+    cursor.execute(
+        """INSERT INTO export_reports (case_id, generated_by, file_path, sha256_hash, generated_at) 
+           VALUES (?, ?, ?, ?, ?);""",
+        (case_id, user["user_id"], f"/storage/results/reports/{pdf_name}", pdf_hash, time.time())
+    )
+    db.commit()
+
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="visioncctv_report_{request.job_id}.pdf"'
+            "Content-Disposition": f'attachment; filename="visioncctv_report_{request.job_id}.pdf"',
+            "X-Forensic-Signature": pdf_hash
         },
     )
+
+
+@router.post("/verify")
+def verify_report(
+    file: UploadFile = File(...),
+    db: sqlite3.Connection = Depends(get_db)
+):
+    """Verify an uploaded forensic PDF report against registered database signatures."""
+    try:
+        content = file.file.read()
+        file_hash = hashlib.sha256(content).hexdigest()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {e}")
+
+    cursor = db.cursor()
+    cursor.execute(
+        """SELECT r.report_id, r.sha256_hash, r.generated_at, u.name as officer_name, c.case_number, c.title as case_title
+           FROM export_reports r
+           LEFT JOIN users u ON r.generated_by = u.user_id
+           LEFT JOIN cases c ON r.case_id = c.case_id
+           WHERE r.sha256_hash = ?;""",
+        (file_hash,)
+    )
+    report = cursor.fetchone()
+
+    if report:
+        return {
+            "verified": True,
+            "hash": file_hash,
+            "report_id": report["report_id"],
+            "case_number": report["case_number"],
+            "case_title": report["case_title"],
+            "generated_by": report["officer_name"],
+            "generated_at": report["generated_at"],
+            "generated_at_str": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(report["generated_at"]))
+        }
+    else:
+        return {
+            "verified": False,
+            "hash": file_hash,
+            "message": "Report signature mismatch or untrusted document hash"
+        }
 
 
 @router.get("/clip")
