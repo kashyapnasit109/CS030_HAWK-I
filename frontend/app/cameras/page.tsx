@@ -9,6 +9,7 @@ import {
   getCameraStreamUrl, getCameraSnapshotUrl, listReferences,
   CameraInfo, DiscoveredCamera, DetectionAlert, ReferenceMeta
 } from "@/lib/api";
+import { VideoIcon, SearchIcon, HourglassIcon, PlusIcon, AlertIcon, ActivityIcon, UserIcon, TargetIcon, SignalIcon, WarningIcon } from "@/components/Icons";
 
 export default function CamerasPage() {
   const [cameras, setCameras] = useState<CameraInfo[]>([]);
@@ -176,12 +177,14 @@ export default function CamerasPage() {
       <AppLayout>
         <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h1 className="page-title">📷 Live CCTV Feeds</h1>
+            <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <VideoIcon size={24} style={{ color: "var(--accent)" }} /> Live CCTV Feeds
+            </h1>
             <p className="page-subtitle">Add, discover, and scan actual IP based security cameras over local area networks.</p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button className="btn btn-secondary" onClick={() => setShowDiscovery(!showDiscovery)}>
-              🔍 {showDiscovery ? "Hide Discovery Panel" : "Discover LAN Cameras"}
+            <button className="btn btn-secondary" onClick={() => setShowDiscovery(!showDiscovery)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <SearchIcon size={14} /> {showDiscovery ? "Hide Discovery Panel" : "Discover LAN Cameras"}
             </button>
           </div>
         </div>
@@ -190,7 +193,7 @@ export default function CamerasPage() {
         {showDiscovery && (
           <div className="card" style={{ marginBottom: 24, border: "1px solid rgba(0,212,255,0.3)", background: "linear-gradient(135deg, rgba(0,212,255,0.02) 0%, rgba(10,10,15,0.8) 100%)" }}>
             <div className="section-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span>🔍 LAN IP Camera Discovery</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}><SearchIcon size={14} /> LAN IP Camera Discovery</span>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowDiscovery(false)}>✕</button>
             </div>
             <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: 16 }}>
@@ -204,8 +207,8 @@ export default function CamerasPage() {
                 value={subnet}
                 onChange={(e) => setSubnet(e.target.value)}
               />
-              <button className="btn btn-primary" onClick={handleDiscover} disabled={discovering}>
-                {discovering ? "⏳ Scanning Subnet..." : "⚡ Scan Subnet /24"}
+              <button className="btn btn-primary" onClick={handleDiscover} disabled={discovering} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {discovering ? <><HourglassIcon size={14} /> Scanning Subnet...</> : <><ActivityIcon size={14} /> Scan Subnet /24</>}
               </button>
             </div>
 
@@ -249,7 +252,7 @@ export default function CamerasPage() {
               </div>
             ) : discovering ? (
               <div style={{ textAlign: "center", padding: "30px 10px", color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                <div style={{ fontSize: "1.5rem", marginBottom: 8, animation: "spin 2s linear infinite" }}>🔄</div>
+                <ActivityIcon size={24} style={{ color: "var(--text-muted)", animation: "spin 2s linear infinite", marginBottom: 8 }} />
                 Probing common manufacturer ports (554, 8554, 8080) for active camera server daemons...
               </div>
             ) : (
@@ -276,15 +279,15 @@ export default function CamerasPage() {
                   <div style={{ display: "flex", gap: 8 }}>
                     {activeCamInfo.detection_active ? (
                       <button className="btn btn-secondary btn-sm" style={{ background: "rgba(233,69,96,0.15)", color: "var(--accent)", borderColor: "rgba(233,69,96,0.3)" }} onClick={() => handleStopDetection(activeCamInfo.id)}>
-                        🛑 Stop Live Detection
+                      <AlertIcon size={14} /> Stop Live Detection
                       </button>
                     ) : (
-                      <button className="btn btn-primary btn-sm" onClick={() => setShowDetConfig(true)}>
-                        📡 Start Real-Time AI Detection
+                      <button className="btn btn-primary btn-sm" onClick={() => setShowDetConfig(true)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <SignalIcon size={14} /> Start Real-Time AI Detection
                       </button>
                     )}
-                    <button className="btn btn-ghost btn-sm" style={{ color: "var(--accent)" }} onClick={() => handleRemoveCamera(activeCamInfo.id)}>
-                      🗑 Delete
+                    <button className="btn btn-ghost btn-sm" style={{ color: "var(--accent)", display: "flex", alignItems: "center", gap: 4 }} onClick={() => handleRemoveCamera(activeCamInfo.id)}>
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -313,7 +316,7 @@ export default function CamerasPage() {
                       color: "var(--text-muted)", padding: 20, textAlign: "center"
                     }}
                   >
-                    <div style={{ fontSize: "3rem", marginBottom: 12 }}>⚠️</div>
+                    <WarningIcon size={40} style={{ color: "var(--accent)", marginBottom: 12 }} />
                     <div style={{ fontWeight: 700, color: "var(--text-secondary)", marginBottom: 4 }}>STREAM UNREACHABLE / DISCONNECTED</div>
                     <div style={{ fontSize: "0.75rem", maxWidth: "400px" }}>
                       RTSP link error: <span className="mono" style={{ color: "var(--accent)" }}>{activeCamInfo.url}</span>. Make sure the credentials or IP port configuration are accurate.
@@ -323,7 +326,9 @@ export default function CamerasPage() {
               </div>
             ) : (
               <div className="empty-state card" style={{ padding: "60px 20px" }}>
-                <div className="empty-state-icon">🎥</div>
+                <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center" }}>
+                  <VideoIcon size={36} style={{ color: "var(--text-muted)" }} />
+                </div>
                 <div className="empty-state-title">No cameras selected</div>
                 <div className="empty-state-sub">Select or add a security camera to view live feed streaming.</div>
               </div>
@@ -360,7 +365,7 @@ export default function CamerasPage() {
                       <div style={{ width: 44, height: 44, background: "#000", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", overflow: "hidden" }}>
                         {c.is_connected ? (
                           <img src={getCameraSnapshotUrl(c.id)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.target as HTMLElement).style.display = "none"; }} />
-                        ) : "🎥"}
+                        ) : <VideoIcon size={20} style={{ color: "var(--text-muted)" }} />}
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: "0.78rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
@@ -440,8 +445,8 @@ export default function CamerasPage() {
                   </div>
                 )}
 
-                <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }} disabled={adding}>
-                  {adding ? "⏳ Connecting device..." : "➕ Register Stream Endpoint"}
+                <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: 6 }} disabled={adding}>
+                  {adding ? <><HourglassIcon size={14} /> Connecting device...</> : <><PlusIcon size={14} /> Register Stream Endpoint</>}
                 </button>
               </form>
             </div>
@@ -454,9 +459,9 @@ export default function CamerasPage() {
                   <div className="input-group" style={{ marginBottom: 0 }}>
                     <label className="input-label">AI Scanning Task Type</label>
                     <select className="input-field" value={detectionType} onChange={(e) => setDetectionType(e.target.value)}>
-                      <option value="face">👤 Face Extraction Mode</option>
-                      <option value="object">🎯 YOLOv8 Object Classification</option>
-                      <option value="motion">🏃 Pixel Motion Tracking</option>
+                      <option value="face">Face Extraction Mode</option>
+                      <option value="object">YOLOv8 Object Classification</option>
+                      <option value="motion">Pixel Motion Tracking</option>
                     </select>
                   </div>
 
@@ -489,7 +494,7 @@ export default function CamerasPage() {
 
               {alerts.length === 0 ? (
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 10px", color: "var(--text-muted)", textAlign: "center" }}>
-                  <div style={{ fontSize: "2rem", marginBottom: 8 }}>📡</div>
+                  <SignalIcon size={28} style={{ color: "var(--text-muted)", marginBottom: 8 }} />
                   <div style={{ fontSize: "0.8rem", fontWeight: 600 }}>Active scan monitoring standby or no targets matched yet</div>
                 </div>
               ) : (

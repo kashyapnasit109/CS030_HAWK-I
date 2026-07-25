@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import { listReferences, ReferenceMeta } from "@/lib/api";
+import { PlusIcon, TargetIcon, UserIcon, TrashIcon, CloseIcon } from "@/components/Icons";
 
 interface WatchlistEntry {
   entry_id: number;
@@ -42,27 +43,27 @@ export default function WatchlistsPage() {
   // Fetch Watchlists list
   const loadWatchlists = useCallback(async () => {
     try {
-      const token = localStorage.getItem("visioncctv_token");
-      const res = await fetch("http://localhost:8000/api/watchlists/list", {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
+      const res = await fetch("http://localhost:8000/api/watchlists/list");
       if (!res.ok) throw new Error("Failed to load watchlists");
       const data = await res.json();
-      setWatchlists(data.watchlists);
+      setWatchlists(data.watchlists || []);
+      if (data.watchlists && data.watchlists.length > 0 && !activeListId) {
+        setActiveListId(data.watchlists[0].watchlist_id);
+      }
     } catch (err: any) {
-      showToast(err.message || "Failed to load watchlists", "error");
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeListId]);
 
   // Fetch Reference images for Face Watchlists
   const loadReferences = useCallback(async () => {
     try {
-      const res = await listReferences();
-      setReferences(res.references);
-    } catch (err: any) {
-      console.error("Failed to load reference images", err);
+      const data = await listReferences();
+      setReferences(data.references || []);
+    } catch {
+      // silent
     }
   }, []);
 
@@ -73,35 +74,24 @@ export default function WatchlistsPage() {
 
   const handleCreateWatchlist = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!listName.trim()) {
-      showToast("Watchlist name is required", "error");
-      return;
-    }
+    if (!listName.trim()) return;
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem("visioncctv_token");
       const res = await fetch("http://localhost:8000/api/watchlists/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: listName,
-          type: listType
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: listName, type: listType })
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Failed to create watchlist");
-      }
-
-      showToast("Watchlist created successfully", "success");
-      setShowCreateModal(false);
+      if (!res.ok) throw new Error("Failed to create watchlist");
+      
+      const data = await res.json();
+      showToast("Watchlist created", "success");
       setListName("");
-      loadWatchlists();
+      setShowCreateModal(false);
+      await loadWatchlists();
+      setActiveListId(data.watchlist.watchlist_id);
     } catch (err: any) {
       showToast(err.message, "error");
     } finally {
@@ -112,52 +102,29 @@ export default function WatchlistsPage() {
   const handleAddEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeListId) return;
-
-    const wl = watchlists.find(w => w.watchlist_id === activeListId);
-    if (!wl) return;
-
     setAddingEntry(true);
-    const token = localStorage.getItem("visioncctv_token");
 
     try {
       let res;
-      if (wl.type === "plate") {
-        if (!plateNumber.trim()) {
-          showToast("License plate number is required", "error");
-          setAddingEntry(false);
-          return;
-        }
+      const activeList = watchlists.find(w => w.watchlist_id === activeListId);
+
+      if (activeList?.type === "plate") {
+        if (!plateNumber.trim()) throw new Error("Plate number is required");
         res = await fetch(`http://localhost:8000/api/watchlists/${activeListId}/add_plate`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            plate_number: plateNumber,
-            alert_severity: alertSeverity
-          })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plate_number: plateNumber.trim().toUpperCase(), alert_severity: alertSeverity })
         });
       } else {
-        if (!selectedRefId) {
-          showToast("Suspect face reference photo is required", "error");
-          setAddingEntry(false);
-          return;
-        }
+        if (!selectedRefId) throw new Error("Please select a suspect reference photo");
         res = await fetch(`http://localhost:8000/api/watchlists/${activeListId}/add_face?reference_image_id=${selectedRefId}&alert_severity=${alertSeverity}`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
+          method: "POST"
         });
       }
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Failed to add target to watchlist");
-      }
+      if (!res.ok) throw new Error("Failed to add entry");
 
-      showToast("Suspect added to watchlist folder", "success");
+      showToast("Target added to watchlist", "success");
       setPlateNumber("");
       setSelectedRefId("");
       loadWatchlists();
@@ -170,12 +137,10 @@ export default function WatchlistsPage() {
 
   const handleRemoveEntry = async (entryId: number) => {
     if (!activeListId) return;
-    const token = localStorage.getItem("visioncctv_token");
 
     try {
       const res = await fetch(`http://localhost:8000/api/watchlists/${activeListId}/entries/${entryId}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
+        method: "DELETE"
       });
 
       if (!res.ok) throw new Error("Failed to delete entry");
@@ -199,9 +164,9 @@ export default function WatchlistsPage() {
               <strong style={{ color: "var(--text-primary)", fontSize: "0.95rem" }}>Watchlists</strong>
               <button 
                 onClick={() => setShowCreateModal(true)}
-                style={{ background: "var(--accent-dim)", color: "var(--accent)", border: "1px solid rgba(45,212,191,0.2)", borderRadius: "4px", padding: "2px 8px", fontSize: "0.75rem", cursor: "pointer", fontWeight: "bold" }}
+                style={{ background: "var(--accent-dim)", color: "var(--accent)", border: "1px solid rgba(45,212,191,0.2)", borderRadius: "4px", padding: "4px 10px", fontSize: "0.75rem", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: 4 }}
               >
-                ➕ Add
+                <PlusIcon size={12} /> Add
               </button>
             </div>
 
@@ -216,12 +181,6 @@ export default function WatchlistsPage() {
                     key={w.watchlist_id}
                     onClick={() => setActiveListId(w.watchlist_id)}
                     style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: "8px", cursor: "pointer", background: activeListId === w.watchlist_id ? "var(--accent-dim)" : "transparent", color: activeListId === w.watchlist_id ? "var(--accent)" : "var(--text-secondary)", transition: "var(--transition)" }}
-                    onMouseEnter={(e) => {
-                      if (activeListId !== w.watchlist_id) e.currentTarget.style.background = "var(--bg-elevated)";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (activeListId !== w.watchlist_id) e.currentTarget.style.background = "transparent";
-                    }}
                   >
                     <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>{w.name}</span>
                     <span style={{ fontSize: "0.7rem", fontFamily: "monospace", opacity: 0.7, textTransform: "uppercase" }}>{w.type}</span>
@@ -235,7 +194,7 @@ export default function WatchlistsPage() {
           <div>
             {!activeList ? (
               <div style={{ display: "flex", flexDirection: "column", height: "300px", alignItems: "center", justifyContent: "center", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px", textAlign: "center", padding: "20px" }}>
-                <span style={{ fontSize: "2.5rem", marginBottom: "12px" }}>🎯</span>
+                <TargetIcon size={44} style={{ color: "var(--accent)", marginBottom: "12px" }} />
                 <h3 style={{ color: "var(--text-primary)", fontSize: "1.1rem", margin: 0 }}>No Watchlist Selected</h3>
                 <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: "8px" }}>Select a watchlist from the side panel to view entries and add search targets.</p>
               </div>
@@ -258,25 +217,24 @@ export default function WatchlistsPage() {
                     <form onSubmit={handleAddEntry}>
                       {activeList.type === "plate" ? (
                         <div style={{ marginBottom: "16px" }}>
-                          <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase" }}>License Plate Number</label>
+                          <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase" }}>License Plate</label>
                           <input 
                             type="text" 
-                            required
-                            placeholder="e.g. GJ06ZZ0007"
+                            placeholder="e.g. MH12AB1234"
                             value={plateNumber}
                             onChange={(e) => setPlateNumber(e.target.value)}
-                            style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "6px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
+                            style={{ width: "100%", boxSizing: "border-box", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "6px", padding: "8px 10px", color: "var(--text-primary)", fontSize: "0.9rem", outline: "none" }}
                           />
                         </div>
                       ) : (
                         <div style={{ marginBottom: "16px" }}>
-                          <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase" }}>Suspect Face Reference</label>
+                          <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase" }}>Suspect Reference</label>
                           <select 
                             value={selectedRefId}
                             onChange={(e) => setSelectedRefId(e.target.value)}
-                            style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "6px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
+                            style={{ width: "100%", boxSizing: "border-box", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "6px", padding: "8px 10px", color: "var(--text-primary)", fontSize: "0.85rem", outline: "none" }}
                           >
-                            <option value="">-- Select Suspect Profile --</option>
+                            <option value="">Select Reference Photo...</option>
                             {references.map((r) => (
                               <option key={r.id} value={r.id}>{r.label}</option>
                             ))}
@@ -285,40 +243,39 @@ export default function WatchlistsPage() {
                       )}
 
                       <div style={{ marginBottom: "20px" }}>
-                        <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase" }}>Alert Severity Level</label>
+                        <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase" }}>Alert Severity</label>
                         <select 
                           value={alertSeverity}
                           onChange={(e) => setAlertSeverity(e.target.value)}
-                          style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "6px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
+                          style={{ width: "100%", boxSizing: "border-box", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "6px", padding: "8px 10px", color: "var(--text-primary)", fontSize: "0.85rem", outline: "none" }}
                         >
-                          <option value="high">HIGH (Immediate Alarm)</option>
-                          <option value="medium">MEDIUM (Warning log)</option>
-                          <option value="low">LOW (Audit tag)</option>
+                          <option value="high">HIGH (Critical Red Alert)</option>
+                          <option value="medium">MEDIUM (Warning Yellow)</option>
+                          <option value="low">LOW (Informational Blue)</option>
                         </select>
                       </div>
 
                       <button 
                         type="submit" 
                         disabled={addingEntry}
-                        style={{ width: "100%", background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "6px", padding: "10px", fontSize: "0.85rem", fontWeight: "bold", cursor: "pointer" }}
+                        style={{ width: "100%", background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "6px", padding: "10px", fontSize: "0.85rem", fontWeight: 700, cursor: "pointer" }}
                       >
-                        {addingEntry ? "Saving..." : "Add Target"}
+                        {addingEntry ? "Adding..." : "Add to Watchlist"}
                       </button>
                     </form>
                   </div>
 
                   {/* Targets List */}
                   <div>
-                    <h4 style={{ color: "var(--text-primary)", fontSize: "0.95rem", margin: "0 0 16px 0" }}>Active Watchlist Targets ({activeList.entries.length})</h4>
+                    <h4 style={{ color: "var(--text-primary)", fontSize: "0.9rem", margin: "0 0 16px 0" }}>Current Watchlist Entries ({activeList.entries.length})</h4>
                     
                     {activeList.entries.length === 0 ? (
-                      <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", padding: "20px 0" }}>
-                        No entries registered in this watchlist.
+                      <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", padding: "32px", textAlign: "center", background: "var(--bg-elevated)", border: "1px dashed var(--border)", borderRadius: "8px" }}>
+                        No target entries added to this watchlist yet.
                       </div>
                     ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                         {activeList.entries.map((entry) => {
-                          // Find corresponding reference image if face type
                           const refImage = references.find(r => r.id === String(entry.reference_image_id));
                           return (
                             <div 
@@ -332,7 +289,7 @@ export default function WatchlistsPage() {
                                       {refImage?.image_url ? (
                                         <img src={`http://localhost:8000${refImage.image_url}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                       ) : (
-                                        <span>👤</span>
+                                        <UserIcon size={18} style={{ color: "var(--text-muted)" }} />
                                       )}
                                     </div>
                                     <div>
@@ -356,10 +313,10 @@ export default function WatchlistsPage() {
                                 </span>
                                 <button
                                   onClick={() => handleRemoveEntry(entry.entry_id)}
-                                  style={{ background: "transparent", border: "none", color: "#ef4444", fontSize: "1rem", cursor: "pointer", padding: 0 }}
+                                  style={{ background: "transparent", border: "none", color: "#ef4444", fontSize: "1rem", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}
                                   title="Delete target"
                                 >
-                                  🗑️
+                                  <TrashIcon size={16} />
                                 </button>
                               </div>
                             </div>
@@ -382,9 +339,9 @@ export default function WatchlistsPage() {
                 <h2 style={{ color: "var(--text-primary)", fontSize: "1.2rem", margin: 0 }}>Create Watchlist Folder</h2>
                 <button 
                   onClick={() => setShowCreateModal(false)}
-                  style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "1.2rem" }}
+                  style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "1.2rem", display: "flex", alignItems: "center" }}
                 >
-                  ✖
+                  <CloseIcon size={18} />
                 </button>
               </div>
 
@@ -402,33 +359,23 @@ export default function WatchlistsPage() {
                 </div>
 
                 <div style={{ marginBottom: "24px" }}>
-                  <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase" }}>Watchlist Type</label>
+                  <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase" }}>Target Mode</label>
                   <select 
                     value={listType}
                     onChange={(e) => setListType(e.target.value)}
                     style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
                   >
-                    <option value="plate">Plate Numbers Watchlist</option>
-                    <option value="face">Suspect Face Watchlist</option>
+                    <option value="plate">Automated License Plate Recognition (ANPR)</option>
+                    <option value="face">Face Recognition & Re-Identification</option>
                   </select>
                 </div>
-
-                <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowCreateModal(false)}
-                    style={{ background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 16px", cursor: "pointer" }}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    disabled={submitting}
-                    style={{ background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "10px 20px", fontWeight: "bold", cursor: "pointer" }}
-                  >
-                    {submitting ? "Creating..." : "Create Watchlist"}
-                  </button>
-                </div>
+                <button 
+                  type="submit" 
+                  disabled={submitting}
+                  style={{ width: "100%", background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer" }}
+                >
+                  {submitting ? "Creating..." : "Create Watchlist"}
+                </button>
               </form>
             </div>
           </div>

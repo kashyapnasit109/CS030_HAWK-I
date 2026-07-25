@@ -13,6 +13,7 @@ from typing import Any, Callable, Optional
 
 import cv2
 import numpy as np
+import opencv_compat  # noqa: F401
 
 BASE_DIR = Path(__file__).parent.parent
 RESULTS_DIR = BASE_DIR / "storage" / "results"

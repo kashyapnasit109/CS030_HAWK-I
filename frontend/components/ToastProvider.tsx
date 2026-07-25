@@ -19,6 +19,8 @@ export function showToast(message: string, type: Toast["type"] = "info") {
 
 import { useState } from "react";
 
+import { CheckIcon, CloseIcon, WarningIcon } from "./Icons";
+
 export default function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -34,7 +36,13 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
     _showToast = addToast;
   }, [addToast]);
 
-  const icons = { success: "✓", error: "✕", info: "ℹ" };
+  const renderIcon = (type: Toast["type"]) => {
+    switch (type) {
+      case "success": return <CheckIcon size={16} />;
+      case "error": return <CloseIcon size={16} />;
+      default: return <WarningIcon size={16} />;
+    }
+  };
 
   return (
     <>
@@ -42,7 +50,7 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toast-container">
         {toasts.map((t) => (
           <div key={t.id} className={`toast toast-${t.type}`}>
-            <span>{icons[t.type]}</span>
+            <span style={{ display: "flex", alignItems: "center" }}>{renderIcon(t.type)}</span>
             {t.message}
           </div>
         ))}

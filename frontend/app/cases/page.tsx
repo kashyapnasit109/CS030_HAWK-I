@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
+import { PlusIcon, FolderIcon, UploadIcon, FileTextIcon, CloseIcon, ChevronRightIcon } from "@/components/Icons";
 
 interface Case {
   case_id: number;
@@ -199,7 +200,7 @@ export default function CasesPage() {
                 onClick={() => setShowCreateModal(true)}
                 style={{ background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "10px 20px", fontWeight: "bold", fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <span>➕</span> Create Case Folder
+                <PlusIcon size={16} /> Create Case Folder
               </button>
             </div>
 
@@ -207,7 +208,7 @@ export default function CasesPage() {
               <div style={{ color: "var(--text-secondary)", textAlign: "center", padding: "40px" }}>Loading case folders...</div>
             ) : cases.length === 0 ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "16px", padding: "48px", textAlign: "center" }}>
-                <span style={{ fontSize: "2.5rem", marginBottom: "16px" }}>📂</span>
+                <FolderIcon size={36} style={{ color: "var(--text-muted)", marginBottom: "16px" }} />
                 <h3 style={{ color: "var(--text-primary)", fontSize: "1.25rem", margin: 0 }}>No active cases found</h3>
                 <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginTop: "8px", maxWidth: "320px" }}>Create your first case folder to start grouping evidence and CCTV footage.</p>
               </div>
@@ -250,7 +251,7 @@ export default function CasesPage() {
                 onClick={() => { setActiveCaseId(null); setCaseDetail(null); }}
                 style={{ background: "transparent", color: "var(--accent)", border: "none", outline: "none", cursor: "pointer", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "6px", padding: 0 }}
               >
-                <span>⬅</span> Back to Cases
+                <ChevronRightIcon size={16} style={{ transform: "rotate(180deg)" }} /> Back to Cases
               </button>
             </div>
 
@@ -314,9 +315,9 @@ export default function CasesPage() {
                                 <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", width: "180px" }}>{m.sha256_hash}</span>
                                 <button 
                                   onClick={() => { navigator.clipboard.writeText(m.sha256_hash); showToast("Hash copied!", "success"); }}
-                                  style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", padding: 0 }}
+                                  style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}
                                 >
-                                  📋
+                                  <FileTextIcon size={12} />
                                 </button>
                               </div>
                             </div>
@@ -348,7 +349,7 @@ export default function CasesPage() {
                         onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--accent)"}
                         onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--border)"}
                       >
-                        <span style={{ fontSize: "2rem", display: "block", marginBottom: "8px" }}>📤</span>
+                        <UploadIcon size={28} style={{ color: "var(--text-muted)", display: "block", margin: "0 auto 8px" }} />
                         <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 500 }}>
                           {uploading ? "Ingesting & Hashing..." : "Drag & drop or click to ingest video"}
                         </span>
@@ -407,9 +408,9 @@ export default function CasesPage() {
                 <h2 style={{ color: "var(--text-primary)", fontSize: "1.25rem", margin: 0 }}>Create Investigation Case</h2>
                 <button 
                   onClick={() => setShowCreateModal(false)}
-                  style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "1.2rem" }}
+                  style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}
                 >
-                  ✖
+                  <CloseIcon size={18} />
                 </button>
               </div>
 

@@ -8,6 +8,7 @@ import {
   listCameras, startCameraDetection, stopCameraDetection,
   getCameraStreamUrl, getCameraSnapshotUrl, CameraInfo, DetectionAlert
 } from "@/lib/api";
+import { SignalIcon, AlertIcon, UserIcon, LiveIcon } from "@/components/Icons";
 
 interface AlertItem {
   id: string;
@@ -223,7 +224,7 @@ export default function LivePage() {
     };
 
     setAlerts((prev) => [newAlert, ...prev].slice(0, 15));
-    showToast(`🚨 TARGET SPOTTED on ${newAlert.cameraId}!`, "error");
+    showToast(`TARGET SPOTTED on ${newAlert.cameraId}!`, "error");
   }, [selectedRef]);
 
   // Simulated Alert timer (only runs when scanning and no real cameras exist)
@@ -282,7 +283,9 @@ export default function LivePage() {
       <AppLayout>
         <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h1 className="page-title">📡 Live Feed Alert Monitor</h1>
+            <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <SignalIcon size={24} style={{ color: "var(--accent)" }} /> Live Feed Alert Monitor
+            </h1>
             <p className="page-subtitle">Real-time surveillance footage processing with instant AI alert triggers.</p>
           </div>
           <button
@@ -296,7 +299,9 @@ export default function LivePage() {
               boxShadow: isScanning ? "none" : "0 4px 20px rgba(233,69,96,0.3)",
             }}
           >
-            {isScanning ? "🛑 Stop Live Scan" : "📡 Start Live Scan"}
+            {isScanning
+              ? <><AlertIcon size={16} /> Stop Live Scan</>
+              : <><SignalIcon size={16} /> Start Live Scan</>}
           </button>
         </div>
 
@@ -527,7 +532,7 @@ export default function LivePage() {
                   padding: "40px 10px", color: "var(--text-muted)",
                   textAlign: "center"
                 }}>
-                  <div style={{ fontSize: "2rem", marginBottom: 8 }}>📡</div>
+                  <SignalIcon size={28} style={{ color: "var(--text-muted)", marginBottom: 8 }} />
                   <div style={{ fontSize: "0.8rem", fontWeight: 600 }}>Scanning inactive or no matches yet</div>
                 </div>
               ) : (
@@ -552,7 +557,9 @@ export default function LivePage() {
                           style={{ width: 44, height: 44, borderRadius: 4, objectFit: "cover", flexShrink: 0 }}
                         />
                       ) : (
-                        <div style={{ width: 44, height: 44, background: "var(--bg-elevated)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>👤</div>
+                        <div style={{ width: 44, height: 44, background: "var(--bg-elevated)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <UserIcon size={20} style={{ color: "var(--text-muted)" }} />
+                        </div>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>

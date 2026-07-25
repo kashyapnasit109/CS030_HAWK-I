@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
+import { ShieldIcon, ActivityIcon } from "@/components/Icons";
 
 interface AuditLog {
   audit_id: number;
@@ -47,7 +48,9 @@ export default function AuditTrailPage() {
     <ToastProvider>
       <AppLayout>
         <div style={{ marginBottom: "24px" }}>
-          <h1 style={{ color: "var(--text-primary)", fontSize: "1.75rem", fontWeight: 700, margin: 0 }}>🛡️ System Audit Trail</h1>
+          <h1 style={{ color: "var(--text-primary)", fontSize: "1.75rem", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
+            <ShieldIcon size={28} style={{ color: "var(--accent)" }} /> System Audit Trail
+          </h1>
           <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginTop: "4px" }}>
             Review historical access logs, search queries, and forensic exports cataloged by user accounts.
           </p>
@@ -60,7 +63,7 @@ export default function AuditTrailPage() {
               onClick={loadAuditLogs}
               style={{ background: "transparent", color: "var(--accent)", border: "1px solid var(--border)", borderRadius: "6px", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}
             >
-              🔄 Refresh Logs
+              <ActivityIcon size={14} /> Refresh Logs
             </button>
           </div>
 

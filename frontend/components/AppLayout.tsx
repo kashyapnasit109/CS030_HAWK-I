@@ -13,7 +13,12 @@ import {
   FolderIcon,
   AlertIcon,
   SettingsIcon,
-  ShieldIcon
+  ShieldIcon,
+  EyeIcon,
+  BellIcon,
+  WarningIcon,
+  LockIcon,
+  SignalIcon
 } from "./Icons";
 
 interface NavItem {
@@ -53,8 +58,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   // Auth state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<{ username: string; name: string; role: string } | null>(null);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
+  const [signupName, setSignupName] = useState("");
+  const [signupRole, setSignupRole] = useState("operator");
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -121,6 +129,43 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       setLoginError(err.message || "Failed to connect to authentication server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:8000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: signupName,
+          username: usernameInput,
+          password: passwordInput,
+          role: signupRole,
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Registration failed");
+      }
+
+      const data = await res.json();
+      localStorage.setItem("visioncctv_token", data.token);
+      localStorage.setItem("visioncctv_user", JSON.stringify(data.user));
+      setUser(data.user);
+      setIsAuthenticated(true);
+      setUsernameInput("");
+      setPasswordInput("");
+      setSignupName("");
+    } catch (err: any) {
+      setLoginError(err.message || "Failed to register new account");
     } finally {
       setLoading(false);
     }
@@ -199,56 +244,64 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   if (!isAuthenticated) {
     return (
       <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#0B0F14", fontFamily: "sans-serif", padding: "20px" }}>
-        <div style={{ width: "100%", maxWidth: "400px", background: "#121821", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "16px", padding: "32px", boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
-          <div style={{ textAlign: "center", marginBottom: "32px" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "48px", height: "48px", background: "linear-gradient(135deg, #2DD4BF, #00ff88)", borderRadius: "12px", fontSize: "1.5rem", marginBottom: "16px" }}>👁</div>
-            <h1 style={{ color: "#E6EDF3", fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>Sentinel<span style={{ color: "#2DD4BF" }}>Vision</span></h1>
-            <p style={{ color: "#64748b", fontSize: "0.85rem", marginTop: "8px" }}>Law Enforcement CCTV Intelligence Portal</p>
+        <div style={{ width: "100%", maxWidth: "420px", background: "#121821", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", padding: "32px", boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}>
+          <div style={{ textAlign: "center", marginBottom: "24px" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "52px", height: "52px", background: "linear-gradient(135deg, #2DD4BF, #00ff88)", borderRadius: "14px", marginBottom: "12px", boxShadow: "0 0 20px rgba(45, 212, 191, 0.3)" }}>
+              <EyeIcon size={28} style={{ color: "#0B0F14" }} />
+            </div>
+            <h1 style={{ color: "#E6EDF3", fontSize: "1.6rem", fontWeight: 700, margin: 0, letterSpacing: "-0.5px" }}>Sentinel<span style={{ color: "#2DD4BF" }}>Vision</span></h1>
+            <p style={{ color: "#64748b", fontSize: "0.85rem", marginTop: "6px" }}>Law Enforcement CCTV Intelligence Portal</p>
           </div>
 
-          {loginError && (
-            <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "8px", padding: "12px", color: "#EF4444", fontSize: "0.85rem", marginBottom: "20px" }}>
-              ⚠️ {loginError}
+          {/* Mode Switcher Tabs */}
+          {!mfaRequired && (
+            <div style={{ display: "flex", background: "#161e27", padding: "4px", borderRadius: "10px", marginBottom: "24px", border: "1px solid rgba(255,255,255,0.05)" }}>
+              <button
+                type="button"
+                onClick={() => { setAuthMode("login"); setLoginError(""); }}
+                style={{
+                  flex: 1,
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: authMode === "login" ? "#2DD4BF" : "transparent",
+                  color: authMode === "login" ? "#0B0F14" : "#94a3b8",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode("signup"); setLoginError(""); }}
+                style={{
+                  flex: 1,
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: authMode === "signup" ? "#2DD4BF" : "transparent",
+                  color: authMode === "signup" ? "#0B0F14" : "#94a3b8",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                Sign Up
+              </button>
             </div>
           )}
 
-          {!mfaRequired ? (
-            <form onSubmit={handleLoginSubmit}>
-              <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.8rem", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase" }}>Username</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g. investigator"
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "0.95rem", outline: "none" }}
-                />
-              </div>
+          {loginError && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(239, 68, 68, 0.12)", border: "1px solid rgba(239, 68, 68, 0.35)", borderRadius: "10px", padding: "12px", color: "#EF4444", fontSize: "0.85rem", marginBottom: "20px" }}>
+              <WarningIcon size={16} /> {loginError}
+            </div>
+          )}
 
-              <div style={{ marginBottom: "24px" }}>
-                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.8rem", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase" }}>Password</label>
-                <input 
-                  type="password" 
-                  required
-                  placeholder="••••••••"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "0.95rem", outline: "none" }}
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={loading}
-                style={{ width: "100%", background: "#2DD4BF", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "12px", fontSize: "1rem", fontWeight: 700, cursor: "pointer", transition: "0.15s opacity" }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-              >
-                {loading ? "Authenticating..." : "Sign In"}
-              </button>
-            </form>
-          ) : (
+          {mfaRequired ? (
             <form onSubmit={handleMfaSubmit}>
               <div style={{ marginBottom: "24px" }}>
                 <label style={{ display: "block", color: "#94a3b8", fontSize: "0.8rem", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase" }}>Authenticator Code</label>
@@ -261,15 +314,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   onChange={(e) => setMfaCode(e.target.value)}
                   style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "1.2rem", letterSpacing: "8px", textAlign: "center", outline: "none" }}
                 />
-                <p style={{ color: "#64748b", fontSize: "0.75rem", marginTop: "8px", textAlign: "center" }}>Enter the code from your Google Authenticator app.</p>
+                <p style={{ color: "#64748b", fontSize: "0.75rem", marginTop: "8px", textAlign: "center" }}>Enter code from Google Authenticator</p>
               </div>
 
               <button 
                 type="submit" 
                 disabled={loading}
-                style={{ width: "100%", background: "#2DD4BF", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "12px", fontSize: "1rem", fontWeight: 700, cursor: "pointer", transition: "0.15s opacity" }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
+                style={{ width: "100%", background: "#2DD4BF", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer" }}
               >
                 {loading ? "Verifying..." : "Verify Code"}
               </button>
@@ -280,6 +331,118 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 style={{ width: "100%", background: "transparent", color: "#94a3b8", border: "none", marginTop: "12px", fontSize: "0.85rem", cursor: "pointer" }}
               >
                 Back to Sign In
+              </button>
+            </form>
+          ) : authMode === "login" ? (
+            <form onSubmit={handleLoginSubmit}>
+              <div style={{ marginBottom: "18px" }}>
+                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Username</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. investigator"
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "0.95rem", outline: "none" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "22px" }}>
+                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Password</label>
+                <input 
+                  type="password" 
+                  required
+                  placeholder="••••••••"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "0.95rem", outline: "none" }}
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                style={{ width: "100%", background: "linear-gradient(135deg, #2DD4BF, #14b8a6)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s opacity" }}
+              >
+                {loading ? "Authenticating..." : "Sign In"}
+              </button>
+
+              {/* Demo User Shortcuts */}
+              <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <p style={{ color: "#64748b", fontSize: "0.75rem", marginBottom: "8px", textAlign: "center" }}>Quick Demo Accounts (Password: <code style={{ color: "#2DD4BF" }}>hawki</code>):</p>
+                <div style={{ display: "flex", gap: "6px", justifyContent: "center", flexWrap: "wrap" }}>
+                  {["admin", "investigator", "operator", "supervisor"].map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => { setUsernameInput(u); setPasswordInput("hawki"); }}
+                      style={{ background: "#161e27", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", padding: "4px 8px", color: "#94a3b8", fontSize: "0.75rem", cursor: "pointer" }}
+                    >
+                      {u}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleRegisterSubmit}>
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Full Name</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Inspector Rajan"
+                  value={signupName}
+                  onChange={(e) => setSignupName(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Username</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. rajan_officer"
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Password</label>
+                <input 
+                  type="password" 
+                  required
+                  placeholder="At least 4 characters"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "22px" }}>
+                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Assigned System Role</label>
+                <select
+                  value={signupRole}
+                  onChange={(e) => setSignupRole(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                >
+                  <option value="operator">Control Room Operator</option>
+                  <option value="investigator">Cyber Cell Investigator</option>
+                  <option value="supervisor">Duty Supervisor</option>
+                  <option value="auditor">Forensic Auditor</option>
+                  <option value="admin">System Administrator</option>
+                </select>
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                style={{ width: "100%", background: "linear-gradient(135deg, #2DD4BF, #14b8a6)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s opacity" }}
+              >
+                {loading ? "Creating Account..." : "Create Account"}
               </button>
             </form>
           )}
@@ -294,7 +457,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <header className="topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
           <div className="topbar-logo" style={{ cursor: "pointer" }} onClick={() => router.push("/")}>
-            <div className="icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", background: "linear-gradient(135deg, var(--accent), #00ff88)", borderRadius: "8px" }}>👁</div>
+            <div className="icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", background: "linear-gradient(135deg, var(--accent), #00ff88)", borderRadius: "8px" }}>
+              <EyeIcon size={18} style={{ color: "#0B0F14" }} />
+            </div>
             <span>Sentinel<span className="accent">Vision</span></span>
           </div>
           
@@ -317,7 +482,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           onClick={() => setPaletteOpen(true)}
           style={{ display: "flex", alignItems: "center", gap: "12px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "8px", padding: "6px 14px", width: "240px", cursor: "pointer", color: "var(--text-muted)", fontSize: "0.85rem" }}
         >
-          <span>🔍 Search commands...</span>
+          <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><SearchIcon size={14} /> Search commands...</span>
           <kbd style={{ marginLeft: "auto", background: "var(--bg-card)", border: "1px solid var(--border)", padding: "1px 6px", borderRadius: "4px", fontSize: "0.7rem", fontFamily: "monospace" }}>Ctrl+K</kbd>
         </div>
 
@@ -327,7 +492,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             onClick={() => router.push("/results")}
             style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "50%", background: "var(--bg-elevated)", border: "1px solid var(--border)" }}
           >
-            <span style={{ fontSize: "1.1rem" }}>🔔</span>
+            <BellIcon size={18} />
             {alertsCount > 0 && (
               <span style={{ position: "absolute", top: "-2px", right: "-2px", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--yellow)", color: "#000", fontSize: "0.65rem", fontWeight: "bold", borderRadius: "50%", width: "16px", height: "16px" }}>
                 {alertsCount}
@@ -396,7 +561,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div style={{ marginTop: "auto", borderTop: "1px solid var(--border)", paddingTop: "12px" }}>
           <a href="http://localhost:8000/docs" target="_blank" rel="noopener">
             <div className="nav-item">
-              <span style={{ fontSize: "1rem" }}>📡</span>
+              <SignalIcon size={16} />
               Swagger API Docs
             </div>
           </a>
@@ -417,7 +582,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           children
         ) : (
           <div style={{ display: "flex", flexDirection: "column", height: "100%", alignItems: "center", justifyContent: "center", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "16px", padding: "40px", textAlign: "center" }}>
-            <span style={{ fontSize: "3rem", marginBottom: "16px" }}>🔒</span>
+            <LockIcon size={48} style={{ color: "var(--accent)", marginBottom: "16px" }} />
             <h2 style={{ color: "var(--text-primary)", fontSize: "1.5rem", marginBottom: "8px" }}>Access Denied</h2>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", maxWidth: "400px", margin: "0 auto 24px" }}>
               Your account role ({user?.role.toUpperCase()}) does not have permissions to access this page. Please contact your administrator.
@@ -443,7 +608,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ padding: "16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center" }}>
-              <span style={{ marginRight: "12px" }}>🔍</span>
+              <SearchIcon size={18} style={{ marginRight: "12px", color: "var(--text-muted)" }} />
               <input 
                 type="text" 
                 autoFocus

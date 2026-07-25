@@ -9,7 +9,17 @@ export async function apiFetch<T>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, options);
+  const headers = new Headers(options?.headers || {});
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("visioncctv_token");
+    if (token && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+  }
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
   if (!res.ok) {
     const err = await res.text();
     throw new Error(err || `HTTP ${res.status}`);

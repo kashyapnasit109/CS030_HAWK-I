@@ -13,12 +13,20 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    name: str
+    role: str = "operator"
+
 class MfaVerifyRequest(BaseModel):
     username: str
     code: str
 
 # Temp store for MFA verification pending (username -> timestamp)
 mfa_pending = {}
+
+VALID_ROLES = {"admin", "supervisor", "investigator", "operator", "auditor"}
 
 @router.post("/login")
 def login(
@@ -29,7 +37,7 @@ def login(
     cursor = db.cursor()
     cursor.execute(
         "SELECT user_id, username, password_hash, name, role_ext, mfa_enabled, totp_secret FROM users WHERE username = ?;",
-        (req.username,)
+        (req.username.strip(),)
     )
     user = cursor.fetchone()
     
@@ -60,6 +68,75 @@ def login(
             "name": user["name"],
             "role": user["role_ext"],
             "mfa_enabled": False
+        }
+    }
+
+@router.post("/register")
+@router.post("/signup")
+def register(
+    req: RegisterRequest,
+    db: sqlite3.Connection = Depends(get_db),
+    _ = Depends(auth_utils.check_rate_limit)
+):
+    username = req.username.strip()
+    name = req.name.strip()
+    password = req.password
+    role = req.role.strip().lower()
+
+    if not username or len(username) < 3:
+        raise HTTPException(status_code=400, detail="Username must be at least 3 characters long")
+    if not password or len(password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters long")
+    if not name:
+        raise HTTPException(status_code=400, detail="Full name is required")
+    if role not in VALID_ROLES:
+        role = "operator"
+
+    cursor = db.cursor()
+    cursor.execute("SELECT user_id FROM users WHERE LOWER(username) = LOWER(?);", (username,))
+    if cursor.fetchone():
+        raise HTTPException(status_code=400, detail="Username is already taken. Please choose another.")
+
+    hashed_pw = auth_utils.hash_password(password)
+    cursor.execute(
+        "INSERT INTO users (username, password_hash, name, role_ext) VALUES (?, ?, ?, ?);",
+        (username, hashed_pw, name, role)
+    )
+    db.commit()
+    user_id = cursor.lastrowid
+
+    token = auth_utils.create_session(user_id, username, role)
+    from routers.audit import log_system_audit
+    log_system_audit(db, username, "register", f"User registered account with role: {role}")
+
+    return {
+        "success": True,
+        "token": token,
+        "user": {
+            "username": username,
+            "name": name,
+            "role": role,
+            "mfa_enabled": False
+        },
+        "message": "Account created successfully"
+    }
+
+@router.get("/me")
+def get_me(user = Depends(auth_utils.get_current_user), db: sqlite3.Connection = Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute(
+        "SELECT user_id, username, name, role_ext, mfa_enabled FROM users WHERE username = ?;",
+        (user["username"],)
+    )
+    row = cursor.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {
+        "user": {
+            "username": row["username"],
+            "name": row["name"],
+            "role": row["role_ext"],
+            "mfa_enabled": bool(row["mfa_enabled"])
         }
     }
 
@@ -142,3 +219,4 @@ def logout(
     log_system_audit(db, user["username"], "logout", "Logged out of SentinelVision portal")
         
     return {"success": True, "message": "Successfully logged out"}
+

@@ -3,39 +3,28 @@
 import { useState, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
+import { LockIcon, ShieldIcon, FileTextIcon, CheckIcon, CloseIcon } from "@/components/Icons";
 
 export default function SettingsPage() {
-  // MFA States
-  const [mfaSecret, setMfaSecret] = useState("");
-  const [mfaEnrollUrl, setMfaEnrollUrl] = useState("");
+  const [mfaSecret, setMfaSecret] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
 
-  // Verification States
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleEnrollMfa = async () => {
     setEnrolling(true);
-    setMfaSecret("");
-    setMfaEnrollUrl("");
-
     try {
       const token = localStorage.getItem("visioncctv_token");
       const res = await fetch("http://localhost:8000/api/auth/mfa/enroll", {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` }
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Failed to enroll in MFA");
-      }
-
+      if (!res.ok) throw new Error("Failed to enroll in MFA");
       const data = await res.json();
       setMfaSecret(data.secret);
-      setMfaEnrollUrl(data.otpauth_url);
-      showToast("MFA Enrollment initiated. Scan QR or copy key.", "success");
+      showToast("MFA Enrollment started!", "success");
     } catch (err: any) {
       showToast(err.message, "error");
     } finally {
@@ -62,20 +51,15 @@ export default function SettingsPage() {
         body: formData
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Failed to verify report");
-      }
-
       const data = await res.json();
       setVerifyResult(data);
       if (data.verified) {
         showToast("Report signature verified successfully!", "success");
       } else {
-        showToast("Report signature invalid or untrusted!", "error");
+        showToast("Report verification failed", "error");
       }
     } catch (err: any) {
-      showToast(err.message || "Failed to process PDF verification", "error");
+      showToast("Failed to verify PDF report", "error");
     } finally {
       setVerifying(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -85,16 +69,15 @@ export default function SettingsPage() {
   return (
     <ToastProvider>
       <AppLayout>
-        <div style={{ marginBottom: "32px" }}>
-          <h1 style={{ color: "var(--text-primary)", fontSize: "1.75rem", fontWeight: 700, margin: 0 }}>System Settings &amp; Security</h1>
+        <div style={{ marginBottom: "24px" }}>
+          <h1 style={{ color: "var(--text-primary)", fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>System Settings & Compliance</h1>
           <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginTop: "4px" }}>Configure Multi-Factor Authentication and audit PDF report signatures.</p>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", alignItems: "flex-start" }}>
-          {/* Left Column: MFA Enrollment */}
           <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px", padding: "24px" }}>
             <h2 style={{ color: "var(--text-primary)", fontSize: "1.2rem", fontWeight: 700, margin: "0 0 16px 0", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>🔐</span> Multi-Factor Authentication (MFA)
+              <LockIcon size={20} style={{ color: "var(--accent)" }} /> Multi-Factor Authentication (MFA)
             </h2>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", lineHeight: 1.5, marginBottom: "20px" }}>
               Enforce time-based one-time password (TOTP) codes on login. This prevents unauthorized access to forensic databases even if passwords are leaked.
@@ -118,11 +101,11 @@ export default function SettingsPage() {
                     {mfaSecret}
                   </code>
                   <button
-                    onClick={() => { navigator.clipboard.writeText(mfaSecret); showToast("Secret key copied!", "success"); }}
-                    style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "1.2rem" }}
+                    onClick={() => { if (mfaSecret) { navigator.clipboard.writeText(mfaSecret); showToast("Secret key copied!", "success"); }}}
+                    style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}
                     title="Copy key"
                   >
-                    📋
+                    <FileTextIcon size={16} />
                   </button>
                 </div>
 
@@ -138,10 +121,9 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Right Column: Report Verification */}
           <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px", padding: "24px" }}>
             <h2 style={{ color: "var(--text-primary)", fontSize: "1.2rem", fontWeight: 700, margin: "0 0 16px 0", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>🛡️</span> Forensic PDF Verification
+              <ShieldIcon size={20} style={{ color: "var(--accent)" }} /> Forensic PDF Verification
             </h2>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", lineHeight: 1.5, marginBottom: "20px" }}>
               Upload any SentinelVision-generated PDF report to compute its SHA-256 hash and verify its integrity against the VMS signing catalog.
@@ -153,7 +135,9 @@ export default function SettingsPage() {
               onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--accent)"}
               onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--border)"}
             >
-              <span style={{ fontSize: "2rem", display: "block", marginBottom: "8px" }}>📄</span>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "8px" }}>
+                <FileTextIcon size={36} style={{ color: "var(--accent)" }} />
+              </div>
               <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 500 }}>
                 {verifying ? "Hashing & Verifying..." : "Click or drag PDF report to verify"}
               </span>
@@ -181,7 +165,9 @@ export default function SettingsPage() {
               >
                 {verifyResult.verified ? (
                   <div>
-                    <h3 style={{ color: "var(--green)", fontSize: "0.95rem", margin: "0 0 12px 0" }}>✅ Report Signature Verified</h3>
+                    <h3 style={{ color: "var(--green)", fontSize: "0.95rem", margin: "0 0 12px 0", display: "flex", alignItems: "center", gap: 6 }}>
+                      <CheckIcon size={16} /> Report Signature Verified
+                    </h3>
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
                       <div>Case Number: <strong style={{ color: "var(--text-primary)" }}>{verifyResult.case_number}</strong></div>
                       <div>Case Title: <strong style={{ color: "var(--text-primary)" }}>{verifyResult.case_title}</strong></div>
@@ -192,7 +178,9 @@ export default function SettingsPage() {
                   </div>
                 ) : (
                   <div>
-                    <h3 style={{ color: "#EF4444", fontSize: "0.95rem", margin: "0 0 6px 0" }}>❌ Verification Failed</h3>
+                    <h3 style={{ color: "#EF4444", fontSize: "0.95rem", margin: "0 0 6px 0", display: "flex", alignItems: "center", gap: 6 }}>
+                      <CloseIcon size={16} /> Verification Failed
+                    </h3>
                     <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", margin: "0 0 8px 0" }}>{verifyResult.message}</p>
                     <div style={{ wordBreak: "break-all", fontSize: "0.7rem", color: "var(--text-muted)" }}>Computed Hash: {verifyResult.hash}</div>
                   </div>

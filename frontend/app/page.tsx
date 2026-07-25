@@ -6,6 +6,22 @@ import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import { listVideos, listReferences, startImageSearch, getJobStatus, VideoMeta, ReferenceMeta } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import {
+  FilmIcon,
+  UserIcon,
+  SearchIcon,
+  ShieldIcon,
+  RocketIcon,
+  UploadIcon,
+  FileTextIcon,
+  CameraIcon,
+  VideoIcon,
+  ClockIcon,
+  BarChartIcon,
+  MessageIcon,
+  TrendingUpIcon,
+  CheckIcon,
+} from "@/components/Icons";
 
 // Animated counter hook
 function useCountUp(target: number, duration = 1200) {
@@ -78,25 +94,20 @@ export default function DashboardPage() {
 
       // Particles
       particles.forEach((p) => {
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(233,69,96,${p.alpha})`;
         ctx.fill();
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
       });
 
       // Scanline
-      scanY = (scanY + 0.8) % canvas.height;
-      const grad = ctx.createLinearGradient(0, scanY - 20, 0, scanY + 20);
-      grad.addColorStop(0, "transparent");
-      grad.addColorStop(0.5, "rgba(0,212,255,0.04)");
-      grad.addColorStop(1, "transparent");
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, scanY - 20, canvas.width, 40);
+      ctx.strokeStyle = "rgba(0,212,255,0.04)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, scanY); ctx.lineTo(canvas.width, scanY); ctx.stroke();
+      scanY = (scanY + 0.5) % canvas.height;
 
       animId = requestAnimationFrame(draw);
     }
@@ -133,7 +144,7 @@ export default function DashboardPage() {
     setDemoRunning(true);
 
     try {
-      setDemoStep("🎬 Loading demo video...");
+      setDemoStep("Loading demo video...");
       await new Promise(r => setTimeout(r, 600));
 
       const [v, r] = await Promise.all([listVideos(), listReferences()]);
@@ -146,33 +157,33 @@ export default function DashboardPage() {
         setDemoRunning(false); setDemoStep(""); return;
       }
 
-      setDemoStep("👤 Selecting suspects from database...");
+      setDemoStep("Selecting suspects from database...");
       await new Promise(r => setTimeout(r, 700));
 
-      setDemoStep("🔍 Launching AI face recognition...");
+      setDemoStep("Launching AI face recognition...");
       const videoIds = v.videos.map(vv => vv.id);
       const refIds = r.references.slice(0, 4).map(rr => rr.id);
       const job = await startImageSearch(videoIds, refIds, 0.5, 0.8, 1.0);
       setDemoJobId(job.job_id);
 
-      setDemoStep("⚡ Analyzing frames...");
+      setDemoStep("Analyzing frames...");
       let completed = false;
       for (let i = 0; i < 30 && !completed; i++) {
         await new Promise(r => setTimeout(r, 2000));
         const status = await getJobStatus(job.job_id);
         if (status.status === "completed") {
           completed = true;
-          setDemoStep(`✅ Found ${status.match_count} matches! Navigating...`);
+          setDemoStep(`Found ${status.match_count} matches! Navigating...`);
           await new Promise(r => setTimeout(r, 1000));
           router.push(`/results#${job.job_id}`);
         } else if (status.status === "failed") {
           throw new Error(status.error || "Search failed");
         } else {
-          setDemoStep(`⚡ Analyzing frames... (${i * 2}s elapsed)`);
+          setDemoStep(`Analyzing frames... (${i * 2}s elapsed)`);
         }
       }
       if (!completed) {
-        setDemoStep("🕐 Still running — check Results page");
+        setDemoStep("Still running — check Results page");
         await new Promise(r => setTimeout(r, 2000));
         router.push(`/results#${job.job_id}`);
       }
@@ -203,6 +214,20 @@ export default function DashboardPage() {
     localStorage.setItem("visioncctv_pending_tag", tag);
     router.push("/search");
   };
+
+  const statCards = [
+    { value: loading ? "—" : videoCount.toString(), label: "Videos Ingested", Icon: FilmIcon, color: "var(--accent)" },
+    { value: loading ? "—" : refCount.toString(), label: "Target Profiles", Icon: UserIcon, color: "var(--cyan)" },
+    { value: "3", label: "AI Pipeline Modes", Icon: SearchIcon, color: "var(--green)" },
+    { value: "SHA-256", label: "Forensic Integrity", Icon: ShieldIcon, color: "var(--yellow)" },
+  ];
+
+  const workflowCards = [
+    { step: "01", title: "Upload Footage", desc: "Drag-drop .mp4/.avi/.mov files and register Camera IDs.", href: "/upload", Icon: UploadIcon, color: "var(--accent)" },
+    { step: "02", title: "Add Suspects", desc: "Ingest reference photos of persons or vehicles of interest.", href: "/suspects", Icon: UserIcon, color: "var(--cyan)" },
+    { step: "03", title: "AI Search", desc: "YOLO Face detection, CLIP keyword, or License Plate Search.", href: "/search", Icon: SearchIcon, color: "var(--green)" },
+    { step: "04", title: "Export Evidence", desc: "Download clips, timestamped frames, and certified PDF logs.", href: "/results", Icon: FileTextIcon, color: "var(--yellow)" },
+  ];
 
   return (
     <ToastProvider>
@@ -236,9 +261,11 @@ export default function DashboardPage() {
                 background: "rgba(233,69,96,0.15)", border: "1px solid rgba(233,69,96,0.4)",
                 fontSize: "0.7rem", fontWeight: 700, color: "var(--accent)",
                 textTransform: "uppercase", letterSpacing: "1px",
+                display: "flex", alignItems: "center", gap: 6,
                 animation: "pulse 2s infinite",
               }}>
-                🔴 LIVE · AI Investigation System
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", display: "inline-block" }} />
+                LIVE · AI Investigation System
               </div>
             </div>
 
@@ -277,7 +304,7 @@ export default function DashboardPage() {
               >
                 {demoRunning
                   ? <><span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span> {demoStep}</>
-                  : <><span style={{ fontSize: "1.2rem" }}>🚀</span> Run Live Demo Investigation</>
+                  : <><RocketIcon size={18} /> Run Live Demo Investigation</>
                 }
               </button>
 
@@ -334,14 +361,11 @@ export default function DashboardPage() {
 
         {/* ── Animated Stats ────────────────────────────── */}
         <div className="stats-grid" style={{ marginBottom: 32 }}>
-          {[
-            { value: loading ? "—" : videoCount.toString(), label: "Videos Ingested", icon: "🎬", color: "var(--accent)" },
-            { value: loading ? "—" : refCount.toString(), label: "Target Profiles", icon: "👤", color: "var(--cyan)" },
-            { value: "3", label: "AI Pipeline Modes", icon: "🔍", color: "var(--green)" },
-            { value: "SHA-256", label: "Forensic Integrity", icon: "🛡", color: "var(--yellow)" },
-          ].map((s) => (
+          {statCards.map((s) => (
             <div className="stat-card" key={s.label} style={{ borderTop: `2px solid ${s.color}` }}>
-              <div style={{ fontSize: "1.5rem", marginBottom: 8 }}>{s.icon}</div>
+              <div style={{ marginBottom: 8, color: s.color }}>
+                <s.Icon size={22} />
+              </div>
               <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
               <div className="stat-label">{s.label}</div>
             </div>
@@ -351,7 +375,9 @@ export default function DashboardPage() {
         <div className="grid-2" style={{ gap: 24, alignItems: "start", marginBottom: 32, rowGap: 24 }}>
           {/* Tag Cloud Card */}
           <div className="card">
-            <div className="section-title">💬 Commonly Detected Tag Cloud</div>
+            <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <MessageIcon size={16} style={{ color: "var(--accent)" }} /> Commonly Detected Tag Cloud
+            </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "8px 0" }}>
               {tags.map((tag) => (
                 <div
@@ -378,18 +404,20 @@ export default function DashboardPage() {
 
           {/* Forensic System Details */}
           <div className="card">
-            <div className="section-title">🛡 Offline Forensic Safeguards</div>
+            <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <ShieldIcon size={16} style={{ color: "var(--accent)" }} /> Offline Forensic Safeguards
+            </div>
             <div style={{ fontSize: "0.82rem", lineHeight: 1.6 }}>
               <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
-                <span style={{ color: "var(--green)" }}>✔</span>
+                <span style={{ color: "var(--green)", flexShrink: 0, marginTop: 2 }}><CheckIcon size={14} /></span>
                 <span><strong>Bilingual translation indexing</strong> maps local languages (Hindi, Gujarati) directly to English vectors offline.</span>
               </div>
               <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
-                <span style={{ color: "var(--cyan)" }}>✔</span>
+                <span style={{ color: "var(--cyan)", flexShrink: 0, marginTop: 2 }}><CheckIcon size={14} /></span>
                 <span><strong>SHA-256 Integrity Verification</strong> logs absolute file checksums for raw footage, clips, and PDF report validation.</span>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: "var(--yellow)" }}>✔</span>
+                <span style={{ color: "var(--yellow)", flexShrink: 0, marginTop: 2 }}><CheckIcon size={14} /></span>
                 <span><strong>Local Frame Extraction</strong> uses lightweight Haar cascade classifiers when running offline or on lower resource systems.</span>
               </div>
             </div>
@@ -399,9 +427,15 @@ export default function DashboardPage() {
         {/* ── Search History Timeline ────────────────────── */}
         {searchHistory.length > 0 && (
           <div className="card" style={{ marginBottom: 32 }}>
-            <div className="section-title">📈 Investigation History Timeline</div>
+            <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <TrendingUpIcon size={16} style={{ color: "var(--accent)" }} /> Investigation History Timeline
+            </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
-              {[{ type: "image", label: "👤 Face Re-ID", color: "var(--accent)" }, { type: "keyword", label: "💬 Keyword", color: "var(--cyan)" }, { type: "lpr", label: "🚗 LPR", color: "var(--yellow)" }].map(l => (
+              {[
+                { type: "image", label: "Face Re-ID", color: "var(--accent)" },
+                { type: "keyword", label: "Keyword", color: "var(--cyan)" },
+                { type: "lpr", label: "LPR", color: "var(--yellow)" },
+              ].map(l => (
                 <div key={l.type} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <div style={{ width: 10, height: 10, borderRadius: 2, background: l.color }} />
                   <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>{l.label}</span>
@@ -448,16 +482,11 @@ export default function DashboardPage() {
         <div className="section-title">Investigation Workflow</div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
-          {[
-            { step: "01", title: "Upload Footage", desc: "Drag-drop .mp4/.avi/.mov files and register Camera IDs.", href: "/upload", icon: "⬆", color: "var(--accent)" },
-            { step: "02", title: "Add Suspects", desc: "Ingest reference photos of persons or vehicles of interest.", href: "/suspects", icon: "👤", color: "var(--cyan)" },
-            { step: "03", title: "AI Search", desc: "YOLO Face detection, CLIP keyword, or License Plate Search.", href: "/search", icon: "🔍", color: "var(--green)" },
-            { step: "04", title: "Export Evidence", desc: "Download clips, timestamped frames, and certified PDF logs.", href: "/results", icon: "📄", color: "var(--yellow)" },
-          ].map((card) => (
+          {workflowCards.map((card) => (
             <Link key={card.step} href={card.href} style={{ textDecoration: "none" }}>
               <div className="card" style={{ height: "100%", cursor: "pointer", borderTop: `2px solid ${card.color}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <div style={{ fontSize: "1.2rem" }}>{card.icon}</div>
+                  <card.Icon size={18} style={{ color: card.color }} />
                   <span style={{ fontSize: "0.65rem", fontWeight: 800, color: card.color, letterSpacing: "1px" }}>STEP {card.step}</span>
                 </div>
                 <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: 5 }}>{card.title}</div>
@@ -477,12 +506,14 @@ export default function DashboardPage() {
                   <div className="video-thumb">
                     {v.thumbnail_url
                       ? <img src={`http://localhost:8000${v.thumbnail_url}`} alt={v.camera_id} />
-                      : "🎬"}
+                      : <FilmIcon size={28} style={{ color: "var(--text-muted)" }} />}
                   </div>
                   <div className="video-info">
                     <div className="video-name">{v.original_filename || v.filename || v.id}</div>
                     <div className="video-meta">
-                      <span>📹 {v.camera_id}</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <VideoIcon size={12} /> {v.camera_id}
+                      </span>
                       {v.duration_seconds && <><span>·</span><span>{v.duration_seconds.toFixed(1)}s</span></>}
                       <span>·</span>
                       <span>{(v.size_bytes / 1024 / 1024).toFixed(1)} MB</span>

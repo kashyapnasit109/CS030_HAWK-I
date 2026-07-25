@@ -60,3 +60,6 @@ backend/storage/thumbnails/*
 # Backend camera data and DB
 backend/storage/cameras/
 backend/storage/*.db
+*.pt
+test_search_apis.py
+

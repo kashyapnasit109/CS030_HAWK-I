@@ -9,6 +9,23 @@ import {
   startImageSearch, startKeywordSearch, startLprSearch, startObjectSearch, startActivityAnalysis, getJobStatus,
   VideoMeta, ReferenceMeta, SearchJob
 } from "@/lib/api";
+import {
+  SearchIcon,
+  UserIcon,
+  FilterIcon,
+  TagIcon,
+  TargetIcon,
+  ActivityIcon,
+  ClockIcon,
+  CheckIcon,
+  CloseIcon,
+  FilmIcon,
+  VideoIcon,
+  ImageIcon,
+  HourglassIcon,
+  WarningIcon,
+  SparklesIcon
+} from "@/components/Icons";
 
 type SearchMode = "image" | "keyword" | "lpr" | "object" | "activity" | "attributes";
 
@@ -125,7 +142,7 @@ export default function SearchPage() {
         clearInterval(interval);
         setPolling(false);
         setPollError("Search timed out after 5 minutes. The backend may still be running — check /results manually.");
-        showToast("⏰ Search timed out on frontend. Check Results page.", "error");
+        showToast("Search timed out on frontend. Check Results page.", "error");
         return;
       }
 
@@ -140,7 +157,7 @@ export default function SearchPage() {
           clearInterval(interval);
           setPolling(false);
           if (status.status === "completed") {
-            showToast(`✅ Search complete! Found ${status.match_count} match(es).`, "success");
+            showToast(`Search complete! Found ${status.match_count} match(es).`, "success");
             setTimeout(() => router.push(`/results#${id}`), 1200);
           } else {
             setPollError(status.error || "Pipeline failed");
@@ -154,7 +171,7 @@ export default function SearchPage() {
           setPolling(false);
           const msg = err instanceof Error ? err.message : "Network error";
           setPollError(`Lost connection after ${consecutiveErrors} retries: ${msg}`);
-          showToast("❌ Lost connection to backend", "error");
+          showToast("Lost connection to backend", "error");
         }
       }
     }, 2000);
@@ -246,7 +263,7 @@ export default function SearchPage() {
         }
 
         result = await res.json();
-        queryStr = `👕 Top: ${topColor}, Bottom: ${bottomColor}, Head: ${headgear}, Pose: ${poseState}`;
+        queryStr = `Top: ${topColor}, Bottom: ${bottomColor}, Head: ${headgear}, Pose: ${poseState}`;
       } else {
         result = await startActivityAnalysis(
           Array.from(selectedVideos),
@@ -273,18 +290,11 @@ export default function SearchPage() {
       localStorage.setItem("visioncctv_history", JSON.stringify(updatedHistory));
 
       setJobId(result.job_id);
-      setJob({ status: result.status as any || "queued", type: mode, match_count: 0 });
-      showToast(`🔍 Search job triggered (${result.job_id})`, "info");
-      
-      if (result.status === "completed") {
-        showToast("✅ Attributes query database fetch complete!", "success");
-        setTimeout(() => router.push(`/results#${result.job_id}`), 1200);
-      } else {
-        pollJob(result.job_id);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Search failed";
-      showToast(msg, "error");
+      showToast(`Search job triggered (${result.job_id})`, "info");
+      pollJob(result.job_id);
+    } catch (err: any) {
+      setPolling(false);
+      showToast(err.message || "Failed to initiate search job", "error");
     }
   };
 
@@ -298,7 +308,9 @@ export default function SearchPage() {
     <ToastProvider>
       <AppLayout>
         <div className="page-header">
-          <h1 className="page-title">🔍 Search Footage</h1>
+          <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <SearchIcon size={24} style={{ color: "var(--accent)" }} /> Search Footage
+          </h1>
           <p className="page-subtitle">
             Scan your uploaded CCTV videos using advanced Face Re-ID, Open-Vocab CLIP, License Plate Detection, or visual clothing filters.
           </p>
@@ -307,22 +319,22 @@ export default function SearchPage() {
         {/* Search Mode Tab Group */}
         <div className="tab-group">
           <button className={`tab ${mode === "image" ? "active" : ""}`} onClick={() => setMode("image")}>
-            👤 Face Re-ID
+            <UserIcon size={14} style={{ marginRight: 6 }} /> Face Re-ID
           </button>
           <button className={`tab ${mode === "keyword" ? "active" : ""}`} onClick={() => setMode("keyword")}>
-            💬 Keyword Search
+            <SearchIcon size={14} style={{ marginRight: 6 }} /> Keyword Search
           </button>
           <button className={`tab ${mode === "attributes" ? "active" : ""}`} onClick={() => setMode("attributes")}>
-            👕 Visual Attributes
+            <FilterIcon size={14} style={{ marginRight: 6 }} /> Visual Attributes
           </button>
           <button className={`tab ${mode === "lpr" ? "active" : ""}`} onClick={() => setMode("lpr")}>
-            🚗 License Plate (LPR)
+            <TagIcon size={14} style={{ marginRight: 6 }} /> License Plate (LPR)
           </button>
           <button className={`tab ${mode === "object" ? "active" : ""}`} onClick={() => setMode("object")}>
-            🎯 Object Detection
+            <TargetIcon size={14} style={{ marginRight: 6 }} /> Object Detection
           </button>
           <button className={`tab ${mode === "activity" ? "active" : ""}`} onClick={() => setMode("activity")}>
-            📊 Activity Analysis
+            <ActivityIcon size={14} style={{ marginRight: 6 }} /> Activity Analysis
           </button>
         </div>
 
@@ -369,7 +381,9 @@ export default function SearchPage() {
                               style={{ width: "100%", height: 70, objectFit: "cover" }}
                             />
                           ) : (
-                            <div style={{ width: "100%", height: 70, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem" }}>👤</div>
+                            <div style={{ width: "100%", height: 70, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <UserIcon size={28} style={{ color: "var(--text-muted)" }} />
+                            </div>
                           )}
                           {selectedRefs.has(ref.id) && (
                             <div style={{
@@ -402,8 +416,8 @@ export default function SearchPage() {
                       onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     />
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.5 }}>
-                    💡 Supports multiple languages (Hindi &amp; Gujarati translation local fallback). Try: <em>"सफ़ेद वैन", "લાલ કાર", "police uniform"</em>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.5, display: "flex", alignItems: "flex-start", gap: 6 }}>
+                    <SparklesIcon size={12} style={{ flexShrink: 0, marginTop: 2, color: "var(--yellow)" }} /> Supports multiple languages (Hindi &amp; Gujarati translation local fallback). Try: <em>"सफ़ेद वैन", "લાલ કાર", "police uniform"</em>
                   </div>
                 </>
               )}
@@ -492,8 +506,8 @@ export default function SearchPage() {
                       onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     />
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 10, lineHeight: 1.5 }}>
-                    🔍 Scans video frames for vehicle license plates and matches the requested character sequences.
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 10, lineHeight: 1.5, display: "flex", alignItems: "flex-start", gap: 6 }}>
+                    <SearchIcon size={12} style={{ flexShrink: 0, marginTop: 2, color: "var(--text-muted)" }} /> Scans video frames for vehicle license plates and matches the requested character sequences.
                   </div>
                 </>
               )}
@@ -510,8 +524,8 @@ export default function SearchPage() {
                       onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     />
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.5 }}>
-                    💡 Popular categories: <strong>weapons</strong> (knife, scissors), <strong>vehicles</strong> (car, truck, motorcycle), <strong>bags</strong> (backpack, handbag), <strong>persons</strong>.
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.5, display: "flex", alignItems: "flex-start", gap: 6 }}>
+                    <SparklesIcon size={12} style={{ flexShrink: 0, marginTop: 2, color: "var(--yellow)" }} /> Popular categories: <strong>weapons</strong> (knife, scissors), <strong>vehicles</strong> (car, truck, motorcycle), <strong>bags</strong> (backpack, handbag), <strong>persons</strong>.
                   </div>
                 </>
               )}
@@ -539,7 +553,9 @@ export default function SearchPage() {
 
             {/* Time Window Filtering Card */}
             <div className="card">
-              <div className="section-title">🕒 Time Bounds Filter (Optional)</div>
+              <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <ClockIcon size={14} style={{ color: "var(--accent)" }} /> Time Bounds Filter (Optional)
+              </div>
               <div style={{ display: "flex", gap: 12 }}>
                 <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label className="input-label">Start Time (sec)</label>
@@ -596,7 +612,9 @@ export default function SearchPage() {
               onClick={handleSearch}
               disabled={polling}
             >
-              {polling ? "⏳ Processing AI Pipeline..." : "🔍 Run Intelligence Search"}
+              {polling
+                ? <><HourglassIcon size={16} /> Processing AI Pipeline...</>
+                : <><SearchIcon size={16} /> Run Intelligence Search</>}
             </button>
           </div>
 
@@ -636,12 +654,12 @@ export default function SearchPage() {
                       <div className="video-thumb">
                         {v.thumbnail_url ? (
                           <img src={`http://localhost:8000${v.thumbnail_url}`} alt="" />
-                        ) : "🎬"}
+                        ) : <FilmIcon size={24} style={{ color: "var(--text-muted)" }} />}
                       </div>
                       <div className="video-info">
                         <div className="video-name">{v.original_filename || v.filename || v.id}</div>
                         <div className="video-meta">
-                          <span>📹 {v.camera_id}</span>
+                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><VideoIcon size={12} /> {v.camera_id}</span>
                           {v.duration_seconds && <><span>·</span><span>{v.duration_seconds.toFixed(0)}s</span></>}
                         </div>
                       </div>
@@ -667,13 +685,13 @@ export default function SearchPage() {
                     </div>
                     {framesProcessed > 0 && (
                       <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: 4, display: "flex", gap: 16 }}>
-                        <span>🖼 <strong style={{ color: "var(--cyan)" }}>{framesProcessed}</strong> frames analyzed</span>
-                        <span>🎯 <strong style={{ color: "var(--green)" }}>{framesMatched}</strong> matches so far</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><ImageIcon size={12} /> <strong style={{ color: "var(--cyan)" }}>{framesProcessed}</strong> frames analyzed</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><TargetIcon size={12} /> <strong style={{ color: "var(--green)" }}>{framesMatched}</strong> matches so far</span>
                       </div>
                     )}
                     {framesProcessed === 0 && (
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4 }}>
-                        ⏳ Starting pipeline… extracting frames
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                        <HourglassIcon size={12} /> Starting pipeline… extracting frames
                       </div>
                     )}
                   </>
@@ -681,22 +699,22 @@ export default function SearchPage() {
 
                 {job?.status === "completed" && (
                   <div>
-                    <div style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--green)", marginBottom: 6 }}>
-                      🎯 Search Success!
+                    <div style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--green)", marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                      <TargetIcon size={20} style={{ color: "var(--green)" }} /> Search Success!
                     </div>
                     <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Auto-navigating to results grid…</div>
                   </div>
                 )}
 
                 {job?.status === "failed" && (
-                  <div style={{ color: "var(--accent)", fontSize: "0.8rem" }}>
-                    ❌ Pipeline Error: {job.error || "Search execution failed"}
+                  <div style={{ color: "var(--accent)", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: 6 }}>
+                    <CloseIcon size={14} /> Pipeline Error: {job.error || "Search execution failed"}
                   </div>
                 )}
 
                 {pollError && !polling && (
-                  <div style={{ color: "var(--accent)", fontSize: "0.78rem", marginTop: 6, lineHeight: 1.5 }}>
-                    ⚠️ {pollError}
+                  <div style={{ color: "var(--accent)", fontSize: "0.78rem", marginTop: 6, lineHeight: 1.5, display: "flex", alignItems: "flex-start", gap: 6 }}>
+                    <WarningIcon size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {pollError}
                   </div>
                 )}
               </div>

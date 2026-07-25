@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import { listReferences, uploadReference, deleteReference, ReferenceMeta } from "@/lib/api";
+import { UserIcon, CameraIcon, UploadIcon, HourglassIcon, CloseIcon } from "@/components/Icons";
 
 export default function SuspectsPage() {
   const [refs, setRefs] = useState<ReferenceMeta[]>([]);
@@ -42,7 +43,7 @@ export default function SuspectsPage() {
     setUploading(true);
     try {
       await uploadReference(pendingFile, label.trim());
-      showToast(`✓ Reference "${label}" added`, "success");
+      showToast(`Reference "${label}" added`, "success");
       setPendingFile(null);
       setPreview(null);
       setLabel("");
@@ -68,7 +69,9 @@ export default function SuspectsPage() {
     <ToastProvider>
       <AppLayout>
         <div className="page-header">
-          <h1 className="page-title">👤 Reference Images</h1>
+          <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <UserIcon size={24} style={{ color: "var(--accent)" }} /> Reference Images
+          </h1>
           <p className="page-subtitle">
             Upload suspect photos, vehicle images, or any reference for face re-identification.
           </p>
@@ -98,7 +101,9 @@ export default function SuspectsPage() {
                   <img src={preview} alt="preview" style={{ maxHeight: 160, margin: "0 auto", borderRadius: 8, objectFit: "cover" }} />
                 ) : (
                   <>
-                    <div className="drop-zone-icon">🖼</div>
+                    <div className="drop-zone-icon" style={{ display: "flex", justifyContent: "center" }}>
+                      <CameraIcon size={36} style={{ color: "var(--accent)" }} />
+                    </div>
                     <div className="drop-zone-title">Drop suspect photo here</div>
                     <div className="drop-zone-sub">JPG, PNG, WebP · Max 10 MB</div>
                   </>
@@ -117,11 +122,11 @@ export default function SuspectsPage() {
 
               <button
                 className="btn btn-primary"
-                style={{ width: "100%" }}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                 onClick={handleUpload}
                 disabled={!pendingFile || uploading}
               >
-                {uploading ? "Uploading…" : "⬆ Add Reference Image"}
+                <UploadIcon size={16} /> {uploading ? "Uploading…" : "Add Reference Image"}
               </button>
             </div>
           </div>
@@ -134,12 +139,16 @@ export default function SuspectsPage() {
 
             {loading ? (
               <div className="empty-state">
-                <div className="empty-state-icon pulse">⏳</div>
+                <div className="empty-state-icon pulse" style={{ display: "flex", justifyContent: "center" }}>
+                  <HourglassIcon size={32} style={{ color: "var(--text-muted)" }} />
+                </div>
                 <div className="empty-state-title">Loading…</div>
               </div>
             ) : refs.length === 0 ? (
               <div className="empty-state" style={{ padding: "40px 20px" }}>
-                <div className="empty-state-icon">🖼</div>
+                <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center" }}>
+                  <CameraIcon size={32} style={{ color: "var(--text-muted)" }} />
+                </div>
                 <div className="empty-state-title">No references yet</div>
                 <div className="empty-state-sub">Add a suspect photo to get started</div>
               </div>
@@ -158,10 +167,12 @@ export default function SuspectsPage() {
                         background: "var(--accent-dim)", border: "none",
                         borderRadius: "50%", width: 22, height: 22,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        cursor: "pointer", fontSize: "0.65rem", color: "var(--accent)",
+                        cursor: "pointer", color: "var(--accent)",
                       }}
                       title="Remove"
-                    >✕</button>
+                    >
+                      <CloseIcon size={12} />
+                    </button>
                     {ref.image_url ? (
                       <img
                         src={`http://localhost:8000${ref.image_url}`}
@@ -175,14 +186,13 @@ export default function SuspectsPage() {
                       <div style={{
                         width: "100%", height: 100, background: "var(--bg-elevated)",
                         borderRadius: 6, marginBottom: 8, display: "flex",
-                        alignItems: "center", justifyContent: "center", fontSize: "2rem",
-                      }}>👤</div>
+                        alignItems: "center", justifyContent: "center",
+                      }}>
+                        <UserIcon size={32} style={{ color: "var(--text-muted)" }} />
+                      </div>
                     )}
-                    <div style={{ fontSize: "0.8rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ fontWeight: 600, fontSize: "0.8rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {ref.label}
-                    </div>
-                    <div className="mono" style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginTop: 3 }}>
-                      #{ref.id}
                     </div>
                   </div>
                 ))}

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
+import { VideoIcon, PlayIcon } from "@/components/Icons";
 
 // Mock video segments
 const videoSegments = [
@@ -151,7 +152,10 @@ export default function PlaybackPage() {
                       showToast(`Jumped to segment ${seg.label}`, "info");
                     }}
                   >
-                    <span>🟢 {seg.label}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <PlayIcon size={10} style={{ color: "var(--green)" }} />
+                      <span>{seg.label}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -182,7 +186,7 @@ export default function PlaybackPage() {
                   />
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", gap: "8px" }}>
-                    <span style={{ fontSize: "2rem" }}>🎥</span>
+                    <VideoIcon size={36} style={{ color: "var(--text-muted)" }} />
                     <span>No footage recorded at this timestamp</span>
                   </div>
                 )}

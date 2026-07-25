@@ -20,6 +20,7 @@ from typing import Any, Callable, Optional
 
 import cv2
 import numpy as np
+import opencv_compat  # noqa: F401
 
 
 def _sha256_file(path: Path) -> str:

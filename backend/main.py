@@ -6,6 +6,7 @@ AI-Powered CCTV Analysis Tool
 import os
 import sys
 import cv2
+import opencv_compat  # noqa: F401
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,6 +23,10 @@ THUMBNAILS_DIR = STORAGE_DIR / "thumbnails"
 
 for d in [UPLOADS_DIR, REFERENCES_DIR, RESULTS_DIR, THUMBNAILS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
+
+# Initialize SQLite database schema and seed default users/cameras
+from init_db import init_database
+init_database()
 
 # Seed demo database from the original repo if empty
 ORIGINAL_DB = BASE_DIR.parent / "Face-Detection-and-Recognition-with-YOLOv8-and-FaceNet-PyTorch-main" / "database"

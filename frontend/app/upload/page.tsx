@@ -5,6 +5,18 @@ import AppLayout from "@/components/AppLayout";
 import ToastProvider from "@/components/ToastProvider";
 import { showToast } from "@/components/ToastProvider";
 import { uploadVideo, listVideos, deleteVideo, VideoMeta } from "@/lib/api";
+import {
+  UploadIcon,
+  VideoIcon,
+  ClockIcon,
+  CameraIcon,
+  CheckIcon,
+  CloseIcon,
+  FolderIcon,
+  TrashIcon,
+  HourglassIcon,
+  ChevronRightIcon
+} from "@/components/Icons";
 
 interface UploadItem {
   file: File;
@@ -25,8 +37,8 @@ function formatDuration(seconds: number | null | undefined): string {
 }
 
 function formatSize(bytes: number): string {
-  if (bytes > 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export default function UploadPage() {
@@ -37,93 +49,88 @@ export default function UploadPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load existing uploaded videos
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await listVideos();
-        setUploadedVideos(res.videos);
-      } catch {
-        // silent
-      } finally {
-        setLoadingVideos(false);
-      }
+  const refreshVideos = useCallback(async () => {
+    try {
+      const data = await listVideos();
+      setUploadedVideos(data.videos || []);
+    } catch {
+      // API might be down in dev
+    } finally {
+      setLoadingVideos(false);
     }
-    load();
   }, []);
 
-  const addFiles = useCallback((files: File[]) => {
+  useEffect(() => {
+    refreshVideos();
+  }, [refreshVideos]);
+
+  const addFiles = (files: File[]) => {
     const valid = files.filter((f) =>
-      [".mp4", ".avi", ".mov", ".mkv", ".wmv"].some((ext) =>
-        f.name.toLowerCase().endsWith(ext)
-      )
+      /\.(mp4|avi|mov|mkv|wmv)$/i.test(f.name)
     );
     if (valid.length < files.length) {
       showToast("Some files were skipped (unsupported format)", "error");
     }
 
-    const newItems: UploadItem[] = valid.map((f, idx) => {
-      // Create an object URL for local preview
-      const previewUrl = URL.createObjectURL(f);
+    const newItems: UploadItem[] = valid.map((f, i) => {
+      const url = URL.createObjectURL(f);
       return {
         file: f,
-        cameraId: `CAM-${String(items.length + idx + 1).padStart(2, "0")}`,
-        status: "pending" as const,
+        cameraId: `CAM-0${(items.length + i + 1) % 9 || 1}`,
+        status: "pending",
         progress: 0,
-        previewUrl,
+        previewUrl: url,
       };
     });
 
     setItems((prev) => [...prev, ...newItems]);
-  }, [items.length]);
+  };
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragOver(false);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files) {
       addFiles(Array.from(e.dataTransfer.files));
-    },
-    [addFiles]
-  );
-
-  const updateItem = (index: number, patch: Partial<UploadItem>) =>
-    setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
-
-  const handleUploadAll = async () => {
-    const pending = items.filter((it) => it.status === "pending");
-    if (!pending.length) { showToast("No pending files to upload", "info"); return; }
-
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].status !== "pending") continue;
-      updateItem(i, { status: "uploading", progress: 30 });
-      try {
-        const result = await uploadVideo(items[i].file, items[i].cameraId);
-        updateItem(i, { status: "done", progress: 100, result: result.video });
-        showToast(`✓ ${items[i].file.name} uploaded`, "success");
-        setUploadedVideos((prev) => [result.video, ...prev]);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Upload failed";
-        updateItem(i, { status: "error", progress: 0, error: msg });
-        showToast(`Failed: ${items[i].file.name}`, "error");
-      }
     }
   };
 
+  const updateItem = (index: number, patch: Partial<UploadItem>) => {
+    setItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, ...patch } : item))
+    );
+  };
+
   const removeItem = (index: number) => {
-    const item = items[index];
-    if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleDeleteVideo = async (vid: VideoMeta) => {
-    if (!confirm(`Delete "${vid.original_filename || vid.id}"? This cannot be undone.`)) return;
-    setDeletingId(vid.id);
+  const handleUploadAll = async () => {
+    const pending = items.map((item, i) => ({ item, index: i })).filter((x) => x.item.status === "pending");
+    if (pending.length === 0) return;
+
+    for (const { item, index } of pending) {
+      updateItem(index, { status: "uploading", progress: 0 });
+      try {
+        const res = await uploadVideo(item.file, item.cameraId);
+        updateItem(index, { status: "done", progress: 100, result: res.video });
+        showToast(`${items[index].file.name} uploaded`, "success");
+      } catch (err: any) {
+        updateItem(index, { status: "error", error: err.message || "Upload failed" });
+        showToast(`Failed: ${items[index].file.name}`, "error");
+      }
+    }
+    refreshVideos();
+  };
+
+  const handleDeleteVideo = async (v: VideoMeta) => {
+    if (!confirm(`Delete "${v.original_filename || v.stored_filename || v.id}"?`)) return;
+    setDeletingId(v.id);
     try {
-      await deleteVideo(vid.id);
-      setUploadedVideos((prev) => prev.filter((v) => v.id !== vid.id));
-      showToast(`Deleted: ${vid.original_filename || vid.id}`, "success");
+      await deleteVideo(v.id);
+      showToast("Video deleted", "success");
+      refreshVideos();
     } catch {
-      showToast("Delete failed", "error");
+      showToast("Failed to delete video", "error");
     } finally {
       setDeletingId(null);
     }
@@ -135,7 +142,9 @@ export default function UploadPage() {
     <ToastProvider>
       <AppLayout>
         <div className="page-header">
-          <h1 className="page-title">⬆ Upload CCTV Footage</h1>
+          <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <UploadIcon size={24} style={{ color: "var(--accent)" }} /> Upload CCTV Footage
+          </h1>
           <p className="page-subtitle">
             Drag and drop video files. Assign camera IDs before uploading. Preview locally before submitting.
           </p>
@@ -158,7 +167,9 @@ export default function UploadPage() {
             style={{ display: "none" }}
             onChange={(e) => e.target.files && addFiles(Array.from(e.target.files))}
           />
-          <div className="drop-zone-icon">🎬</div>
+          <div className="drop-zone-icon" style={{ display: "flex", justifyContent: "center" }}>
+            <VideoIcon size={40} style={{ color: "var(--accent)" }} />
+          </div>
           <div className="drop-zone-title">
             {dragOver ? "Drop to add files" : "Drop CCTV videos here or click to browse"}
           </div>
@@ -178,8 +189,9 @@ export default function UploadPage() {
                   className="btn btn-primary"
                   onClick={handleUploadAll}
                   disabled={pendingCount === 0}
+                  style={{ display: "flex", alignItems: "center", gap: 6 }}
                 >
-                  ⬆ Upload {pendingCount > 0 ? `${pendingCount} File${pendingCount !== 1 ? "s" : ""}` : ""}
+                  <UploadIcon size={16} /> Upload {pendingCount > 0 ? `${pendingCount} File${pendingCount !== 1 ? "s" : ""}` : ""}
                 </button>
               </div>
             </div>
@@ -217,7 +229,9 @@ export default function UploadPage() {
                           onMouseLeave={(e) => { (e.target as HTMLVideoElement).pause(); (e.target as HTMLVideoElement).currentTime = 0; }}
                         />
                       ) : (
-                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem" }}>🎬</div>
+                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <VideoIcon size={32} style={{ color: "var(--text-muted)" }} />
+                        </div>
                       )}
                     </div>
 
@@ -226,12 +240,16 @@ export default function UploadPage() {
                       <div style={{ fontWeight: 700, fontSize: "0.88rem", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {item.file.name}
                       </div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: 8, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                        <span>📦 {formatSize(item.file.size)}</span>
-                        {item.localDuration && <span>⏱ {formatDuration(item.localDuration)}</span>}
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: 8, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                        <span>Size: {formatSize(item.file.size)}</span>
                         {item.localDuration && (
-                          <span style={{ color: "var(--cyan)" }}>
-                            🖼 ~{Math.ceil(item.localDuration)} frames/sec sampled at 1fps
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <ClockIcon size={12} /> {formatDuration(item.localDuration)}
+                          </span>
+                        )}
+                        {item.localDuration && (
+                          <span style={{ color: "var(--cyan)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <CameraIcon size={12} /> ~{Math.ceil(item.localDuration)} frames sampled at 1fps
                           </span>
                         )}
                       </div>
@@ -244,8 +262,8 @@ export default function UploadPage() {
                         <div style={{ fontSize: "0.75rem", color: "var(--accent)" }}>{item.error}</div>
                       )}
                       {item.status === "done" && (
-                        <div style={{ fontSize: "0.75rem", color: "var(--green)" }}>
-                          ✓ Uploaded · ID: <span className="mono">{item.result?.id}</span>
+                        <div style={{ fontSize: "0.75rem", color: "var(--green)", display: "flex", alignItems: "center", gap: 6 }}>
+                          <CheckIcon size={14} /> Uploaded · ID: <span className="mono">{item.result?.id}</span>
                           {item.result?.duration_seconds && (
                             <span style={{ marginLeft: 8, color: "var(--cyan)" }}>
                               · Duration: {formatDuration(item.result.duration_seconds)}
@@ -271,10 +289,10 @@ export default function UploadPage() {
                       <button
                         className="btn btn-ghost btn-sm"
                         onClick={() => removeItem(i)}
-                        style={{ color: "var(--text-muted)" }}
+                        style={{ color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}
                         title="Remove from queue"
                       >
-                        ✕ Remove
+                        <CloseIcon size={14} /> Remove
                       </button>
                     </div>
                   </div>
@@ -286,7 +304,9 @@ export default function UploadPage() {
 
         {items.length === 0 && (
           <div className="empty-state" style={{ marginBottom: 32 }}>
-            <div className="empty-state-icon">🎬</div>
+            <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center" }}>
+              <VideoIcon size={36} style={{ color: "var(--text-muted)" }} />
+            </div>
             <div className="empty-state-title">No files queued</div>
             <div className="empty-state-sub">Drop video files above to get started</div>
           </div>
@@ -294,7 +314,9 @@ export default function UploadPage() {
 
         {/* Uploaded Videos Manager */}
         <div style={{ marginTop: 32 }}>
-          <div className="section-title">📁 Uploaded Footage Library ({uploadedVideos.length} videos)</div>
+          <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FolderIcon size={18} style={{ color: "var(--accent)" }} /> Uploaded Footage Library ({uploadedVideos.length} videos)
+          </div>
           {loadingVideos ? (
             <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>Loading library…</div>
           ) : uploadedVideos.length === 0 ? (
@@ -306,14 +328,14 @@ export default function UploadPage() {
                   <div className="video-thumb">
                     {v.thumbnail_url
                       ? <img src={`http://localhost:8000${v.thumbnail_url}`} alt={v.camera_id} />
-                      : "🎬"}
+                      : <VideoIcon size={24} style={{ color: "var(--text-muted)" }} />}
                   </div>
                   <div className="video-info">
                     <div className="video-name">{v.original_filename || v.stored_filename || v.id}</div>
-                    <div className="video-meta">
-                      <span>📹 {v.camera_id}</span>
+                    <div className="video-meta" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><CameraIcon size={12} /> {v.camera_id}</span>
                       {v.duration_seconds && (
-                        <><span>·</span><span>⏱ {formatDuration(v.duration_seconds)}</span></>
+                        <><span>·</span><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><ClockIcon size={12} /> {formatDuration(v.duration_seconds)}</span></>
                       )}
                       <span>·</span>
                       <span>{formatSize(v.size_bytes)}</span>
@@ -323,16 +345,18 @@ export default function UploadPage() {
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <a href="/search">
-                      <button className="btn btn-secondary btn-sm">Search →</button>
+                      <button className="btn btn-secondary btn-sm" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        Search <ChevronRightIcon size={14} />
+                      </button>
                     </a>
                     <button
                       className="btn btn-ghost btn-sm"
-                      style={{ color: "var(--accent)", borderColor: "rgba(233,69,96,0.3)" }}
+                      style={{ color: "var(--accent)", borderColor: "rgba(233,69,96,0.3)", display: "flex", alignItems: "center", gap: 4 }}
                       onClick={() => handleDeleteVideo(v)}
                       disabled={deletingId === v.id}
                       title="Delete video"
                     >
-                      {deletingId === v.id ? "⏳" : "🗑 Delete"}
+                      {deletingId === v.id ? <HourglassIcon size={14} /> : <TrashIcon size={14} />} Delete
                     </button>
                   </div>
                 </div>

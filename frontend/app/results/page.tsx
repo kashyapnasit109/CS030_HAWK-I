@@ -4,6 +4,27 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import { getJobStatus, exportReport, resolveStorageUrl, downloadFramesZip, MatchResult, SearchJob } from "@/lib/api";
+import {
+  TargetIcon,
+  SearchIcon,
+  BarChartIcon,
+  MapIcon,
+  UserIcon,
+  CarIcon,
+  MessageIcon,
+  ActivityIcon,
+  FileTextIcon,
+  PackageIcon,
+  HourglassIcon,
+  ImageIcon,
+  FilmIcon,
+  VideoIcon,
+  CloseIcon,
+  GridIcon,
+  ListIcon,
+  PlayIcon,
+  DownloadIcon,
+} from "@/components/Icons";
 
 const BASE_URL = "http://localhost:8000";
 
@@ -28,8 +49,9 @@ function TimelineScrubber({
       border: "1px solid var(--border)",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <div className="section-title" style={{ marginBottom: 0 }}>
-          📊 Evidence Timeline — {matches.length} match{matches.length !== 1 ? "es" : ""}
+        <div className="section-title" style={{ marginBottom: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <BarChartIcon size={16} style={{ color: "var(--accent)" }} />
+          Evidence Timeline — {matches.length} match{matches.length !== 1 ? "es" : ""}
         </div>
         <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "JetBrains Mono, monospace" }}>
           0s — {duration.toFixed(0)}s
@@ -111,7 +133,6 @@ function TimelineScrubber({
 function CameraTrailMap({ matches }: { matches: MatchResult[] }) {
   if (matches.length === 0) return null;
 
-  // Group by label/target
   const byLabel: Record<string, MatchResult[]> = {};
   matches.forEach((m) => {
     if (!byLabel[m.label]) byLabel[m.label] = [];
@@ -125,7 +146,7 @@ function CameraTrailMap({ matches }: { matches: MatchResult[] }) {
       borderRadius: "var(--radius-lg)", padding: "20px 24px", marginBottom: 24,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <div style={{ fontSize: "1.2rem" }}>🗺</div>
+        <MapIcon size={20} style={{ color: "var(--cyan)" }} />
         <div>
           <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>Suspect Camera Trail Map</div>
           <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
@@ -248,7 +269,9 @@ function VideoPlayerModal({
           <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>
             Evidence Clip — {match.timestamp_str}
           </span>
-          <span className="badge badge-cyan" style={{ marginLeft: "auto" }}>📹 {match.camera_id}</span>
+          <span className="badge badge-cyan" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
+            <VideoIcon size={11} /> {match.camera_id}
+          </span>
           <span className="badge" style={{
             background: "var(--accent-dim)", color: "var(--accent)",
             border: "1px solid rgba(233,69,96,0.3)",
@@ -258,8 +281,8 @@ function VideoPlayerModal({
           <button
             className="btn btn-ghost btn-sm"
             onClick={onClose}
-            style={{ color: "var(--text-muted)" }}
-          >✕</button>
+            style={{ color: "var(--text-muted)", display: "flex", alignItems: "center" }}
+          ><CloseIcon size={14} /></button>
         </div>
 
         {/* Video or Frame */}
@@ -299,9 +322,13 @@ function VideoPlayerModal({
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
-            <button className="btn btn-primary" onClick={downloadFrame}>🖼 Download Frame</button>
+            <button className="btn btn-primary" onClick={downloadFrame} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <ImageIcon size={14} /> Download Frame
+            </button>
             {match.clip_url && (
-              <button className="btn btn-secondary" onClick={downloadClip}>🎬 Download Clip</button>
+              <button className="btn btn-secondary" onClick={downloadClip} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <FilmIcon size={14} /> Download Clip
+              </button>
             )}
             <button className="btn btn-ghost" onClick={onClose} style={{ marginLeft: "auto" }}>Close</button>
           </div>
@@ -309,6 +336,26 @@ function VideoPlayerModal({
       </div>
     </div>
   );
+}
+
+function getSearchTypeIcon(type: string | undefined) {
+  switch (type) {
+    case "face_recognition": return <UserIcon size={12} />;
+    case "lpr": return <CarIcon size={12} />;
+    case "keyword": return <MessageIcon size={12} />;
+    case "object_detection": return <TargetIcon size={12} />;
+    default: return <ActivityIcon size={12} />;
+  }
+}
+
+function getSearchTypeLabel(type: string | undefined) {
+  switch (type) {
+    case "face_recognition": return "Face Re-ID";
+    case "lpr": return "License Plate (LPR)";
+    case "keyword": return "Keyword";
+    case "object_detection": return "Object Detection";
+    default: return "Activity Analysis";
+  }
 }
 
 // ── Main Results Page ─────────────────────────────────────────────────
@@ -366,7 +413,7 @@ export default function ResultsPage() {
       a.download = `visioncctv_frames_${jobId}.zip`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast("✓ Evidence frames ZIP downloaded", "success");
+      showToast("Evidence frames ZIP downloaded", "success");
     } catch {
       showToast("ZIP export failed — ensure search completed", "error");
     } finally {
@@ -392,7 +439,7 @@ export default function ResultsPage() {
       a.download = `visioncctv_report_${jobId}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast("✓ Forensic PDF report generated & downloaded", "success");
+      showToast("Forensic PDF report generated & downloaded", "success");
     } catch {
       showToast("Export failed — ensure the search completed", "error");
     } finally {
@@ -412,7 +459,9 @@ export default function ResultsPage() {
     <ToastProvider>
       <AppLayout>
         <div className="page-header">
-          <h1 className="page-title">🎯 Investigation Results</h1>
+          <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <TargetIcon size={24} style={{ color: "var(--accent)" }} /> Investigation Results
+          </h1>
           <p className="page-subtitle">
             Timestamped evidence frames, video clips, suspect movement trail, and forensic export block.
           </p>
@@ -430,8 +479,8 @@ export default function ResultsPage() {
               onChange={(e) => setJobId(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && loadJob(jobId)}
             />
-            <button className="btn btn-secondary" onClick={() => loadJob(jobId)} disabled={loadingJob}>
-              {loadingJob ? "⏳" : "Load Job"}
+            <button className="btn btn-secondary" onClick={() => loadJob(jobId)} disabled={loadingJob} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {loadingJob ? <><HourglassIcon size={14} /> Loading...</> : "Load Job"}
             </button>
             <a href="/search" className="btn btn-ghost" style={{ marginLeft: "auto" }}>New Search →</a>
           </div>
@@ -470,8 +519,9 @@ export default function ResultsPage() {
                       color: view === v ? "var(--text-primary)" : "var(--text-muted)",
                       fontSize: "0.75rem", fontWeight: 600, fontFamily: "Inter, sans-serif",
                       transition: "all 0.15s",
+                      display: "flex", alignItems: "center", gap: 5,
                     }}>
-                      {v === "grid" ? "⊞ Grid" : "≡ List"}
+                      {v === "grid" ? <><GridIcon size={13} /> Grid</> : <><ListIcon size={13} /> List</>}
                     </button>
                   ))}
                 </div>
@@ -489,12 +539,8 @@ export default function ResultsPage() {
                   fontSize: "0.78rem", flexWrap: "wrap",
                 }}>
                   <span style={{ color: "var(--text-muted)" }}>Search type:</span>
-                  <span style={{ fontWeight: 700, color: "var(--cyan)" }}>
-                    {job.type === "face_recognition" ? "👤 Face Re-ID" :
-                     job.type === "lpr" ? "🚗 License Plate (LPR)" :
-                     job.type === "keyword" ? "💬 Keyword" :
-                     job.type === "object_detection" ? "🎯 Object Detection" :
-                     "📊 Activity Analysis"}
+                  <span style={{ fontWeight: 700, color: "var(--cyan)", display: "flex", alignItems: "center", gap: 5 }}>
+                    {getSearchTypeIcon(job.type)} {getSearchTypeLabel(job.type)}
                   </span>
                   <span style={{ color: "var(--border)" }}>|</span>
                   <span style={{ color: "var(--text-muted)" }}>Job ID:</span>
@@ -520,7 +566,9 @@ export default function ResultsPage() {
 
                 {job.activity_data && (
                   <div className="card" style={{ marginBottom: 24, padding: 20 }}>
-                    <div className="section-title">📊 Activity Analysis Summary</div>
+                    <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <BarChartIcon size={16} style={{ color: "var(--accent)" }} /> Activity Analysis Summary
+                    </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
                       <div>
                         {job.activity_data.heatmap_url && (
@@ -577,7 +625,9 @@ export default function ResultsPage() {
                 background: "linear-gradient(135deg, rgba(15,52,96,0.4), rgba(10,10,15,0.5))",
                 borderColor: "rgba(0,212,255,0.2)",
               }}>
-                <div className="section-title">📄 Export Forensic Case Report</div>
+                <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <FileTextIcon size={16} style={{ color: "var(--accent)" }} /> Export Forensic Case Report
+                </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                     <div className="input-group" style={{ flex: 2, marginBottom: 0 }}>
@@ -610,11 +660,11 @@ export default function ResultsPage() {
                     />
                   </div>
                   <div style={{ display: "flex", gap: 10 }}>
-                    <button className="btn btn-primary" style={{ width: "fit-content", alignSelf: "flex-end" }} onClick={handleExport} disabled={exporting}>
-                      {exporting ? "⏳ Compiling PDF Report..." : "📄 Export Certified Forensic PDF"}
+                    <button className="btn btn-primary" style={{ width: "fit-content", alignSelf: "flex-end", display: "flex", alignItems: "center", gap: 6 }} onClick={handleExport} disabled={exporting}>
+                      <FileTextIcon size={14} /> {exporting ? "Compiling PDF Report..." : "Export Certified Forensic PDF"}
                     </button>
-                    <button className="btn btn-secondary" style={{ width: "fit-content", alignSelf: "flex-end" }} onClick={handleExportZip} disabled={zipping}>
-                      {zipping ? "⏳ Packaging..." : "📦 Download All Frames (ZIP)"}
+                    <button className="btn btn-secondary" style={{ width: "fit-content", alignSelf: "flex-end", display: "flex", alignItems: "center", gap: 6 }} onClick={handleExportZip} disabled={zipping}>
+                      <PackageIcon size={14} /> {zipping ? "Packaging..." : "Download All Frames (ZIP)"}
                     </button>
                   </div>
                 </div>
@@ -624,7 +674,9 @@ export default function ResultsPage() {
             {/* Results Grid View */}
             {matches.length === 0 && job.status === "completed" ? (
               <div className="empty-state">
-                <div className="empty-state-icon">🔍</div>
+                <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center" }}>
+                  <SearchIcon size={36} style={{ color: "var(--text-muted)" }} />
+                </div>
                 <div className="empty-state-title">No matches found</div>
                 <div className="empty-state-sub">Try adjusting similarity thresholds or checking video files.</div>
               </div>
@@ -648,7 +700,9 @@ export default function ResultsPage() {
                           style={{ width: "100%", height: 160, objectFit: "cover" }}
                         />
                       ) : (
-                        <div style={{ width: "100%", height: 160, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem" }}>🎬</div>
+                        <div style={{ width: "100%", height: 160, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <FilmIcon size={36} style={{ color: "var(--text-muted)" }} />
+                        </div>
                       )}
                       <div style={{
                         position: "absolute", inset: 0,
@@ -662,10 +716,10 @@ export default function ResultsPage() {
                           width: 44, height: 44, borderRadius: "50%",
                           background: "rgba(233,69,96,0.9)",
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: "1.2rem", opacity: 0, transition: "opacity 0.2s",
+                          opacity: 0, transition: "opacity 0.2s",
                         }}
                           className="play-icon"
-                        >▶</div>
+                        ><PlayIcon size={16} style={{ color: "white" }} /></div>
                       </div>
                       <div style={{
                         position: "absolute", top: 8, right: 8,
@@ -681,19 +735,19 @@ export default function ResultsPage() {
                         position: "absolute", top: 8, left: 8,
                         padding: "3px 8px", borderRadius: 100,
                         background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
-                        fontSize: "0.65rem", color: "var(--text-secondary)",
+                        display: "flex", alignItems: "center",
+                        color: "var(--text-secondary)",
                       }}>
-                        {match.search_type === "face_recognition" ? "👤" :
-                         match.search_type === "lpr" ? "🚗" :
-                         match.search_type === "keyword" ? "💬" :
-                         match.search_type === "object_detection" ? "🎯" : "📊"}
+                        {getSearchTypeIcon(match.search_type)}
                       </div>
                     </div>
 
                     <div className="result-card-body">
                       <div className="result-card-ts">{match.timestamp_str}</div>
                       <div className="result-card-meta">
-                        <span className="badge badge-cyan">📹 {match.camera_id}</span>
+                        <span className="badge badge-cyan" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <VideoIcon size={11} /> {match.camera_id}
+                        </span>
                         {match.label && <span className="badge badge-accent">{match.label}</span>}
                       </div>
 
@@ -720,7 +774,8 @@ export default function ResultsPage() {
                         <button
                           className="btn btn-primary btn-sm"
                           onClick={(e) => { e.stopPropagation(); setVideoPlayer(match); setSelectedTimeline(match); }}
-                        >▶ Play</button>
+                          style={{ display: "flex", alignItems: "center", gap: 4 }}
+                        ><PlayIcon size={12} /> Play</button>
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={(e) => {
@@ -730,7 +785,8 @@ export default function ResultsPage() {
                             a.download = `frame_${match.label}_${i}.jpg`;
                             a.target = "_blank"; a.click();
                           }}
-                        >🖼 Frame</button>
+                          style={{ display: "flex", alignItems: "center", gap: 4 }}
+                        ><ImageIcon size={12} /> Frame</button>
                       </div>
                     </div>
                   </div>
@@ -759,14 +815,18 @@ export default function ResultsPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", fontWeight: 600, marginBottom: 4 }}>{match.timestamp_str}</div>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <span className="badge badge-cyan">📹 {match.camera_id}</span>
+                        <span className="badge badge-cyan" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <VideoIcon size={11} /> {match.camera_id}
+                        </span>
                         <span className="badge badge-accent">{match.label}</span>
                       </div>
                     </div>
                     <div style={{ color: confidenceColor(match.confidence), fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>
                       {(match.confidence * 100).toFixed(0)}%
                     </div>
-                    <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setVideoPlayer(match); }}>▶ Play</button>
+                    <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setVideoPlayer(match); }} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <PlayIcon size={12} /> Play
+                    </button>
                   </div>
                 ))}
               </div>
@@ -776,7 +836,9 @@ export default function ResultsPage() {
 
         {!job && !loadingJob && (
           <div className="empty-state">
-            <div className="empty-state-icon">🎯</div>
+            <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center" }}>
+              <TargetIcon size={36} style={{ color: "var(--text-muted)" }} />
+            </div>
             <div className="empty-state-title">No results loaded</div>
             <div className="empty-state-sub">
               Enter a Job ID above, or{" "}
