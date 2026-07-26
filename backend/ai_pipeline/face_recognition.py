@@ -36,6 +36,7 @@ def _sha256_file(path: Path) -> str:
 
 BASE_DIR = Path(__file__).parent.parent
 MODEL_PATH = BASE_DIR.parent / "Face-Detection-and-Recognition-with-YOLOv8-and-FaceNet-PyTorch-main" / "yolov8n-face-keypoints.pt"
+LOCAL_YOLO_PATH = BASE_DIR / "yolov8n.pt"
 MODELS_DIR = BASE_DIR / "storage" / "models"
 FACENET_ONNX_PATH = MODELS_DIR / "facenet.onnx"
 YOLO_ONNX_PATH = MODELS_DIR / "yolov8n-face-keypoints.onnx"
@@ -89,13 +90,31 @@ def _get_face_detector():
     global _face_detector
     if _face_detector is None:
         from ultralytics import YOLO  # noqa: PLC0415
-        if _ONNX_AVAILABLE:
+        if _ONNX_AVAILABLE and YOLO_ONNX_PATH.exists():
             print("[face_recognition] Loading YOLOv8 ONNX model...")
             _face_detector = YOLO(str(YOLO_ONNX_PATH), task="pose")
         else:
             print("[face_recognition] Loading YOLOv8 PyTorch model...")
-            _face_detector = YOLO(str(MODEL_PATH))
-            _face_detector.to(_get_device())
+            target_path = None
+            if MODEL_PATH.exists():
+                target_path = str(MODEL_PATH)
+            elif LOCAL_YOLO_PATH.exists():
+                target_path = str(LOCAL_YOLO_PATH)
+            else:
+                target_path = "yolov8n.pt"
+
+            try:
+                print(f"[face_recognition] Initializing YOLO face detector using {target_path}")
+                _face_detector = YOLO(target_path)
+                _face_detector.to(_get_device())
+            except Exception as e:
+                print(f"[face_recognition] Failed to load {target_path}: {e}. Retrying with default yolov8n.pt...")
+                try:
+                    _face_detector = YOLO("yolov8n.pt")
+                    _face_detector.to(_get_device())
+                except Exception as e2:
+                    print(f"[face_recognition] YOLO face detector initialization failed: {e2}")
+                    _face_detector = None
     return _face_detector
 
 
@@ -587,12 +606,117 @@ def run_face_recognition_search(
             progress_cb=progress_cb,
         )
     else:
-        # Full YOLOv8 + FaceNet pipeline
-        import torch  # noqa: PLC0415
-        db_tensor, db_labels = build_reference_embeddings(reference_image_paths)
-        detector = _get_face_detector()
-        device = _get_device()
-        matches = []
+        # Full YOLOv8 + FaceNet pipeline (with automatic fallback to OpenCV if models fail)
+        try:
+            import torch  # noqa: PLC0415
+            detector = _get_face_detector()
+            if detector is None:
+                raise RuntimeError("YOLO face detector unavailable")
+
+            db_tensor, db_labels = build_reference_embeddings(reference_image_paths)
+            device = _get_device()
+            matches = []
+
+            cap = cv2.VideoCapture(str(video_path))
+            video_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+            frame_interval = max(1, int(video_fps / sample_fps))
+            frame_idx = 0
+
+            try:
+                while cap.isOpened():
+                    success, frame = cap.read()
+                    if not success:
+                        break
+                    if frame_idx % frame_interval != 0:
+                        frame_idx += 1
+                        continue
+
+                    timestamp = frame_idx / video_fps
+                    if start_time is not None and timestamp < start_time:
+                        frame_idx += 1
+                        continue
+                    if end_time is not None and timestamp > end_time:
+                        break
+
+                    results = detector(frame, device=device, verbose=False)
+
+                    # Process ALL faces in the frame (no break)
+                    for r in results[0]:
+                        if r.boxes.conf.item() < confidence_threshold:
+                            continue
+
+                        x_c, y_c, w_b, h_b = r.boxes.xywh.cpu().numpy()[0]
+                        x_min = max(0, int(x_c - w_b / 2))
+                        y_min = max(0, int(y_c - h_b / 2))
+                        x_max = min(frame.shape[1], int(x_c + w_b / 2))
+                        y_max = min(frame.shape[0], int(y_c + h_b / 2))
+
+                        face_crop = frame[y_min:y_max, x_min:x_max]
+                        if face_crop.size == 0:
+                            continue
+
+                        try:
+                            face_emb = _embed_face_crop(face_crop)
+                        except Exception:
+                            continue
+
+                        # Cosine similarity (higher = more similar)
+                        if _ONNX_AVAILABLE:
+                            similarities = np.dot(db_tensor, face_emb.T).flatten()
+                            max_idx = int(np.argmax(similarities))
+                            max_sim = float(similarities[max_idx])
+                        else:
+                            similarities = torch.nn.functional.cosine_similarity(
+                                db_tensor, face_emb.expand_as(db_tensor), dim=1
+                            )
+                            max_idx = torch.argmax(similarities).item()
+                            max_sim = similarities[max_idx].item()
+
+                        best_label = db_labels[max_idx]
+
+                        if max_sim >= similarity_threshold:
+                            frame_filename = f"face_{job_id}_{frame_idx:06d}_{x_min}_{y_min}.jpg"
+                            frame_path = job_dir / frame_filename
+                            box_details = {
+                                "x1": x_min, "y1": y_min, "x2": x_max, "y2": y_max,
+                                "label": best_label, "confidence": max_sim,
+                            }
+                            save_frame(frame, frame_path, draw_box=box_details)
+
+                            clip_filename: str | None = f"clip_{job_id}_{frame_idx:06d}.mp4"
+                            clip_path = job_dir / clip_filename
+                            try:
+                                extract_clip(video_path, clip_path, timestamp, window_seconds=5.0, draw_box=box_details)
+                            except Exception:
+                                clip_filename = None
+
+                            frame_hash = _sha256_file(frame_path)
+                            clip_hash = _sha256_file(job_dir / clip_filename) if clip_filename else "N/A"
+                            matches.append({
+                                "camera_id": camera_id,
+                                "timestamp": timestamp,
+                                "timestamp_str": format_timestamp(timestamp),
+                                "frame_url": f"/storage/results/{job_id}/{frame_filename}",
+                                "clip_url": f"/storage/results/{job_id}/{clip_filename}" if clip_filename else None,
+                                "confidence": round(max_sim, 4),
+                                "label": best_label,
+                                "box": {"x1": int(x_min), "y1": int(y_min), "x2": int(x_max), "y2": int(y_max)},
+                                "search_type": "face_recognition",
+                                "frame_hash": frame_hash,
+                                "clip_hash": clip_hash,
+                            })
+
+                    frame_idx += 1
+            finally:
+                cap.release()
+        except Exception as pipeline_err:
+            print(f"[face_recognition] PyTorch face pipeline error: {pipeline_err}. Switching to OpenCV fallback mode...")
+            matches = _demo_face_search(
+                video_path, reference_image_paths, camera_id, job_id,
+                confidence_threshold=confidence_threshold,
+                start_time=start_time, end_time=end_time,
+                progress_cb=progress_cb,
+            )
 
         cap = cv2.VideoCapture(str(video_path))
         video_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
