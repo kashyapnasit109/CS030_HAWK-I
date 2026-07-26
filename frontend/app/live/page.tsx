@@ -292,11 +292,11 @@ export default function LivePage() {
             onClick={toggleScan}
             className={`btn ${isScanning ? "btn-secondary" : "btn-primary"}`}
             style={{
-              background: isScanning ? "rgba(233,69,96,0.2)" : "linear-gradient(135deg, var(--accent) 0%, #c0392b 100%)",
+              background: isScanning ? "rgba(233, 94, 69, 0.2)" : "linear-gradient(135deg, var(--accent) 0%, #342650ff 100%)",
               borderColor: isScanning ? "var(--accent)" : "none",
               color: "white",
               fontWeight: 800,
-              boxShadow: isScanning ? "none" : "0 4px 20px rgba(233,69,96,0.3)",
+              boxShadow: isScanning ? "none" : "0 4px 20px rgba(148, 69, 233, 0.3)",
             }}
           >
             {isScanning
@@ -325,7 +325,7 @@ export default function LivePage() {
                     src={getCameraStreamUrl(cameras[0].id)}
                     alt={cameras[0].name}
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    onError={(e) => { (e.target as HTMLImageElement).src = getCameraSnapshotUrl(cameras[0].id); }}
+                    onError={(e) => { (e.target as HTMLElement).src = getCameraSnapshotUrl(cameras[0].id); }}
                   />
                 </div>
               ) : (
