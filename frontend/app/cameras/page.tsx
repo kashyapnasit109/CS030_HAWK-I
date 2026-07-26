@@ -563,8 +563,8 @@ export default function CamerasPage() {
 
                         {isDrawing && (
                           <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: 12, background: "var(--bg-elevated)", borderRadius: 8, border: "1px solid var(--border)" }}>
-                            <div style={{ fontSize: "0.72rem", color: "var(--cyan)", fontWeight: "bold" }}>
-                              👉 Click on the video feed above to place at least 3 points, then click "Done Drawing".
+                            <div style={{ fontSize: "0.72rem", color: "var(--cyan)", fontWeight: "bold", display: "flex", alignItems: "center", gap: 6 }}>
+                              <TargetIcon size={14} /> Click on the video feed above to place at least 3 points, then click "Done Drawing".
                             </div>
                             <div className="input-group" style={{ marginBottom: 0 }}>
                               <label className="input-label">Zone Name / Label</label>

@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import { apiFetch } from "@/lib/api";
-import { ActivityIcon, AlertIcon, CameraIcon, DashboardIcon, SignalIcon } from "@/components/Icons";
+import { ActivityIcon, AlertIcon, CameraIcon, DashboardIcon, SignalIcon, BellIcon } from "@/components/Icons";
 
 interface AnalyticsStats {
   cameras: Record<string, number>;
@@ -111,14 +111,14 @@ export default function AnalyticsPage() {
         <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <ActivityIcon size={24} style={{ color: "var(--cyan)" }} /> VMS Analytics Dashboard
+              <ActivityIcon size={24} style={{ color: "#3B82F6" }} /> VMS Analytics Dashboard
             </h1>
             <p className="page-subtitle">Real-time surveillance match charts, attribute counts, and dynamic alert feed.</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", cursor: "pointer", background: "var(--bg-elevated)", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 6 }}>
               <input type="checkbox" checked={audioBeep} onChange={() => setAudioBeep(!audioBeep)} />
-              🔊 Live Audio Beep Alert
+              <BellIcon size={14} style={{ color: "#3B82F6" }} /> Live Audio Beep Alert
             </label>
             <button className="btn btn-secondary btn-sm" onClick={loadData}>Refresh</button>
           </div>
@@ -132,10 +132,10 @@ export default function AnalyticsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             
             {/* Real-time Alert Ticker */}
-            <div className="card" style={{ borderColor: "rgba(233,69,96,0.3)", background: "rgba(233,69,96,0.01)" }}>
+            <div className="card" style={{ borderColor: "rgba(59,130,246,0.25)", background: "linear-gradient(135deg, #070A0F 0%, #0E1526 100%)", boxShadow: "0 4px 20px rgba(0,0,0,0.5)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span className="section-title" style={{ margin: 0, display: "flex", alignItems: "center", gap: 6, color: "var(--accent)" }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", animation: "pulse 1.2s infinite" }} />
+                <span className="section-title" style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, color: "#60A5FA" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3B82F6", animation: "pulse 1.2s infinite" }} />
                   Live Alert Incident Ticker
                 </span>
                 <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Updates dynamically every 5s</span>
@@ -153,8 +153,8 @@ export default function AnalyticsPage() {
                       style={{
                         flexShrink: 0,
                         width: 250,
-                        background: "var(--bg-elevated)",
-                        border: "1px solid var(--border)",
+                        background: "rgba(15, 23, 42, 0.6)",
+                        border: "1px solid rgba(59, 130, 246, 0.2)",
                         borderRadius: 8,
                         padding: 10,
                         display: "flex",
@@ -172,7 +172,7 @@ export default function AnalyticsPage() {
                         )}
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: "0.75rem", fontWeight: "bold", color: "var(--yellow)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: "0.75rem", fontWeight: "bold", color: "#60A5FA", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {alert.camera_name}
                         </div>
                         <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", marginTop: 2 }}>
@@ -192,8 +192,8 @@ export default function AnalyticsPage() {
             <div className="grid-2" style={{ gridTemplateColumns: "1fr 1fr", gap: 24 }}>
               
               {/* Chart 1: Matches by Camera */}
-              <div className="card">
-                <div className="section-title">Match Events by Camera Unit</div>
+              <div className="card" style={{ background: "linear-gradient(135deg, #070A0F 0%, #0D1424 100%)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+                <div className="section-title" style={{ color: "#F1F5F9" }}>Match Events by Camera Unit</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
                   {stats && Object.entries(stats.cameras).map(([cam, count]) => {
                     const maxVal = Math.max(...Object.values(stats.cameras), 1);
@@ -202,15 +202,15 @@ export default function AnalyticsPage() {
                       <div key={cam} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: 700 }}>
                           <span>{cam}</span>
-                          <span style={{ color: "var(--cyan)" }}>{count} sightings</span>
+                          <span style={{ color: "#60A5FA" }}>{count} sightings</span>
                         </div>
-                        <div style={{ height: 16, background: "rgba(255,255,255,0.03)", borderRadius: 4, overflow: "hidden", position: "relative" }}>
+                        <div style={{ height: 16, background: "rgba(0,0,0,0.5)", borderRadius: 4, overflow: "hidden", position: "relative", border: "1px solid rgba(255,255,255,0.05)" }}>
                           <div
                             style={{
                               width: `${pct}%`,
                               height: "100%",
-                              background: "linear-gradient(90deg, var(--cyan), #00ff88)",
-                              boxShadow: "0 0 10px rgba(0, 212, 255, 0.4)",
+                              background: "linear-gradient(90deg, #1D4ED8 0%, #2563EB 50%, #60A5FA 100%)",
+                              boxShadow: "0 0 12px rgba(59, 130, 246, 0.35)",
                               borderRadius: 4,
                               transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)"
                             }}
@@ -223,8 +223,8 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Chart 2: Matches by Detection Module */}
-              <div className="card">
-                <div className="section-title">Sightings by Engine Analysis Module</div>
+              <div className="card" style={{ background: "linear-gradient(135deg, #070A0F 0%, #0D1424 100%)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+                <div className="section-title" style={{ color: "#F1F5F9" }}>Sightings by Engine Analysis Module</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
                   {stats && Object.entries(stats.modules).map(([module, count]) => {
                     const maxVal = Math.max(...Object.values(stats.modules), 1);
@@ -233,15 +233,15 @@ export default function AnalyticsPage() {
                       <div key={module} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: 700 }}>
                           <span style={{ textTransform: "capitalize" }}>{module.replace("_", " ")}</span>
-                          <span style={{ color: "var(--accent)" }}>{count} matches</span>
+                          <span style={{ color: "#3B82F6" }}>{count} matches</span>
                         </div>
-                        <div style={{ height: 16, background: "rgba(255,255,255,0.03)", borderRadius: 4, overflow: "hidden", position: "relative" }}>
+                        <div style={{ height: 16, background: "rgba(0,0,0,0.5)", borderRadius: 4, overflow: "hidden", position: "relative", border: "1px solid rgba(255,255,255,0.05)" }}>
                           <div
                             style={{
                               width: `${pct}%`,
                               height: "100%",
-                              background: "linear-gradient(90deg, var(--accent), #ff2a7f)",
-                              boxShadow: "0 0 10px rgba(233, 69, 96, 0.4)",
+                              background: "linear-gradient(90deg, #0F172A 0%, #1D4ED8 50%, #3B82F6 100%)",
+                              boxShadow: "0 0 12px rgba(59, 130, 246, 0.35)",
                               borderRadius: 4,
                               transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)"
                             }}
@@ -256,8 +256,8 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Tag Cloud & Attribute Heatmap */}
-            <div className="card">
-              <div className="section-title">Query Attribute Tag Cloud (Sighting Popularity)</div>
+            <div className="card" style={{ background: "linear-gradient(135deg, #070A0F 0%, #0D1424 100%)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+              <div className="section-title" style={{ color: "#F1F5F9" }}>Query Attribute Tag Cloud (Sighting Popularity)</div>
               <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 16 }}>
                 Common colors, postures, and tags seeded or extracted from historical video evidence. Larger tags indicate higher occurrence rate.
               </p>
@@ -269,16 +269,16 @@ export default function AnalyticsPage() {
                   gap: 12,
                   justifyContent: "center",
                   alignItems: "center",
-                  padding: "20px 10px",
-                  background: "rgba(255,255,255,0.01)",
+                  padding: "24px 16px",
+                  background: "linear-gradient(135deg, #05070A 0%, #0F172A 100%)",
                   borderRadius: 12,
-                  border: "1px solid var(--border)"
+                  border: "1px solid rgba(59, 130, 246, 0.18)"
                 }}
               >
                 {tags.map((tag, idx) => {
                   const size = Math.min(24, Math.max(12, 12 + tag.count * 0.7));
-                  const glowColor = tag.category === "pose" ? "rgba(0, 255, 136, 0.25)" : "rgba(0, 212, 255, 0.25)";
-                  const borderColor = tag.category === "pose" ? "#00ff88" : "var(--cyan)";
+                  const glowColor = "rgba(59, 130, 246, 0.25)";
+                  const borderColor = tag.category === "pose" ? "#3B82F6" : "rgba(59, 130, 246, 0.4)";
                   return (
                     <span
                       key={idx}
@@ -287,9 +287,9 @@ export default function AnalyticsPage() {
                         fontWeight: 700,
                         padding: "6px 14px",
                         borderRadius: 30,
-                        background: "var(--bg-elevated)",
+                        background: "rgba(15, 23, 42, 0.8)",
                         border: `1.5px solid ${borderColor}`,
-                        color: "var(--text-primary)",
+                        color: "#F1F5F9",
                         boxShadow: `0 0 12px ${glowColor}`,
                         cursor: "pointer",
                         transition: "all 0.2s"
@@ -298,7 +298,7 @@ export default function AnalyticsPage() {
                       onClick={() => showToast(`Filtered search by tag: "${tag.text}"`, "info")}
                     >
                       {tag.text}
-                      <span style={{ fontSize: "0.55em", color: "var(--text-muted)", marginLeft: 6 }}>({tag.count})</span>
+                      <span style={{ fontSize: "0.55em", color: "#60A5FA", marginLeft: 6 }}>({tag.count})</span>
                     </span>
                   );
                 })}

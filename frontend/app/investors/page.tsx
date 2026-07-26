@@ -2,6 +2,40 @@
 
 import { useState, useEffect, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
+import {
+  LockIcon,
+  TrendingUpIcon,
+  BuildingIcon,
+  TargetIcon,
+  SparklesIcon,
+  WarningIcon,
+  ShieldIcon,
+  CpuIcon,
+  SearchIcon,
+  BarChartIcon,
+  ActivityIcon,
+  MapIcon,
+  GlobeIcon,
+  ScaleIcon,
+  DollarIcon,
+  UserIcon,
+  FileTextIcon,
+  AlertIcon,
+  ClipboardIcon,
+  KeyIcon,
+  FolderIcon,
+  CheckIcon,
+  CloseIcon,
+  ClockIcon,
+  CreditCardIcon,
+  ScienceIcon,
+  HandshakeIcon,
+  SettingsIcon,
+  PaletteIcon,
+  MailIcon,
+  VideoIcon
+} from "@/components/Icons";
+
 
 // Animated counter
 function useCountUp(target: number, duration = 1500) {
@@ -84,7 +118,7 @@ export default function InvestorsPage() {
               border: "1px solid rgba(59,130,246,0.3)", borderRadius: "100px",
               fontSize: "0.7rem", fontWeight: 700, color: BLUE, textTransform: "uppercase" as const, letterSpacing: "0.8px"
             }}>
-              <span>🔒</span> Confidential — For Investor Review Only
+              <LockIcon size={12} /> Confidential — For Investor Review Only
             </div>
           </div>
           <h1 style={{ fontSize: "2.2rem", fontWeight: 900, letterSpacing: "-1px", color: "#F1F5F9", marginBottom: "8px" }}>
@@ -122,14 +156,14 @@ export default function InvestorsPage() {
             {/* KPI Row */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
               {[
-                { label: "Global Security AI Market", value: `$${(marketSize / 1000).toFixed(1)}B`, sub: "2028 Projection", icon: "📈" },
-                { label: "Active Deployments", value: deployments, sub: "Law enforcement units", icon: "🏛️" },
-                { label: "Detection Accuracy", value: `${accuracy}%`, sub: "vs 67% manual review", icon: "🎯" },
-                { label: "Investigation Time Saved", value: `${timeSaved}%`, sub: "Per incident avg.", icon: "⚡" },
+                { label: "Global Security AI Market", value: `$${(marketSize / 1000).toFixed(1)}B`, sub: "2028 Projection", Icon: TrendingUpIcon },
+                { label: "Active Deployments", value: deployments, sub: "Law enforcement units", Icon: BuildingIcon },
+                { label: "Detection Accuracy", value: `${accuracy}%`, sub: "vs 67% manual review", Icon: TargetIcon },
+                { label: "Investigation Time Saved", value: `${timeSaved}%`, sub: "Per incident avg.", Icon: SparklesIcon },
               ].map((kpi, i) => (
                 <div key={i} style={{ ...cardStyle, textAlign: "center" as const, position: "relative" as const, overflow: "hidden" }}>
                   <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: `linear-gradient(90deg, ${BLUE}, transparent)` }} />
-                  <div style={{ fontSize: "1.8rem", marginBottom: "4px" }}>{kpi.icon}</div>
+                  <div style={{ display: "flex", justifyContent: "center", color: BLUE, marginBottom: "8px" }}><kpi.Icon size={24} /></div>
                   <div style={{ fontSize: "1.75rem", fontWeight: 900, color: "#F1F5F9", marginBottom: "2px" }}>{kpi.value}</div>
                   <div style={{ fontSize: "0.75rem", fontWeight: 700, color: BLUE, marginBottom: "4px" }}>{kpi.label}</div>
                   <div style={{ fontSize: "0.65rem", color: "#475569" }}>{kpi.sub}</div>
@@ -141,7 +175,7 @@ export default function InvestorsPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "24px" }}>
               <div style={{ ...cardStyle, borderColor: "rgba(239,68,68,0.2)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-                  <div style={{ fontSize: "1.4rem" }}>⚠️</div>
+                  <WarningIcon size={22} style={{ color: "#EF4444" }} />
                   <h3 style={{ color: "#F1F5F9", fontWeight: 800, fontSize: "1rem" }}>The Problem</h3>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" as const, gap: "12px" }}>
@@ -161,19 +195,19 @@ export default function InvestorsPage() {
 
               <div style={{ ...cardStyle, borderColor: "rgba(59,130,246,0.25)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-                  <div style={{ fontSize: "1.4rem" }}>🛡️</div>
+                  <ShieldIcon size={22} style={{ color: BLUE }} />
                   <h3 style={{ color: "#F1F5F9", fontWeight: 800, fontSize: "1rem" }}>SentinelVision Solution</h3>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" as const, gap: "12px" }}>
                   {[
-                    { icon: "🤖", text: "AI-powered face recognition + object detection — sub-30s search across hours of footage" },
-                    { icon: "🔍", text: "CLIP semantic search: find people by text description, clothing, behaviour" },
-                    { icon: "📊", text: "Court-ready PDF forensic reports with hash-verified, tamper-proof chain of custody" },
-                    { icon: "⚡", text: "Anomaly detection, live alerts, watchlist matching — all in real time" },
-                    { icon: "🔐", text: "Role-based access, full audit trail, MFA — enterprise-grade security compliance" },
+                    { Icon: CpuIcon, text: "AI-powered face recognition + object detection — sub-30s search across hours of footage" },
+                    { Icon: SearchIcon, text: "CLIP semantic search: find people by text description, clothing, behaviour" },
+                    { Icon: BarChartIcon, text: "Court-ready PDF forensic reports with hash-verified, tamper-proof chain of custody" },
+                    { Icon: ActivityIcon, text: "Anomaly detection, live alerts, watchlist matching — all in real time" },
+                    { Icon: LockIcon, text: "Role-based access, full audit trail, MFA — enterprise-grade security compliance" },
                   ].map((s, i) => (
                     <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                      <span style={{ fontSize: "1.1rem" }}>{s.icon}</span>
+                      <s.Icon size={18} style={{ color: BLUE, flexShrink: 0, marginTop: 2 }} />
                       <div style={{ fontSize: "0.83rem", color: "#94A3B8", lineHeight: 1.4 }}>{s.text}</div>
                     </div>
                   ))}
@@ -222,13 +256,13 @@ export default function InvestorsPage() {
               <div style={cardStyle}>
                 <h3 style={{ color: "#F1F5F9", fontWeight: 800, marginBottom: "20px" }}>Target Verticals</h3>
                 {[
-                  { name: "Law Enforcement & Police", icon: "🏛️", size: "$2.8B", growth: "+42%", desc: "Municipal police, state CID, federal agencies" },
-                  { name: "Smart City Surveillance", icon: "🌆", size: "$3.1B", growth: "+55%", desc: "Traffic AI, crowd monitoring, incident detection" },
-                  { name: "Private Security", icon: "🔐", size: "$1.9B", growth: "+31%", desc: "Corporate campuses, retail chains, airports" },
-                  { name: "Border & Critical Infra", icon: "🛡️", size: "$0.9B", growth: "+28%", desc: "Border control, power plants, govt. buildings" },
+                  { name: "Law Enforcement & Police", Icon: BuildingIcon, size: "$2.8B", growth: "+42%", desc: "Municipal police, state CID, federal agencies" },
+                  { name: "Smart City Surveillance", Icon: MapIcon, size: "$3.1B", growth: "+55%", desc: "Traffic AI, crowd monitoring, incident detection" },
+                  { name: "Private Security", Icon: LockIcon, size: "$1.9B", growth: "+31%", desc: "Corporate campuses, retail chains, airports" },
+                  { name: "Border & Critical Infra", Icon: ShieldIcon, size: "$0.9B", growth: "+28%", desc: "Border control, power plants, govt. buildings" },
                 ].map((v, i) => (
                   <div key={i} style={{ display: "flex", gap: "12px", alignItems: "center", padding: "10px 12px", borderRadius: "8px", marginBottom: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                    <span style={{ fontSize: "1.4rem" }}>{v.icon}</span>
+                    <v.Icon size={22} style={{ color: BLUE, flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#F1F5F9", marginBottom: "2px" }}>{v.name}</div>
                       <div style={{ fontSize: "0.72rem", color: "#475569" }}>{v.desc}</div>
@@ -246,12 +280,12 @@ export default function InvestorsPage() {
               <h3 style={{ color: "#F1F5F9", fontWeight: 800, marginBottom: "16px" }}>Why Now? — Market Timing Is Critical</h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
                 {[
-                  { icon: "🌍", title: "Post-COVID Surveillance Boom", text: "Global CCTV installations grew 22% in 2023. Governments mandating AI-assisted review for court admissibility." },
-                  { icon: "⚖️", title: "Legal Compliance Wave", text: "UK NPCC, EU AI Act, India NDPS amendments now require documented, audited CCTV review chain-of-custody." },
-                  { icon: "💰", title: "Cost Pressure on Forces", text: "Police departments globally face 18% budget cuts. AI replacing manual review saves £180K+ per precinct annually." },
+                  { Icon: GlobeIcon, title: "Post-COVID Surveillance Boom", text: "Global CCTV installations grew 22% in 2023. Governments mandating AI-assisted review for court admissibility." },
+                  { Icon: ScaleIcon, title: "Legal Compliance Wave", text: "UK NPCC, EU AI Act, India NDPS amendments now require documented, audited CCTV review chain-of-custody." },
+                  { Icon: DollarIcon, title: "Cost Pressure on Forces", text: "Police departments globally face 18% budget cuts. AI replacing manual review saves £180K+ per precinct annually." },
                 ].map((r, i) => (
                   <div key={i} style={{ padding: "16px", background: "rgba(255,255,255,0.02)", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                    <div style={{ fontSize: "1.4rem", marginBottom: "8px" }}>{r.icon}</div>
+                    <div style={{ display: "flex", color: BLUE, marginBottom: "8px" }}><r.Icon size={22} /></div>
                     <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#F1F5F9", marginBottom: "6px" }}>{r.title}</div>
                     <div style={{ fontSize: "0.78rem", color: "#94A3B8", lineHeight: 1.5 }}>{r.text}</div>
                   </div>
@@ -269,21 +303,21 @@ export default function InvestorsPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
                 {[
                   {
-                    icon: "👤", title: "Face Re-Identification", color: BLUE,
+                    Icon: UserIcon, title: "Face Re-Identification", color: BLUE,
                     features: ["FaceNet deep embeddings", "YOLOv8 face detection", "Multi-face tracking across cameras", "Sub-second matching in 8h footage", "Confidence scores with thumbnails"]
                   },
                   {
-                    icon: "📝", title: "Semantic CLIP Search", color: "#8B5CF6",
+                    Icon: FileTextIcon, title: "Semantic CLIP Search", color: "#8B5CF6",
                     features: ["Natural language queries", "\"Man in red jacket near ATM\"", "Colour + clothing + pose matching", "Zero-shot novel object search", "Batch video processing"]
                   },
                   {
-                    icon: "🚨", title: "Live Anomaly Alerts", color: "#EF4444",
+                    Icon: AlertIcon, title: "Live Anomaly Alerts", color: "#EF4444",
                     features: ["Real-time stream analysis", "Crowd gathering detection", "Weapon / threat identification", "Watchlist auto-matching", "Instant operator notifications"]
                   },
                 ].map((cap, i) => (
                   <div key={i} style={{ padding: "20px", background: "rgba(255,255,255,0.02)", borderRadius: "12px", border: `1px solid ${cap.color}30` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-                      <span style={{ fontSize: "1.5rem" }}>{cap.icon}</span>
+                      <cap.Icon size={22} style={{ color: cap.color }} />
                       <span style={{ fontWeight: 800, color: cap.color, fontSize: "0.9rem" }}>{cap.title}</span>
                     </div>
                     <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column" as const, gap: "6px" }}>
@@ -303,16 +337,16 @@ export default function InvestorsPage() {
               <div style={cardStyle}>
                 <h3 style={{ color: "#F1F5F9", fontWeight: 800, marginBottom: "16px" }}>Evidence Management Suite</h3>
                 {[
-                  { icon: "📋", text: "Case management with full evidence chain", done: true },
-                  { icon: "📄", text: "Cryptographically signed PDF forensic reports", done: true },
-                  { icon: "🔏", text: "SHA-256 tamper-proof video verification", done: true },
-                  { icon: "📁", text: "Suspect profiles with linked evidence", done: true },
-                  { icon: "🔍", text: "Complete audit trail for court admissibility", done: true },
-                  { icon: "🌐", text: "Multi-camera synchronized timeline playback", done: true },
+                  { Icon: ClipboardIcon, text: "Case management with full evidence chain", done: true },
+                  { Icon: FileTextIcon, text: "Cryptographically signed PDF forensic reports", done: true },
+                  { Icon: KeyIcon, text: "SHA-256 tamper-proof video verification", done: true },
+                  { Icon: FolderIcon, text: "Suspect profiles with linked evidence", done: true },
+                  { Icon: SearchIcon, text: "Complete audit trail for court admissibility", done: true },
+                  { Icon: GlobeIcon, text: "Multi-camera synchronized timeline playback", done: true },
                 ].map((f, i) => (
                   <div key={i} style={{ display: "flex", gap: "10px", alignItems: "center", padding: "8px 0", borderBottom: i < 5 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
                     <span style={{ background: "rgba(34,197,94,0.15)", borderRadius: "50%", width: "22px", height: "22px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", flexShrink: 0 }}>✓</span>
-                    <span style={{ fontSize: "0.83rem", color: "#94A3B8" }}>{f.icon} {f.text}</span>
+                    <span style={{ fontSize: "0.83rem", color: "#94A3B8", display: "inline-flex", alignItems: "center", gap: 8 }}><f.Icon size={14} style={{ color: BLUE }} /> {f.text}</span>
                   </div>
                 ))}
               </div>
@@ -359,13 +393,13 @@ export default function InvestorsPage() {
                   </thead>
                   <tbody>
                     {[
-                      ["Face Re-ID across footage", "✅ Full", "✅ API only", "✅ API only", "❌ None", "🐌 Manual"],
-                      ["Court-ready PDF reports", "✅ Built-in", "❌ No", "❌ No", "❌ No", "📋 Manual"],
-                      ["Chain of custody audit", "✅ Full trail", "❌ No", "❌ No", "⚠️ Basic", "📋 Manual"],
-                      ["On-premise deployment", "✅ Yes", "❌ Cloud only", "❌ Cloud only", "✅ Yes", "✅ Yes"],
-                      ["Semantic text search", "✅ CLIP AI", "⚠️ Limited", "⚠️ Limited", "❌ None", "❌ None"],
-                      ["Custom AI model upload", "✅ Yes", "❌ No", "❌ No", "❌ No", "N/A"],
-                      ["Role-based access (RBAC)", "✅ Full", "⚠️ IAM", "⚠️ IAM", "⚠️ Basic", "N/A"],
+                      ["Face Re-ID across footage", "Full", "API only", "API only", "None", "Manual"],
+                      ["Court-ready PDF reports", "Built-in", "No", "No", "No", "Manual"],
+                      ["Chain of custody audit", "Full trail", "No", "No", "Basic", "Manual"],
+                      ["On-premise deployment", "Yes", "Cloud only", "Cloud only", "Yes", "Yes"],
+                      ["Semantic text search", "CLIP AI", "Limited", "Limited", "None", "None"],
+                      ["Custom AI model upload", "Yes", "No", "No", "No", "N/A"],
+                      ["Role-based access (RBAC)", "Full", "IAM", "IAM", "Basic", "N/A"],
                       ["Price / 50 cameras/mo", "£200", "£4,200+", "£3,800+", "£600+", "£9,000+"],
                     ].map((row, i) => (
                       <tr key={i}>
@@ -425,12 +459,12 @@ export default function InvestorsPage() {
 
                 <div style={{ display: "flex", flexDirection: "column" as const, gap: "10px" }}>
                   {[
-                    { label: "Incidents / Month", value: incidentsPerMonth, icon: "📋" },
-                    { label: "Hours Saved / Month", value: `${timeSavedPerMonth.toLocaleString()} hrs`, icon: "⏱️" },
-                    { label: "Annual Platform Cost", value: `£${platformCost.toLocaleString()}`, icon: "💳" },
+                    { label: "Incidents / Month", value: incidentsPerMonth, Icon: ClipboardIcon },
+                    { label: "Hours Saved / Month", value: `${timeSavedPerMonth.toLocaleString()} hrs`, Icon: ClockIcon },
+                    { label: "Annual Platform Cost", value: `£${platformCost.toLocaleString()}`, Icon: CreditCardIcon },
                   ].map((item, i) => (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                      <span style={{ fontSize: "0.83rem", color: "#94A3B8" }}>{item.icon} {item.label}</span>
+                      <span style={{ fontSize: "0.83rem", color: "#94A3B8", display: "inline-flex", alignItems: "center", gap: 8 }}><item.Icon size={14} style={{ color: BLUE }} /> {item.label}</span>
                       <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "#F1F5F9" }}>{item.value}</span>
                     </div>
                   ))}
@@ -515,13 +549,13 @@ export default function InvestorsPage() {
               <h3 style={{ color: "#F1F5F9", fontWeight: 800, marginBottom: "16px" }}>Go-To-Market Strategy</h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
                 {[
-                  { phase: "Phase 1", title: "Beta Programme", icon: "🔬", text: "Offer 3-month free pilots to 5–10 police units. Collect case studies, performance data, and testimonials for credibility." },
-                  { phase: "Phase 2", title: "Channel Partnerships", icon: "🤝", text: "Partner with existing CCTV hardware vendors (Hikvision, Dahua, Genetec) to bundle SentinelVision as their AI layer." },
-                  { phase: "Phase 3", title: "Government Frameworks", icon: "🏛️", text: "Enter Crown Commercial Service (G-Cloud) and equivalent frameworks in EU, GCC, and South Asia markets." },
+                  { phase: "Phase 1", title: "Beta Programme", Icon: ScienceIcon, text: "Offer 3-month free pilots to 5–10 police units. Collect case studies, performance data, and testimonials for credibility." },
+                  { phase: "Phase 2", title: "Channel Partnerships", Icon: HandshakeIcon, text: "Partner with existing CCTV hardware vendors (Hikvision, Dahua, Genetec) to bundle SentinelVision as their AI layer." },
+                  { phase: "Phase 3", title: "Government Frameworks", Icon: BuildingIcon, text: "Enter Crown Commercial Service (G-Cloud) and equivalent frameworks in EU, GCC, and South Asia markets." },
                 ].map((p, i) => (
                   <div key={i} style={{ padding: "18px", background: "rgba(255,255,255,0.02)", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.06)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-                      <span style={{ fontSize: "1.2rem" }}>{p.icon}</span>
+                      <p.Icon size={20} style={{ color: BLUE }} />
                       <div>
                         <div style={{ fontSize: "0.68rem", fontWeight: 700, color: BLUE, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{p.phase}</div>
                         <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#F1F5F9" }}>{p.title}</div>
@@ -615,13 +649,13 @@ export default function InvestorsPage() {
               <div style={cardStyle}>
                 <h3 style={{ color: "#F1F5F9", fontWeight: 800, marginBottom: "20px" }}>Core Team</h3>
                 {[
-                  { name: "CEO / Lead Architect", role: "Computer Vision & AI — 6+ yrs", icon: "👤", skills: "YOLOv8, FaceNet, FastAPI, Next.js" },
-                  { name: "CTO / Backend Lead", role: "Distributed Systems — 5+ yrs", icon: "⚙️", skills: "Python, PostgreSQL, Docker, AWS" },
-                  { name: "Product Designer", role: "UX/UI & Forensic Workflows", icon: "🎨", skills: "Research with law enforcement UX" },
-                  { name: "Advisor — Law Enforcement", role: "Retired DCI, 24 yrs service", icon: "🏛️", skills: "NPCC, evidence law, court liaison" },
+                  { name: "CEO / Lead Architect", role: "Computer Vision & AI — 6+ yrs", Icon: UserIcon, skills: "YOLOv8, FaceNet, FastAPI, Next.js" },
+                  { name: "CTO / Backend Lead", role: "Distributed Systems — 5+ yrs", Icon: SettingsIcon, skills: "Python, PostgreSQL, Docker, AWS" },
+                  { name: "Product Designer", role: "UX/UI & Forensic Workflows", Icon: PaletteIcon, skills: "Research with law enforcement UX" },
+                  { name: "Advisor — Law Enforcement", role: "Retired DCI, 24 yrs service", Icon: BuildingIcon, skills: "NPCC, evidence law, court liaison" },
                 ].map((m, i) => (
                   <div key={i} style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "12px 0", borderBottom: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                    <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, rgba(59,130,246,0.3), rgba(29,78,216,0.2))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", flexShrink: 0 }}>{m.icon}</div>
+                    <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, rgba(59,130,246,0.3), rgba(29,78,216,0.2))", display: "flex", alignItems: "center", justifyContent: "center", color: "#60A5FA", flexShrink: 0 }}><m.Icon size={18} /></div>
                     <div>
                       <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#F1F5F9", marginBottom: "2px" }}>{m.name}</div>
                       <div style={{ fontSize: "0.75rem", color: BLUE, fontWeight: 600, marginBottom: "3px" }}>{m.role}</div>
@@ -661,7 +695,7 @@ export default function InvestorsPage() {
                     { risk: "Competition from big tech", mitigation: "Law enforcement can't use US cloud AI. On-premise is our unfair advantage." },
                   ].map((r, i) => (
                     <div key={i} style={{ marginBottom: "12px", padding: "10px", background: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.04)" }}>
-                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#EF4444", marginBottom: "4px" }}>⚠️ {r.risk}</div>
+                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#EF4444", marginBottom: "4px", display: "flex", alignItems: "center", gap: 6 }}><WarningIcon size={14} /> {r.risk}</div>
                       <div style={{ fontSize: "0.78rem", color: "#94A3B8" }}>→ {r.mitigation}</div>
                     </div>
                   ))}
@@ -678,11 +712,11 @@ export default function InvestorsPage() {
                 SentinelVision is production-ready, with real investigative workflows, AI pipelines, and a platform built for the courtroom. Every pound invested goes directly to expansion and adoption.
               </div>
               <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
-                <div style={{ padding: "12px 28px", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", color: "white", borderRadius: "8px", fontWeight: 700, boxShadow: "0 4px 20px rgba(59,130,246,0.4)", fontSize: "0.9rem", cursor: "pointer" }}>
-                  📩 Request Full Pitch Pack
+                <div style={{ padding: "12px 28px", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", color: "white", borderRadius: "8px", fontWeight: 700, boxShadow: "0 4px 20px rgba(59,130,246,0.4)", fontSize: "0.9rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <MailIcon size={16} /> Request Full Pitch Pack
                 </div>
-                <div style={{ padding: "12px 28px", background: "rgba(255,255,255,0.05)", color: "#F1F5F9", borderRadius: "8px", fontWeight: 700, border: "1px solid rgba(255,255,255,0.12)", fontSize: "0.9rem", cursor: "pointer" }}>
-                  🎥 Schedule Live Demo
+                <div style={{ padding: "12px 28px", background: "rgba(255,255,255,0.05)", color: "#F1F5F9", borderRadius: "8px", fontWeight: 700, border: "1px solid rgba(255,255,255,0.12)", fontSize: "0.9rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <VideoIcon size={16} /> Schedule Live Demo
                 </div>
               </div>
             </div>

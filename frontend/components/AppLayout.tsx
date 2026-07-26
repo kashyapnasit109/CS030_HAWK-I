@@ -20,7 +20,8 @@ import {
   WarningIcon,
   LockIcon,
   SignalIcon,
-  TrendingUpIcon
+  TrendingUpIcon,
+  CheckIcon
 } from "./Icons";
 
 interface NavItem {
@@ -752,7 +753,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "10px" }}>
                   <span style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 6 }}>
-                    💼 AI Search Jobs ({bgJobs.length})
+                    <SearchIcon size={16} style={{ color: "var(--accent)" }} /> AI Search Jobs ({bgJobs.length})
                   </span>
                   <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                     <button 
@@ -1111,7 +1112,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: "0.9rem", color: "#60A5FA", display: "flex", alignItems: "center", gap: 6 }}>
-              🟢 AI Search Completed
+              <CheckIcon size={16} style={{ color: "var(--green)" }} /> AI Search Completed
             </span>
             <button 
               onClick={() => setCompletedJobPopup(null)}

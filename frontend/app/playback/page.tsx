@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
-import { VideoIcon, PlayIcon } from "@/components/Icons";
+import { VideoIcon, PlayIcon, PauseIcon } from "@/components/Icons";
 
 // Mock video segments
 const videoSegments = [
@@ -193,8 +193,8 @@ export default function PlaybackPage() {
                 
                 {/* Visual Status overlay */}
                 <div style={{ position: "absolute", top: "16px", left: "16px", display: "flex", gap: "8px" }}>
-                  <span style={{ background: "rgba(0,0,0,0.6)", color: "var(--green)", fontSize: "0.7rem", fontWeight: "bold", padding: "4px 8px", borderRadius: "4px", textTransform: "uppercase" }}>
-                    ● Online
+                  <span style={{ background: "rgba(0,0,0,0.6)", color: "var(--green)", fontSize: "0.7rem", fontWeight: "bold", padding: "4px 8px", borderRadius: "4px", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)" }} /> Online
                   </span>
                   <span style={{ background: "rgba(0,0,0,0.6)", color: "var(--text-primary)", fontSize: "0.7rem", fontWeight: "bold", padding: "4px 8px", borderRadius: "4px" }}>
                     FPS: 25.0
@@ -209,7 +209,7 @@ export default function PlaybackPage() {
                     onClick={() => setIsPlaying(!isPlaying)}
                     style={{ background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "6px", width: "40px", height: "40px", fontSize: "1.2rem", fontWeight: "bold", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                   >
-                    {isPlaying ? "⏸" : "▶"}
+                    {isPlaying ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
                   </button>
                   <button
                     onClick={() => setCurrentTimeSec((prev) => Math.max(0, prev - 10))}
