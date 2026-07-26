@@ -21,6 +21,11 @@ export async function apiFetch<T>(
     headers,
   });
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem("visioncctv_token");
+      localStorage.removeItem("visioncctv_user");
+      window.location.href = "/";
+    }
     const err = await res.text();
     throw new Error(err || `HTTP ${res.status}`);
   }
@@ -303,12 +308,23 @@ export async function addCamera(
   brand = "generic",
   username = "admin",
   password = "admin",
-  channel = 1
-): Promise<{ success: boolean; camera: CameraInfo }> {
+  channel = 1,
+  isNvr = false,
+  channelsCount = 4
+): Promise<{ success: boolean; camera?: CameraInfo; cameras?: CameraInfo[] }> {
   return apiFetch("/api/cameras/add", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url, name, brand, username, password, channel }),
+    body: JSON.stringify({ 
+      url, 
+      name, 
+      brand, 
+      username, 
+      password, 
+      channel,
+      is_nvr: isNvr,
+      channels_count: channelsCount
+    }),
   });
 }
 

@@ -72,7 +72,7 @@ def add_plate_entry(
 @router.post("/{watchlist_id}/add_face")
 def add_face_entry(
     watchlist_id: int,
-    reference_image_id: int,
+    reference_image_id: str,
     alert_severity: str = "high",
     db: sqlite3.Connection = Depends(get_db),
     user = Depends(auth_utils.get_current_user)

@@ -1,0 +1,42 @@
+{
+  "general": {
+    "node_id": "SV-EDGE-NODE-01",
+    "node_name": "Custom Station Controller",
+    "disk_usage_limit_gb": 120,
+    "auto_pruning": true,
+    "log_retention_days": 30
+  },
+  "network": {
+    "discovery_subnet": "192.168.0",
+    "discovery_timeout_seconds": 1.5,
+    "multicast_discovery": true,
+    "ports_to_scan": [
+      554,
+      8554,
+      8080,
+      80
+    ],
+    "default_username": "admin",
+    "default_password": "desktop@2024"
+  },
+  "ai": {
+    "yolo_conf_threshold": 0.4,
+    "facenet_similarity_threshold": 0.65,
+    "lpr_levenshtein_distance": 2,
+    "frame_sample_fps": 1.0,
+    "max_concurrent_jobs": 2,
+    "device_provider": "CPU"
+  },
+  "forensic": {
+    "pdf_hash_algorithm": "SHA-256",
+    "default_investigator": "System Admin",
+    "default_department": "Cyber Forensics Unit",
+    "sign_reports": true,
+    "nvr_sync_logging": true
+  },
+  "security": {
+    "session_timeout_minutes": 60,
+    "enforce_mfa_all_admins": false,
+    "password_complexity": "medium"
+  }
+}

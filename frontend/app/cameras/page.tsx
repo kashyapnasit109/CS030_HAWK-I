@@ -22,6 +22,8 @@ export default function CamerasPage() {
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin");
   const [channel, setChannel] = useState(1);
+  const [isNvr, setIsNvr] = useState(false);
+  const [channelsCount, setChannelsCount] = useState(4);
   const [adding, setAdding] = useState(false);
 
   // Discovery states
@@ -40,6 +42,162 @@ export default function CamerasPage() {
   // Alerts
   const [alerts, setAlerts] = useState<DetectionAlert[]>([]);
   const [pollingAlerts, setPollingAlerts] = useState(false);
+
+  // Zones / ROI states
+  const [zones, setZones] = useState<any[]>([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [newZonePoints, setNewZonePoints] = useState<[number, number][]>([]);
+  const [newZoneName, setNewZoneName] = useState("");
+  const [newZoneType, setNewZoneType] = useState("restricted");
+  const [showZonesPanel, setShowZonesPanel] = useState(false);
+
+  const loadZones = useCallback(async (camId: string) => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/cameras/${camId}/zones`);
+      if (res.ok) {
+        const data = await res.json();
+        setZones(data.zones || []);
+      }
+    } catch (err) {
+      console.error("Failed to load camera zones:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeCam) {
+      loadZones(activeCam);
+    } else {
+      setZones([]);
+    }
+  }, [activeCam, loadZones]);
+
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 640;  // normalized to 640x360 coordinates
+    const y = ((e.clientY - rect.top) / rect.height) * 360;
+    setNewZonePoints((prev) => [...prev, [Math.round(x), Math.round(y)]]);
+  };
+
+  const handleSaveZone = async () => {
+    if (!activeCam || newZonePoints.length < 3 || !newZoneName.trim()) return;
+    try {
+      const res = await fetch(`http://localhost:8000/api/cameras/${activeCam}/zones`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newZoneName.trim(),
+          zone_type: newZoneType,
+          points: JSON.stringify(newZonePoints),
+          active_from: "00:00",
+          active_to: "23:59",
+        }),
+      });
+      if (res.ok) {
+        showToast("ROI Zone saved successfully!", "success");
+        setNewZonePoints([]);
+        setNewZoneName("");
+        setIsDrawing(false);
+        await loadZones(activeCam as string);
+      } else {
+        showToast("Failed to save ROI Zone", "error");
+      }
+    } catch {
+      showToast("Error connecting to server", "error");
+    }
+  };
+
+  const handleDeleteZone = async (zoneId: string) => {
+    if (!activeCam || !confirm("Are you sure you want to delete this ROI zone?")) return;
+    try {
+      const res = await fetch(`http://localhost:8000/api/cameras/${activeCam}/zones/${zoneId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        showToast("ROI Zone deleted", "info");
+        await loadZones(activeCam as string);
+      } else {
+        showToast("Failed to delete ROI Zone", "error");
+      }
+    } catch {
+      showToast("Error connecting to server", "error");
+    }
+  };
+
+  // Canvas drawing effect
+  useEffect(() => {
+    const canvas = document.getElementById("roi-canvas") as HTMLCanvasElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw existing zones
+    zones.forEach((zone) => {
+      try {
+        const pts = JSON.parse(zone.points);
+        if (pts.length > 0) {
+          ctx.beginPath();
+          ctx.strokeStyle = zone.zone_type === "restricted" ? "#ff2a2a" : "#2dd4bf";
+          ctx.fillStyle = zone.zone_type === "restricted" ? "rgba(255, 42, 42, 0.15)" : "rgba(45, 212, 191, 0.15)";
+          ctx.lineWidth = 2;
+          
+          const startX = (pts[0][0] / 640) * canvas.width;
+          const startY = (pts[0][1] / 360) * canvas.height;
+          ctx.moveTo(startX, startY);
+          
+          for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo((pts[i][0] / 640) * canvas.width, (pts[i][1] / 360) * canvas.height);
+          }
+          ctx.closePath();
+          ctx.stroke();
+          ctx.fill();
+
+          // Label
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 9px monospace";
+          ctx.fillText(zone.name.toUpperCase(), startX + 5, startY + 12);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Draw active drawing zone
+    if (newZonePoints.length > 0) {
+      ctx.beginPath();
+      ctx.strokeStyle = newZoneType === "restricted" ? "#ff2a2a" : "#2dd4bf";
+      ctx.fillStyle = newZoneType === "restricted" ? "rgba(255, 42, 42, 0.25)" : "rgba(45, 212, 191, 0.25)";
+      ctx.lineWidth = 3;
+
+      const startX = (newZonePoints[0][0] / 640) * canvas.width;
+      const startY = (newZonePoints[0][1] / 360) * canvas.height;
+      ctx.moveTo(startX, startY);
+
+      for (let i = 1; i < newZonePoints.length; i++) {
+        ctx.lineTo((newZonePoints[i][0] / 640) * canvas.width, (newZonePoints[i][1] / 360) * canvas.height);
+      }
+      
+      if (!isDrawing) {
+        ctx.closePath();
+      }
+      ctx.stroke();
+      if (!isDrawing) ctx.fill();
+
+      // Draw red dots at vertices
+      newZonePoints.forEach(([px, py]) => {
+        ctx.beginPath();
+        ctx.arc((px / 640) * canvas.width, (py / 360) * canvas.height, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#ff0000";
+        ctx.stroke();
+      });
+    }
+  }, [newZonePoints, zones, isDrawing, newZoneType]);
 
   // Load cameras on mount
   const load = useCallback(async () => {
@@ -103,12 +261,17 @@ export default function CamerasPage() {
     }
     setAdding(true);
     try {
-      const res = await addCamera(url.trim(), name.trim(), brand, username, password, channel);
+      const res = await addCamera(url.trim(), name.trim(), brand, username, password, channel, isNvr, channelsCount);
       if (res.success) {
-        showToast(`Camera "${res.camera.name}" added successfully!`, "success");
+        const addedName = res.camera ? res.camera.name : (name || "NVR Device");
+        const msg = res.cameras 
+          ? `NVR registered successfully! Added ${res.cameras.length} camera channels.`
+          : `Camera "${addedName}" added successfully!`;
+        showToast(msg, "success");
         setUrl("");
         setName("");
         setBrand("generic");
+        setIsNvr(false);
         await load();
       }
     } catch (err: any) {
@@ -235,11 +398,15 @@ export default function CamerasPage() {
                           <button
                             className="btn btn-primary btn-sm"
                             onClick={() => {
-                              setUrl(item.url);
+                              const portSuffix = item.port && item.port !== 554 ? `:${item.port}` : "";
+                              setUrl(`${item.ip}${portSuffix}`);
                               setName(`Discovered ${item.brand.toUpperCase()}`);
                               setBrand(item.brand);
+                              const creds = item.credentials_used.split(":");
+                              if (creds[0]) setUsername(creds[0]);
+                              if (creds[1] && !creds[1].includes("*")) setPassword(creds[1]);
                               setShowDiscovery(false);
-                              showToast("Camera values loaded into form below!", "success");
+                              showToast("Discovery details loaded into form!", "success");
                             }}
                           >
                             Load Form
@@ -269,60 +436,195 @@ export default function CamerasPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {/* Live stream viewing frame */}
             {activeCamInfo ? (
-              <div className="card" style={{ padding: 12, background: "#06060c", borderColor: activeCamInfo.is_connected ? "var(--cyan)" : "var(--accent)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 6px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: activeCamInfo.is_connected ? "var(--green)" : "var(--accent)", animation: activeCamInfo.is_connected ? "pulse 1.2s infinite" : "none" }} />
-                    <span style={{ fontWeight: 800, fontSize: "0.9rem" }}>{activeCamInfo.name}</span>
-                    {activeCamInfo.is_connected && <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>({activeCamInfo.width}×{activeCamInfo.height} @ {activeCamInfo.fps.toFixed(0)}fps)</span>}
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {activeCamInfo.detection_active ? (
-                      <button className="btn btn-secondary btn-sm" style={{ background: "rgba(233,69,96,0.15)", color: "var(--accent)", borderColor: "rgba(233,69,96,0.3)" }} onClick={() => handleStopDetection(activeCamInfo.id)}>
-                      <AlertIcon size={14} /> Stop Live Detection
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div className="card" style={{ padding: 12, background: "#06060c", borderColor: activeCamInfo.is_connected ? "var(--cyan)" : "var(--accent)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: activeCamInfo.is_connected ? "var(--green)" : "var(--accent)", animation: activeCamInfo.is_connected ? "pulse 1.2s infinite" : "none" }} />
+                      <span style={{ fontWeight: 800, fontSize: "0.9rem" }}>{activeCamInfo.name}</span>
+                      {activeCamInfo.is_connected && <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>({activeCamInfo.width}×{activeCamInfo.height} @ {activeCamInfo.fps.toFixed(0)}fps)</span>}
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setShowZonesPanel(!showZonesPanel)} style={{ display: "flex", alignItems: "center", gap: 6, borderColor: "var(--cyan)" }}>
+                        <TargetIcon size={14} /> ROI Zones ({zones.length})
                       </button>
-                    ) : (
-                      <button className="btn btn-primary btn-sm" onClick={() => setShowDetConfig(true)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <SignalIcon size={14} /> Start Real-Time AI Detection
+                      {activeCamInfo.detection_active ? (
+                        <button className="btn btn-secondary btn-sm" style={{ background: "rgba(233,69,96,0.15)", color: "var(--accent)", borderColor: "rgba(233,69,96,0.3)" }} onClick={() => handleStopDetection(activeCamInfo.id)}>
+                        <AlertIcon size={14} /> Stop Live Detection
+                        </button>
+                      ) : (
+                        <button className="btn btn-primary btn-sm" onClick={() => setShowDetConfig(true)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <SignalIcon size={14} /> Start Real-Time AI Detection
+                        </button>
+                      )}
+                      <button className="btn btn-ghost btn-sm" style={{ color: "var(--accent)", display: "flex", alignItems: "center", gap: 4 }} onClick={() => handleRemoveCamera(activeCamInfo.id)}>
+                        Delete
                       </button>
-                    )}
-                    <button className="btn btn-ghost btn-sm" style={{ color: "var(--accent)", display: "flex", alignItems: "center", gap: 4 }} onClick={() => handleRemoveCamera(activeCamInfo.id)}>
-                      Delete
-                    </button>
+                    </div>
                   </div>
-                </div>
 
-                {/* Stream container */}
-                <div style={{ width: "100%", height: 420, background: "#000", borderRadius: 8, overflow: "hidden", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {activeCamInfo.is_connected ? (
-                    <img
-                      src={getCameraStreamUrl(activeCamInfo.id)}
-                      alt="CCTV live stream"
-                      style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = "none";
-                        const errEl = document.getElementById("stream-err");
-                        if (errEl) errEl.style.display = "flex";
+                  {/* Stream container */}
+                  <div style={{ width: "100%", height: 420, background: "#000", borderRadius: 8, overflow: "hidden", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {activeCamInfo.is_connected ? (
+                      <img
+                        src={getCameraStreamUrl(activeCamInfo.id)}
+                        alt="CCTV live stream"
+                        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                          const errEl = document.getElementById("stream-err");
+                          if (errEl) errEl.style.display = "flex";
+                        }}
+                      />
+                    ) : null}
+
+                    {/* Interactive Canvas Overlay */}
+                    <canvas
+                      id="roi-canvas"
+                      width={640}
+                      height={360}
+                      onClick={handleCanvasClick}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        cursor: isDrawing ? "crosshair" : "default",
+                        pointerEvents: (isDrawing || zones.length > 0) ? "auto" : "none",
+                        zIndex: 10,
                       }}
                     />
-                  ) : null}
 
-                  {/* Fallback Error message */}
-                  <div
-                    id="stream-err"
-                    style={{
-                      position: "absolute", inset: 0, display: activeCamInfo.is_connected ? "none" : "flex",
-                      flexDirection: "column", alignItems: "center", justifyContent: "center",
-                      color: "var(--text-muted)", padding: 20, textAlign: "center"
-                    }}
-                  >
-                    <WarningIcon size={40} style={{ color: "var(--accent)", marginBottom: 12 }} />
-                    <div style={{ fontWeight: 700, color: "var(--text-secondary)", marginBottom: 4 }}>STREAM UNREACHABLE / DISCONNECTED</div>
-                    <div style={{ fontSize: "0.75rem", maxWidth: "400px" }}>
-                      RTSP link error: <span className="mono" style={{ color: "var(--accent)" }}>{activeCamInfo.url}</span>. Make sure the credentials or IP port configuration are accurate.
+                    {/* Fallback Error message */}
+                    <div
+                      id="stream-err"
+                      style={{
+                        position: "absolute", inset: 0, display: activeCamInfo.is_connected ? "none" : "flex",
+                        flexDirection: "column", alignItems: "center", justifyContent: "center",
+                        color: "var(--text-muted)", padding: 20, textAlign: "center"
+                      }}
+                    >
+                      <WarningIcon size={40} style={{ color: "var(--accent)", marginBottom: 12 }} />
+                      <div style={{ fontWeight: 700, color: "var(--text-secondary)", marginBottom: 4 }}>STREAM UNREACHABLE / DISCONNECTED</div>
+                      <div style={{ fontSize: "0.75rem", maxWidth: "400px" }}>
+                        RTSP link error: <span className="mono" style={{ color: "var(--accent)" }}>{activeCamInfo.url}</span>. Make sure the credentials or IP port configuration are accurate.
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Zones config drawer */}
+                {showZonesPanel && (
+                  <div className="card" style={{ borderColor: "var(--cyan)", background: "rgba(0,212,255,0.02)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <span className="section-title" style={{ margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                        <TargetIcon size={16} /> Configure Region of Interest (ROI) Zones
+                      </span>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setShowZonesPanel(false)}>✕</button>
+                    </div>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                      <div>
+                        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                          {!isDrawing ? (
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => {
+                                setIsDrawing(true);
+                                setNewZonePoints([]);
+                                setNewZoneName("");
+                              }}
+                            >
+                              + Draw New Zone
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                className="btn btn-secondary btn-sm"
+                                style={{ background: "rgba(233,69,96,0.15)", color: "var(--accent)", borderColor: "rgba(233,69,96,0.3)" }}
+                                onClick={() => {
+                                  setIsDrawing(false);
+                                  setNewZonePoints([]);
+                                }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => setIsDrawing(false)}
+                                disabled={newZonePoints.length < 3}
+                              >
+                                Done Drawing
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        {isDrawing && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: 12, background: "var(--bg-elevated)", borderRadius: 8, border: "1px solid var(--border)" }}>
+                            <div style={{ fontSize: "0.72rem", color: "var(--cyan)", fontWeight: "bold" }}>
+                              👉 Click on the video feed above to place at least 3 points, then click "Done Drawing".
+                            </div>
+                            <div className="input-group" style={{ marginBottom: 0 }}>
+                              <label className="input-label">Zone Name / Label</label>
+                              <input
+                                className="input-field"
+                                placeholder="e.g. Restricted Walkway"
+                                value={newZoneName}
+                                onChange={(e) => setNewZoneName(e.target.value)}
+                              />
+                            </div>
+                            <div className="input-group" style={{ marginBottom: 0 }}>
+                              <label className="input-label">Zone Threat Category</label>
+                              <select className="input-field" value={newZoneType} onChange={(e) => setNewZoneType(e.target.value)}>
+                                <option value="restricted">Restricted Area (Alarm)</option>
+                                <option value="general">General Zone (Log Sighting)</option>
+                              </select>
+                            </div>
+                            <button
+                              className="btn btn-primary btn-sm"
+                              style={{ width: "100%", justifyContent: "center", marginTop: 6 }}
+                              onClick={handleSaveZone}
+                              disabled={newZonePoints.length < 3 || !newZoneName.trim()}
+                            >
+                              Save Zone
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <div style={{ fontSize: "0.75rem", fontWeight: "bold", marginBottom: 8, color: "var(--text-secondary)" }}>Active Zones List</div>
+                        {zones.length === 0 ? (
+                          <div style={{ padding: "30px 10px", textAlign: "center", border: "1px dashed var(--border)", borderRadius: 8, color: "var(--text-muted)", fontSize: "0.75rem" }}>
+                            No ROI zones configured on this feed.
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 220, overflowY: "auto" }}>
+                            {zones.map((zone) => (
+                              <div key={zone.zone_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 8, background: "var(--bg-elevated)", borderRadius: 6, border: "1px solid var(--border)" }}>
+                                <div>
+                                  <div style={{ fontSize: "0.78rem", fontWeight: "bold" }}>{zone.name}</div>
+                                  <div style={{ fontSize: "0.65rem", color: zone.zone_type === "restricted" ? "var(--accent)" : "var(--green)", textTransform: "uppercase", marginTop: 2 }}>
+                                    {zone.zone_type} Area · {JSON.parse(zone.points).length} Vertices
+                                  </div>
+                                </div>
+                                <button
+                                  className="btn btn-ghost btn-sm"
+                                  style={{ color: "var(--accent)", padding: "2px 6px" }}
+                                  onClick={() => handleDeleteZone(zone.zone_id)}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="empty-state card" style={{ padding: "60px 20px" }}>
@@ -390,63 +692,162 @@ export default function CamerasPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {/* Add Camera Form Card */}
             <div className="card">
-              <div className="section-title">Add CCTV Camera / DVR Feed</div>
+              <div className="section-title" style={{ marginBottom: 12 }}>CCTV Stream Setup</div>
+              
+              {/* Tab Selector */}
+              <div style={{ display: "flex", background: "var(--bg-elevated)", padding: 4, borderRadius: 8, marginBottom: 16, border: "1px solid var(--border)" }}>
+                <button
+                  type="button"
+                  onClick={() => { setIsNvr(false); setBrand("generic"); }}
+                  style={{
+                    flex: 1,
+                    padding: "8px 12px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: !isNvr ? "var(--cyan)" : "transparent",
+                    color: !isNvr ? "#0B0F14" : "var(--text-secondary)",
+                    fontWeight: "bold",
+                    fontSize: "0.78rem",
+                    cursor: "pointer",
+                    transition: "var(--transition)"
+                  }}
+                >
+                  Single IP Camera
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsNvr(true); setBrand("hikvision"); }}
+                  style={{
+                    flex: 1,
+                    padding: "8px 12px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: isNvr ? "var(--cyan)" : "transparent",
+                    color: isNvr ? "#0B0F14" : "var(--text-secondary)",
+                    fontWeight: "bold",
+                    fontSize: "0.78rem",
+                    cursor: "pointer",
+                    transition: "var(--transition)"
+                  }}
+                >
+                  NVR / DVR Device
+                </button>
+              </div>
+
               <form onSubmit={handleAddCamera} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div className="input-group" style={{ marginBottom: 0 }}>
-                  <label className="input-label">Camera Name / Label</label>
-                  <input
-                    className="input-field"
-                    placeholder="e.g. Front Gate Lobby"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-
-                <div className="input-group" style={{ marginBottom: 0 }}>
-                  <label className="input-label">Feed Brand / Protocol Preset</label>
-                  <select
-                    className="input-field"
-                    value={brand}
-                    onChange={(e) => setBrand(e.target.value)}
-                  >
-                    <option value="generic">Generic RTSP Stream</option>
-                    <option value="hikvision">Hikvision IP Camera Preset</option>
-                    <option value="dahua">Dahua IP Camera Preset</option>
-                    <option value="reolink">Reolink IP Camera Preset</option>
-                    <option value="axis">Axis Communications Stream</option>
-                    <option value="webcam">Local Computer Webcam (Index 0)</option>
-                  </select>
-                </div>
-
-                <div className="input-group" style={{ marginBottom: 0 }}>
-                  <label className="input-label">RTSP Address / IP Endpoint</label>
-                  <input
-                    className="input-field"
-                    placeholder={brand === "webcam" ? "0" : "rtsp://192.168.1.100:554 or IP:port"}
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                  />
-                </div>
-
-                {brand !== "generic" && brand !== "webcam" && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {!isNvr ? (
+                  /* Single Camera Form */
+                  <>
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Username</label>
-                      <input className="input-field" value={username} onChange={(e) => setUsername(e.target.value)} />
+                      <label className="input-label">Camera Name / Label</label>
+                      <input
+                        className="input-field"
+                        placeholder="e.g. Front Gate Lobby"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
                     </div>
+
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Password</label>
-                      <input className="input-field" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                      <label className="input-label">Camera Brand Preset</label>
+                      <select className="input-field" value={brand} onChange={(e) => setBrand(e.target.value)}>
+                        <option value="generic">Generic RTSP Stream</option>
+                        <option value="hikvision">Hikvision IP Camera Preset</option>
+                        <option value="dahua">Dahua IP Camera Preset</option>
+                        <option value="reolink">Reolink IP Camera Preset</option>
+                        <option value="axis">Axis Communications Preset</option>
+                        <option value="webcam">Local Computer Webcam (Index 0)</option>
+                      </select>
                     </div>
-                    <div className="input-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
-                      <label className="input-label">NVR / DVR Channel Index</label>
-                      <input className="input-field" type="number" min={1} max={64} value={channel} onChange={(e) => setChannel(Number(e.target.value))} />
+
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label">RTSP Address / IP Endpoint</label>
+                      <input
+                        className="input-field"
+                        placeholder={brand === "webcam" ? "0" : "rtsp://192.168.1.100:554 or IP:port"}
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        required
+                      />
                     </div>
-                  </div>
+
+                    {brand !== "generic" && brand !== "webcam" && (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div className="input-group" style={{ marginBottom: 0 }}>
+                          <label className="input-label">Username</label>
+                          <input className="input-field" value={username} onChange={(e) => setUsername(e.target.value)} />
+                        </div>
+                        <div className="input-group" style={{ marginBottom: 0 }}>
+                          <label className="input-label">Password</label>
+                          <input className="input-field" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                        </div>
+                        <div className="input-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
+                          <label className="input-label">NVR / DVR Channel Index</label>
+                          <input className="input-field" type="number" min={1} max={64} value={channel} onChange={(e) => setChannel(Number(e.target.value))} />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* NVR / DVR Form */
+                  <>
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label">NVR Name / Prefix</label>
+                      <input
+                        className="input-field"
+                        placeholder="e.g. Main Lobby NVR"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label">NVR Manufacturer Preset</label>
+                      <select className="input-field" value={brand} onChange={(e) => setBrand(e.target.value)}>
+                        <option value="hikvision">Hikvision NVR Preset</option>
+                        <option value="dahua">Dahua NVR Preset</option>
+                        <option value="reolink">Reolink NVR Preset</option>
+                      </select>
+                    </div>
+
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label">NVR IP Address / Host</label>
+                      <input
+                        className="input-field"
+                        placeholder="e.g. 192.168.1.50"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      <div className="input-group" style={{ marginBottom: 0 }}>
+                        <label className="input-label">Username</label>
+                        <input className="input-field" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                      </div>
+                      <div className="input-group" style={{ marginBottom: 0 }}>
+                        <label className="input-label">Password</label>
+                        <input className="input-field" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                      </div>
+                    </div>
+
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label">Number of Channels to Provision</label>
+                      <select className="input-field" value={channelsCount} onChange={(e) => setChannelsCount(Number(e.target.value))}>
+                        <option value={4}>4 Channels</option>
+                        <option value={8}>8 Channels</option>
+                        <option value={16}>16 Channels</option>
+                        <option value={32}>32 Channels</option>
+                      </select>
+                    </div>
+                  </>
                 )}
 
-                <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: 6 }} disabled={adding}>
-                  {adding ? <><HourglassIcon size={14} /> Connecting device...</> : <><PlusIcon size={14} /> Register Stream Endpoint</>}
+                <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: 6, marginTop: 8 }} disabled={adding}>
+                  {adding ? <><HourglassIcon size={14} /> Provisioning feeds...</> : <><PlusIcon size={14} /> {isNvr ? "Add NVR System" : "Add Camera Feed"}</>}
                 </button>
               </form>
             </div>

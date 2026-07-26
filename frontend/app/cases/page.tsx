@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import { PlusIcon, FolderIcon, UploadIcon, FileTextIcon, CloseIcon, ChevronRightIcon } from "@/components/Icons";
@@ -38,6 +39,7 @@ interface CaseEvent {
 }
 
 export default function CasesPage() {
+  const router = useRouter();
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCaseId, setActiveCaseId] = useState<number | null>(null);
@@ -77,9 +79,7 @@ export default function CasesPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadCases();
-  }, [loadCases]);
+
 
   // Fetch Case Details
   const loadCaseDetail = useCallback(async (caseId: number) => {
@@ -101,8 +101,46 @@ export default function CasesPage() {
     }
   }, []);
 
+  useEffect(() => {
+    async function init() {
+      await loadCases();
+      
+      const savedActiveCaseId = localStorage.getItem("visioncctv_active_case_id");
+      if (savedActiveCaseId) {
+        const id = Number(savedActiveCaseId);
+        setActiveCaseId(id);
+        loadCaseDetail(id);
+      }
+    }
+    init();
+  }, [loadCases, loadCaseDetail]);
+
+  // Listen to activeCaseChanged from other components (like topbar Case selector)
+  useEffect(() => {
+    const handleActiveCaseChanged = () => {
+      const savedActiveCaseId = localStorage.getItem("visioncctv_active_case_id");
+      if (savedActiveCaseId) {
+        const id = Number(savedActiveCaseId);
+        setActiveCaseId(id);
+        loadCaseDetail(id);
+      } else {
+        setActiveCaseId(null);
+        setCaseDetail(null);
+      }
+    };
+
+    window.addEventListener("activeCaseChanged", handleActiveCaseChanged);
+    return () => window.removeEventListener("activeCaseChanged", handleActiveCaseChanged);
+  }, [loadCaseDetail]);
+
   const handleCaseClick = (caseId: number) => {
     setActiveCaseId(caseId);
+    localStorage.setItem("visioncctv_active_case_id", String(caseId));
+    const caseObj = cases.find(c => c.case_id === caseId);
+    if (caseObj) {
+      localStorage.setItem("visioncctv_active_case_number", caseObj.case_number);
+    }
+    window.dispatchEvent(new Event("activeCaseChanged"));
     loadCaseDetail(caseId);
   };
 
@@ -248,7 +286,13 @@ export default function CasesPage() {
           <div>
             <div style={{ marginBottom: "24px" }}>
               <button
-                onClick={() => { setActiveCaseId(null); setCaseDetail(null); }}
+                onClick={() => {
+                  setActiveCaseId(null);
+                  setCaseDetail(null);
+                  localStorage.removeItem("visioncctv_active_case_id");
+                  localStorage.removeItem("visioncctv_active_case_number");
+                  window.dispatchEvent(new Event("activeCaseChanged"));
+                }}
                 style={{ background: "transparent", color: "var(--accent)", border: "none", outline: "none", cursor: "pointer", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "6px", padding: 0 }}
               >
                 <ChevronRightIcon size={16} style={{ transform: "rotate(180deg)" }} /> Back to Cases

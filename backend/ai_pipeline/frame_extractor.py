@@ -76,15 +76,17 @@ def extract_clip(
     output_path: str | Path,
     center_timestamp: float,
     window_seconds: float = 5.0,
+    draw_box: dict | None = None,
 ) -> bool:
     """
-    Extract a short video clip centered around a timestamp.
+    Extract a short video clip centered around a timestamp, overlaying bounding boxes and transcoding to H.264.
 
     Args:
         video_path: Source video.
         output_path: Output clip path (.mp4).
         center_timestamp: Timestamp in seconds to center the clip on.
         window_seconds: Half-window size in seconds (clip = center ± window_seconds).
+        draw_box: Optional bounding box dictionary to burn into the matching frames.
 
     Returns:
         True on success, False on failure.
@@ -103,19 +105,60 @@ def extract_clip(
         start_frame = int(start_t * fps)
         end_frame = int(end_t * fps)
 
+        # Write to a temporary file first
+        temp_output_path = Path(output_path).with_name(f"temp_{Path(output_path).name}")
+
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
+        out = cv2.VideoWriter(str(temp_output_path), fourcc, fps, (width, height))
 
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-        for _ in range(end_frame - start_frame):
+        for i in range(end_frame - start_frame):
             success, frame = cap.read()
             if not success:
                 break
-            out.write(frame)
+
+            frame_t = start_t + (i / fps)
+            # Draw bounding box only within a 3-second window centered at center_timestamp
+            if draw_box and abs(frame_t - center_timestamp) <= 1.5:
+                annotated = frame.copy()
+                x1, y1, x2, y2 = int(draw_box["x1"]), int(draw_box["y1"]), int(draw_box["x2"]), int(draw_box["y2"])
+                label = draw_box.get("label", "")
+                conf = draw_box.get("confidence", 0.0)
+
+                # Overlay box and text
+                cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 255, 100), 2)
+                text = f"{label} {conf:.0%}" if label else f"{conf:.0%}"
+                (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+                cv2.rectangle(annotated, (x1, y1 - th - 8), (x1 + tw + 4, y1), (0, 255, 100), -1)
+                cv2.putText(annotated, text, (x1 + 2, y1 - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+                out.write(annotated)
+            else:
+                out.write(frame)
 
         out.release()
+
+        # Run FFmpeg to convert to H.264 (libx264) with YUV420p pixel format for browser playback compatibility
+        import subprocess
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", str(temp_output_path),
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-crf", "23",
+            str(output_path)
+        ]
+        try:
+            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            if temp_output_path.exists():
+                temp_output_path.unlink()
+        except Exception as e:
+            print(f"[frame_extractor] FFmpeg transcode failed: {e}. Falling back to OpenCV raw clip.")
+            if temp_output_path.exists():
+                temp_output_path.rename(output_path)
+
         return True
-    except Exception:
+    except Exception as err:
+        print(f"[frame_extractor] Failed to extract clip: {err}")
         return False
     finally:
         cap.release()

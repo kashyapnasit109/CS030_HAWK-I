@@ -7,10 +7,12 @@ import json
 import shutil
 import time
 import uuid
+import sqlite3
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, Depends
 from fastapi.responses import JSONResponse
+from database import get_db
 
 router = APIRouter()
 
@@ -24,6 +26,7 @@ ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 async def upload_reference(
     file: UploadFile = File(...),
     label: str = Form(default="Unknown"),
+    db: sqlite3.Connection = Depends(get_db)
 ):
     """Upload a reference image (suspect photo) for face re-ID."""
     ext = Path(file.filename).suffix.lower()
@@ -50,24 +53,42 @@ async def upload_reference(
     }
     (REFERENCES_DIR / f"{ref_id}.meta.json").write_text(json.dumps(meta, indent=2))
 
+    # Insert into SQLite database table
+    try:
+        cursor = db.cursor()
+        cursor.execute(
+            """INSERT INTO reference_images (ref_id, case_id, uploaded_by, image_path, subject_type, label, embedding, created_at)
+               VALUES (?, NULL, NULL, ?, 'person', ?, NULL, ?);""",
+            (ref_id, safe_name, label, time.time())
+        )
+        db.commit()
+    except Exception as e:
+        print(f"Failed to insert reference image to database: {e}")
+
     return JSONResponse(status_code=201, content={"success": True, "reference": meta})
 
 
 @router.get("/list")
-def list_references():
+def list_references(db: sqlite3.Connection = Depends(get_db)):
     """List all uploaded reference images."""
+    cursor = db.cursor()
+    cursor.execute("SELECT ref_id, image_path, label, created_at FROM reference_images ORDER BY created_at DESC;")
+    rows = cursor.fetchall()
     refs = []
-    for meta_file in sorted(REFERENCES_DIR.glob("*.meta.json")):
-        try:
-            meta = json.loads(meta_file.read_text())
-            refs.append(meta)
-        except Exception:
-            continue
+    for row in rows:
+        refs.append({
+            "id": row["ref_id"],
+            "original_filename": row["image_path"],
+            "stored_filename": row["image_path"],
+            "label": row["label"],
+            "upload_time": row["created_at"],
+            "image_url": f"/storage/references/{row['image_path']}",
+        })
     return {"references": refs, "count": len(refs)}
 
 
 @router.delete("/{ref_id}")
-def delete_reference(ref_id: str):
+def delete_reference(ref_id: str, db: sqlite3.Connection = Depends(get_db)):
     """Delete a reference image."""
     meta_file = REFERENCES_DIR / f"{ref_id}.meta.json"
     if not meta_file.exists():
@@ -78,5 +99,13 @@ def delete_reference(ref_id: str):
     if ref_path.exists():
         ref_path.unlink()
     meta_file.unlink()
+
+    # Delete from SQLite database table
+    try:
+        cursor = db.cursor()
+        cursor.execute("DELETE FROM reference_images WHERE ref_id = ?;", (ref_id,))
+        db.commit()
+    except Exception as e:
+        print(f"Failed to delete reference image from database: {e}")
 
     return {"success": True, "deleted_id": ref_id}

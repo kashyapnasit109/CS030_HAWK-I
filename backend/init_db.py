@@ -2,7 +2,7 @@ import sqlite3
 import hashlib
 import time
 from pathlib import Path
-from database import get_connection
+from database import get_connection, DB_PATH
 
 BASE_DIR = Path(__file__).parent
 SCHEMA_PATH = BASE_DIR / "storage" / "schema.sql"
@@ -10,6 +10,31 @@ SCHEMA_PATH = BASE_DIR / "storage" / "schema.sql"
 from auth_utils import hash_password
 
 def init_database():
+    # Detect schema mismatch
+    rebuild = False
+    if DB_PATH.exists():
+        try:
+            test_conn = sqlite3.connect(str(DB_PATH))
+            cursor = test_conn.cursor()
+            cursor.execute("PRAGMA table_info(reference_images);")
+            columns = cursor.fetchall()
+            test_conn.close()
+            for col in columns:
+                # If ref_id is INTEGER type, it means we have the old schema, so rebuild
+                if col[1] == "ref_id" and "INTEGER" in col[2].upper():
+                    print("Schema mismatch detected: ref_id is INTEGER but expected TEXT. Rebuilding database...")
+                    rebuild = True
+                    break
+        except Exception as e:
+            print(f"Error checking schema: {e}")
+            
+    if rebuild:
+        try:
+            DB_PATH.unlink()
+            print("Old database deleted successfully.")
+        except Exception as e:
+            print(f"Failed to delete old database file: {e}")
+
     conn = get_connection()
     try:
         # Read and execute schema script
@@ -81,6 +106,29 @@ def init_database():
                 "INSERT INTO cases (case_number, title, description, investigating_officer_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?);",
                 ("FIR/2026/012", "Main Gate Unauthorized Entry", "Investigating intrusion report from Main Gate perimeter on MG Road.", 3, "open", time.time())
             )
+
+        # Seed reference images metadata into DB if they exist on disk
+        cursor.execute("SELECT COUNT(*) as cnt FROM reference_images;")
+        ref_count = cursor.fetchone()["cnt"]
+        if ref_count == 0:
+            print("Seeding reference images into database table...")
+            REFERENCES_DIR = BASE_DIR / "storage" / "references"
+            if REFERENCES_DIR.exists():
+                import json as _json
+                for meta_file in REFERENCES_DIR.glob("*.meta.json"):
+                    try:
+                        meta = _json.loads(meta_file.read_text())
+                        ref_id = meta.get("id")
+                        image_path = meta.get("stored_filename")
+                        label = meta.get("label")
+                        created_at = meta.get("upload_time", time.time())
+                        cursor.execute(
+                            """INSERT INTO reference_images (ref_id, case_id, uploaded_by, image_path, subject_type, label, embedding, created_at)
+                               VALUES (?, NULL, NULL, ?, 'person', ?, NULL, ?);""",
+                            (ref_id, image_path, label, created_at)
+                        )
+                    except Exception as e:
+                        print(f"Error seeding reference image {meta_file.name}: {e}")
 
         conn.commit()
         print("Database initialization and seeding completed successfully.")

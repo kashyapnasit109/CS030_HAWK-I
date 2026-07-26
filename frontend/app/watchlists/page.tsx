@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
-import { listReferences, ReferenceMeta } from "@/lib/api";
+import { listReferences, ReferenceMeta, apiFetch } from "@/lib/api";
 import { PlusIcon, TargetIcon, UserIcon, TrashIcon, CloseIcon } from "@/components/Icons";
 
 interface WatchlistEntry {
@@ -43,9 +43,7 @@ export default function WatchlistsPage() {
   // Fetch Watchlists list
   const loadWatchlists = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/watchlists/list");
-      if (!res.ok) throw new Error("Failed to load watchlists");
-      const data = await res.json();
+      const data = await apiFetch<{ watchlists: Watchlist[]; count: number }>("/api/watchlists/list");
       setWatchlists(data.watchlists || []);
       if (data.watchlists && data.watchlists.length > 0 && !activeListId) {
         setActiveListId(data.watchlists[0].watchlist_id);
@@ -78,20 +76,17 @@ export default function WatchlistsPage() {
     setSubmitting(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/watchlists/create", {
+      const data = await apiFetch<{ success: boolean; watchlist_id: number }>("/api/watchlists/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: listName, type: listType })
       });
 
-      if (!res.ok) throw new Error("Failed to create watchlist");
-      
-      const data = await res.json();
       showToast("Watchlist created", "success");
       setListName("");
       setShowCreateModal(false);
       await loadWatchlists();
-      setActiveListId(data.watchlist.watchlist_id);
+      setActiveListId(data.watchlist_id);
     } catch (err: any) {
       showToast(err.message, "error");
     } finally {
@@ -105,24 +100,21 @@ export default function WatchlistsPage() {
     setAddingEntry(true);
 
     try {
-      let res;
       const activeList = watchlists.find(w => w.watchlist_id === activeListId);
 
       if (activeList?.type === "plate") {
         if (!plateNumber.trim()) throw new Error("Plate number is required");
-        res = await fetch(`http://localhost:8000/api/watchlists/${activeListId}/add_plate`, {
+        await apiFetch(`/api/watchlists/${activeListId}/add_plate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ plate_number: plateNumber.trim().toUpperCase(), alert_severity: alertSeverity })
         });
       } else {
         if (!selectedRefId) throw new Error("Please select a suspect reference photo");
-        res = await fetch(`http://localhost:8000/api/watchlists/${activeListId}/add_face?reference_image_id=${selectedRefId}&alert_severity=${alertSeverity}`, {
+        await apiFetch(`/api/watchlists/${activeListId}/add_face?reference_image_id=${selectedRefId}&alert_severity=${alertSeverity}`, {
           method: "POST"
         });
       }
-
-      if (!res.ok) throw new Error("Failed to add entry");
 
       showToast("Target added to watchlist", "success");
       setPlateNumber("");
@@ -139,11 +131,9 @@ export default function WatchlistsPage() {
     if (!activeListId) return;
 
     try {
-      const res = await fetch(`http://localhost:8000/api/watchlists/${activeListId}/entries/${entryId}`, {
+      await apiFetch(`/api/watchlists/${activeListId}/entries/${entryId}`, {
         method: "DELETE"
       });
-
-      if (!res.ok) throw new Error("Failed to delete entry");
 
       showToast("Target removed from watchlist", "success");
       loadWatchlists();

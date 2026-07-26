@@ -343,17 +343,18 @@ def run_lpr_search(
 
                 frame_filename = f"lpr_{job_id}_{frame_idx:06d}.jpg"
                 frame_path = job_dir / frame_filename
-                save_frame(frame, frame_path, draw_box={
+                box_details = {
                     "x1": x, "y1": y, "x2": x + w, "y2": y + h,
                     "label": f"PLATE: {display_text}", "confidence": combined_conf,
-                })
+                }
+                save_frame(frame, frame_path, draw_box=box_details)
 
                 frame_hash = _sha256_file(frame_path)
 
                 clip_filename: str | None = f"clip_{job_id}_{frame_idx:06d}.mp4"
                 clip_path = job_dir / clip_filename
                 try:
-                    extract_clip(video_path, clip_path, timestamp, window_seconds=5.0)
+                    extract_clip(video_path, clip_path, timestamp, window_seconds=5.0, draw_box=box_details)
                     clip_hash = _sha256_file(clip_path)
                 except Exception:
                     clip_filename = None
@@ -391,6 +392,7 @@ def run_lpr_search(
         "created_at": time.time(),
         "match_count": len(matches),
         "matches": matches,
+        "query": f"Plate: \"{plate_text.upper()}\"",
     }
     (job_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
     return matches

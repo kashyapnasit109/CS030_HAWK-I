@@ -68,52 +68,146 @@ def _sha256_file(path: Path) -> str:
         return "N/A"
 
 
+def load_active_yolo_model_path() -> tuple[str, bool]:
+    """
+    Read settings to find the active object detection model path.
+    Returns (model_path_or_name, is_custom)
+    """
+    try:
+        from routers.settings import load_settings_dict  # noqa: PLC0415
+        settings = load_settings_dict()
+    except Exception:
+        # Fallback if imported from outside/tests
+        import json
+        settings_file = Path(__file__).parent.parent / "storage" / "settings.json"
+        if settings_file.exists():
+            try:
+                settings = json.loads(settings_file.read_text(encoding="utf-8"))
+            except Exception:
+                settings = {}
+        else:
+            settings = {}
+
+    ai_models = settings.get("ai_models", {})
+    active_id = ai_models.get("active_object_model", "yolov8n")
+    models = ai_models.get("models", [])
+    
+    # Find active model details
+    for m in models:
+        if m.get("id") == active_id:
+            return m.get("file_path", "yolov8n.pt"), m.get("is_custom", False)
+            
+    return "yolov8n.pt", False
+
+
+_loaded_model_path = None
+
+
 def _get_yolo_detector():
-    """Load YOLOv8n COCO model (general object detection)."""
-    global _yolo_detector
-    if _yolo_detector is None:
+    """Load active YOLOv8 model (general or custom object detection)."""
+    global _yolo_detector, _loaded_model_path
+    model_path, is_custom = load_active_yolo_model_path()
+    
+    if _yolo_detector is None or _loaded_model_path != model_path:
         from ultralytics import YOLO  # noqa: PLC0415
-        _yolo_detector = YOLO("yolov8n.pt")  # Downloads automatically if not present
+        print(f"[object_detection] Loading YOLO model from: {model_path}")
+        _yolo_detector = YOLO(model_path)
+        _loaded_model_path = model_path
         if _TORCH_AVAILABLE:
             import torch  # noqa: PLC0415
             device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             _yolo_detector.to(device)
-        print("[object_detection] YOLOv8n COCO model loaded")
+        print(f"[object_detection] YOLO model loaded successfully")
     return _yolo_detector
 
 
 def _opencv_person_detection(frame: np.ndarray) -> list[dict]:
-    """Fallback person/object detection using OpenCV Haar cascades."""
+    """Improved fallback person/object detection using OpenCV cascades + HOG person detector."""
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     detections = []
 
-    # Face detection (proxy for person)
+    # ── HOG + SVM person detector (more accurate than Haar) ─────────────────
+    try:
+        hog = cv2.HOGDescriptor()
+        hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+        # Use multi-scale with slightly tighter parameters for fewer false positives
+        rects, weights = hog.detectMultiScale(
+            frame,
+            winStride=(8, 8),
+            padding=(4, 4),
+            scale=1.05,
+        )
+        for i, (x, y, w, h) in enumerate(rects):
+            weight = float(weights[i]) if i < len(weights) else 0.65
+            # Normalize HOG weight to confidence 0.5–0.92 range
+            conf = min(0.92, max(0.50, 0.50 + weight * 0.15))
+            detections.append({
+                "class_name": "person",
+                "class_id": 0,
+                "confidence": conf,
+                "box": {"x1": int(x), "y1": int(y), "x2": int(x + w), "y2": int(y + h)},
+            })
+    except Exception:
+        pass
+
+    # ── Face detection (Haar — proxy for person if HOG misses) ───────────────
     face_cascade = cv2.CascadeClassifier(
         cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     )
-    faces = face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(30, 30))
+    faces = face_cascade.detectMultiScale(
+        gray, scaleFactor=1.08, minNeighbors=5, minSize=(28, 28)
+    )
     for (x, y, w, h) in faces:
+        # Expand bbox to approximate full upper-body
+        x1 = max(0, x - w // 4)
+        y1 = max(0, y - h // 3)
+        x2 = x + w + w // 4
+        y2 = y + h * 4
         detections.append({
             "class_name": "person",
             "class_id": 0,
-            "confidence": 0.6,
-            "box": {"x1": int(x), "y1": int(y), "x2": int(x + w), "y2": int(y + h)},
+            "confidence": 0.62,
+            "box": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
         })
 
-    # Full body detection
-    body_cascade = cv2.CascadeClassifier(
-        cv2.data.haarcascades + "haarcascade_fullbody.xml"
-    )
-    bodies = body_cascade.detectMultiScale(gray, 1.1, 3, minSize=(40, 80))
-    for (x, y, w, h) in bodies:
-        detections.append({
-            "class_name": "person",
-            "class_id": 0,
-            "confidence": 0.5,
-            "box": {"x1": int(x), "y1": int(y), "x2": int(x + w), "y2": int(y + h)},
-        })
+    # ── NMS to remove overlapping detections from different detectors ─────────
+    if len(detections) > 1:
+        boxes = np.array([[d["box"]["x1"], d["box"]["y1"], d["box"]["x2"], d["box"]["y2"]] for d in detections], dtype=np.float32)
+        scores = np.array([d["confidence"] for d in detections], dtype=np.float32)
+        # Simple greedy NMS
+        idxs = _nms(boxes, scores, iou_threshold=0.45)
+        detections = [detections[i] for i in idxs]
 
     return detections
+
+
+def _nms(boxes: np.ndarray, scores: np.ndarray, iou_threshold: float = 0.45) -> list[int]:
+    """Non-Maximum Suppression — removes redundant overlapping bounding boxes."""
+    if len(boxes) == 0:
+        return []
+    x1 = boxes[:, 0]
+    y1 = boxes[:, 1]
+    x2 = boxes[:, 2]
+    y2 = boxes[:, 3]
+    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+    order = scores.argsort()[::-1]
+    keep = []
+    while order.size > 0:
+        i = order[0]
+        keep.append(int(i))
+        if order.size == 1:
+            break
+        xx1 = np.maximum(x1[i], x1[order[1:]])
+        yy1 = np.maximum(y1[i], y1[order[1:]])
+        xx2 = np.minimum(x2[i], x2[order[1:]])
+        yy2 = np.minimum(y2[i], y2[order[1:]])
+        w = np.maximum(0.0, xx2 - xx1 + 1)
+        h = np.maximum(0.0, yy2 - yy1 + 1)
+        inter = w * h
+        iou = inter / (areas[i] + areas[order[1:]] - inter)
+        inds = np.where(iou <= iou_threshold)[0]
+        order = order[inds + 1]
+    return keep
 
 
 def run_object_detection(
@@ -153,9 +247,40 @@ def run_object_detection(
     job_dir.mkdir(parents=True, exist_ok=True)
     video_path = Path(video_path)
 
+    # Synonym mapping to translate user search terms to COCO classes
+    SYNONYM_MAP = {
+        "phone": "cell phone",
+        "cellphone": "cell phone",
+        "mobile": "cell phone",
+        "smartphone": "cell phone",
+        "gun": "knife",
+        "weapon": "knife",
+        "car": "car",
+        "automobile": "car",
+        "bicycle": "bicycle",
+        "bike": "bicycle",
+        "motorbike": "motorcycle",
+        "cycle": "bicycle",
+        "bag": "backpack",
+        "backpack": "backpack",
+        "purse": "handbag",
+        "person": "person",
+        "man": "person",
+        "woman": "person",
+        "guy": "person",
+        "lady": "person",
+        "child": "person",
+        "kid": "person",
+    }
+
     # Normalize target classes
     if target_classes:
-        target_set = set(c.lower().strip() for c in target_classes)
+        raw_targets = set(c.lower().strip() for c in target_classes)
+        target_set = set()
+        for c in raw_targets:
+            target_set.add(c)
+            if c in SYNONYM_MAP:
+                target_set.add(SYNONYM_MAP[c])
         # Expand police categories
         expanded = set()
         for cls in target_set:
@@ -216,9 +341,20 @@ def run_object_detection(
                         continue
 
                     cls_id = int(r.cls.item())
-                    cls_name = COCO_CLASSES[cls_id] if cls_id < len(COCO_CLASSES) else f"class_{cls_id}"
+                    # Get class name dynamically from YOLO names if available
+                    model_names = detector.names if hasattr(detector, "names") else {}
+                    cls_name = model_names.get(cls_id, f"class_{cls_id}") if model_names else (COCO_CLASSES[cls_id] if cls_id < len(COCO_CLASSES) else f"class_{cls_id}")
 
-                    if target_set and cls_name not in target_set:
+                    is_match = False
+                    if not target_set:
+                        is_match = True
+                    else:
+                        for target_cls in target_set:
+                            # More lenient fuzzy substring matching
+                            if target_cls in cls_name or cls_name in target_cls or cls_name.split()[0] in target_cls:
+                                is_match = True
+                                break
+                    if not is_match:
                         continue
 
                     x1, y1, x2, y2 = r.xyxy.cpu().numpy()[0]
@@ -228,6 +364,13 @@ def run_object_detection(
                         "confidence": conf,
                         "box": {"x1": int(x1), "y1": int(y1), "x2": int(x2), "y2": int(y2)},
                     })
+
+                # Apply NMS within the frame to remove overlaps
+                if len(frame_detections) > 1:
+                    boxes_arr = np.array([[d["box"]["x1"], d["box"]["y1"], d["box"]["x2"], d["box"]["y2"]] for d in frame_detections], dtype=np.float32)
+                    scores_arr = np.array([d["confidence"] for d in frame_detections], dtype=np.float32)
+                    keep_idxs = _nms(boxes_arr, scores_arr, iou_threshold=0.50)
+                    frame_detections = [frame_detections[i] for i in keep_idxs]
             else:
                 # OpenCV fallback — person detection only
                 opencv_dets = _opencv_person_detection(frame)
@@ -270,11 +413,24 @@ def run_object_detection(
             frame_path = job_dir / frame_filename
             cv2.imwrite(str(frame_path), annotated)
 
-            # Extract clip
+            # Extract clip with burned bounding box overlay!
             clip_filename: str | None = f"clip_{job_id}_{frame_idx:06d}.mp4"
             clip_path = job_dir / clip_filename
+            
+            # Select the main matching detection to burn into the clip overlay
+            first_det = frame_detections[0] if frame_detections else None
+            draw_box_param = None
+            if first_det:
+                draw_box_param = {
+                    "x1": first_det["box"]["x1"],
+                    "y1": first_det["box"]["y1"],
+                    "x2": first_det["box"]["x2"],
+                    "y2": first_det["box"]["y2"],
+                    "label": first_det["class_name"],
+                    "confidence": first_det["confidence"]
+                }
             try:
-                extract_clip(video_path, clip_path, timestamp, window_seconds=5.0)
+                extract_clip(video_path, clip_path, timestamp, window_seconds=5.0, draw_box=draw_box_param)
             except Exception:
                 clip_filename = None
 
@@ -316,6 +472,7 @@ def run_object_detection(
         "created_at": time.time(),
         "match_count": len(matches),
         "matches": matches,
+        "query": f"Object: {', '.join(target_classes)}" if target_classes else "Object: All",
     }
     (job_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
     return matches

@@ -339,7 +339,7 @@ def _demo_keyword_search(
             clip_filename: str | None = f"clip_{job_id}_{frame_idx:06d}.mp4"
             clip_path = job_dir / clip_filename
             try:
-                extract_clip(video_path, clip_path, timestamp, window_seconds=5.0)
+                extract_clip(video_path, clip_path, timestamp, window_seconds=5.0, draw_box=detection_box)
             except Exception:
                 clip_filename = None
 
@@ -507,6 +507,7 @@ def run_keyword_search(
         "created_at": time.time(),
         "match_count": len(matches),
         "matches": matches,
+        "query": f"Keyword: \"{keyword}\"",
     }
     (job_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
     return matches

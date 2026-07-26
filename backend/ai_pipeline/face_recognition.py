@@ -36,9 +36,25 @@ def _sha256_file(path: Path) -> str:
 
 BASE_DIR = Path(__file__).parent.parent
 MODEL_PATH = BASE_DIR.parent / "Face-Detection-and-Recognition-with-YOLOv8-and-FaceNet-PyTorch-main" / "yolov8n-face-keypoints.pt"
+MODELS_DIR = BASE_DIR / "storage" / "models"
+FACENET_ONNX_PATH = MODELS_DIR / "facenet.onnx"
+YOLO_ONNX_PATH = MODELS_DIR / "yolov8n-face-keypoints.onnx"
 RESULTS_DIR = BASE_DIR / "storage" / "results"
 
-# Try loading torch — may be blocked by Windows App Control policy
+# Try loading ONNX Runtime — preferred for CPU execution speed
+_ONNX_AVAILABLE = False
+_facenet_session = None
+
+try:
+    import onnxruntime as ort
+    if FACENET_ONNX_PATH.exists() and YOLO_ONNX_PATH.exists():
+        _ONNX_AVAILABLE = True
+        print("[face_recognition] ONNX Runtime and models available. Running in optimized CPU mode.")
+except Exception as e:
+    _ONNX_AVAILABLE = False
+    print(f"[face_recognition] ONNX Runtime check failed ({e})")
+
+# Try loading torch
 _TORCH_AVAILABLE = False
 _face_detector = None
 _face_recognizer = None
@@ -73,45 +89,120 @@ def _get_face_detector():
     global _face_detector
     if _face_detector is None:
         from ultralytics import YOLO  # noqa: PLC0415
-        _face_detector = YOLO(str(MODEL_PATH))
-        _face_detector.to(_get_device())
+        if _ONNX_AVAILABLE:
+            print("[face_recognition] Loading YOLOv8 ONNX model...")
+            _face_detector = YOLO(str(YOLO_ONNX_PATH), task="pose")
+        else:
+            print("[face_recognition] Loading YOLOv8 PyTorch model...")
+            _face_detector = YOLO(str(MODEL_PATH))
+            _face_detector.to(_get_device())
     return _face_detector
 
 
-def _get_face_recognizer():
-    global _face_recognizer
-    if _face_recognizer is None:
-        from facenet_pytorch import InceptionResnetV1  # noqa: PLC0415
-        _face_recognizer = InceptionResnetV1(pretrained="vggface2").eval().to(_get_device())
+def load_active_face_model_path() -> tuple[str, bool]:
+    """
+    Read settings to find the active face recognition model path.
+    Returns (model_path_or_name, is_custom)
+    """
+    try:
+        from routers.settings import load_settings_dict  # noqa: PLC0415
+        settings = load_settings_dict()
+    except Exception:
+        import json
+        settings_file = Path(__file__).parent.parent / "storage" / "settings.json"
+        if settings_file.exists():
+            try:
+                settings = json.loads(settings_file.read_text(encoding="utf-8"))
+            except Exception:
+                settings = {}
+        else:
+            settings = {}
+
+    ai_models = settings.get("ai_models", {})
+    active_id = ai_models.get("active_face_model", "facenet")
+    models = ai_models.get("models", [])
+    
+    for m in models:
+        if m.get("id") == active_id:
+            return m.get("file_path", "facenet.onnx"), m.get("is_custom", False)
+            
+    return "facenet.onnx", False
+
+
+_loaded_facenet_path = None
+_loaded_facenet_onnx_path = None
+
+
+def _get_face_recognizer(model_path: str):
+    global _face_recognizer, _loaded_facenet_path
+    if _face_recognizer is None or _loaded_facenet_path != model_path:
+        if model_path == "facenet.onnx" or not Path(model_path).exists():
+            from facenet_pytorch import InceptionResnetV1  # noqa: PLC0415
+            print("[face_recognition] Loading default PyTorch FaceNet model (pretrained='vggface2')...")
+            _face_recognizer = InceptionResnetV1(pretrained="vggface2").eval().to(_get_device())
+        else:
+            # Custom PyTorch model
+            import torch  # noqa: PLC0415
+            print(f"[face_recognition] Loading custom PyTorch FaceNet model from {model_path}...")
+            _face_recognizer = torch.load(model_path, map_location=_get_device())
+            _face_recognizer.eval()
+        _loaded_facenet_path = model_path
     return _face_recognizer
 
 
-def _embed_face_crop(face_bgr: np.ndarray):
-    """Convert a BGR face crop to a normalized embedding tensor."""
-    import torch  # noqa: PLC0415
-    from PIL import Image  # noqa: PLC0415
-    face_rgb = cv2.cvtColor(face_bgr, cv2.COLOR_BGR2RGB)
-    face_pil = Image.fromarray(face_rgb)
-    face_tensor = _transform(face_pil).unsqueeze(0).to(_get_device())
-    recognizer = _get_face_recognizer()
-    with torch.no_grad():
-        embedding = recognizer(face_tensor)
-    return embedding / embedding.norm(dim=1, keepdim=True)
+def _embed_face_crop(face_bgr: np.ndarray) -> np.ndarray:
+    """Convert a BGR face crop to a normalized embedding."""
+    model_path, is_custom = load_active_face_model_path()
+    
+    # Check if the active model should run in ONNX mode
+    # It must be ONNX if the file is custom and ends with .onnx, or if it's the default facenet.onnx and ONNX is available
+    use_onnx = _ONNX_AVAILABLE and (model_path.endswith(".onnx") or (model_path == "facenet.onnx" and FACENET_ONNX_PATH.exists()))
+    
+    if use_onnx:
+        global _facenet_session, _loaded_facenet_onnx_path
+        actual_path = model_path if is_custom else str(FACENET_ONNX_PATH)
+        if _facenet_session is None or _loaded_facenet_onnx_path != actual_path:
+            import onnxruntime as ort  # noqa: PLC0415
+            print(f"[face_recognition] Loading ONNX FaceNet model from {actual_path}...")
+            _facenet_session = ort.InferenceSession(actual_path, providers=["CPUExecutionProvider"])
+            _loaded_facenet_onnx_path = actual_path
+            
+        face_rgb = cv2.cvtColor(face_bgr, cv2.COLOR_BGR2RGB)
+        face_resized = cv2.resize(face_rgb, (160, 160))
+        # Normalize: (img - 127.5) / 128.0
+        img_data = (face_resized.astype(np.float32) - 127.5) / 128.0
+        img_data = np.transpose(img_data, (2, 0, 1))  # HWC to CHW
+        img_data = np.expand_dims(img_data, axis=0)   # BCHW
+        
+        inputs = {_facenet_session.get_inputs()[0].name: img_data}
+        outputs = _facenet_session.run(None, inputs)
+        emb = outputs[0]
+        norm = np.linalg.norm(emb, axis=1, keepdims=True)
+        return emb / norm
+    else:
+        import torch  # noqa: PLC0415
+        from PIL import Image  # noqa: PLC0415
+        face_rgb = cv2.cvtColor(face_bgr, cv2.COLOR_BGR2RGB)
+        face_pil = Image.fromarray(face_rgb)
+        face_tensor = _transform(face_pil).unsqueeze(0).to(_get_device())
+        recognizer = _get_face_recognizer(model_path)
+        with torch.no_grad():
+            embedding = recognizer(face_tensor)
+        emb_np = (embedding / embedding.norm(dim=1, keepdim=True)).cpu().numpy()
+        return emb_np
 
 
 def build_reference_embeddings(reference_image_paths: list) -> tuple:
     """
     Build face embeddings from reference images.
     FIXED: Now detects face in reference image first, then embeds only the face crop.
-    Falls back to full image if no face detected.
     """
-    import torch  # noqa: PLC0415
-    from PIL import Image  # noqa: PLC0415
-    recognizer = _get_face_recognizer()
-    device = _get_device()
     detector = _get_face_detector()
     embeddings = []
     labels = []
+    
+    use_onnx = _ONNX_AVAILABLE
+    
     for img_path in reference_image_paths:
         img_path = Path(img_path)
         img_bgr = cv2.imread(str(img_path))
@@ -121,7 +212,7 @@ def build_reference_embeddings(reference_image_paths: list) -> tuple:
         # Try to detect face in reference image first
         face_crop = None
         try:
-            results = detector(img_bgr, device=device, verbose=False)
+            results = detector(img_bgr, verbose=False)
             if results and len(results[0]) > 0:
                 # Use the largest/most confident face
                 best_r = max(results[0], key=lambda r: r.boxes.conf.item())
@@ -138,13 +229,12 @@ def build_reference_embeddings(reference_image_paths: list) -> tuple:
 
         # Embed either the face crop or the full image
         target = face_crop if face_crop is not None else img_bgr
-        img_rgb = cv2.cvtColor(target, cv2.COLOR_BGR2RGB)
-        img_pil = Image.fromarray(img_rgb)
-        img_tensor = _transform(img_pil).unsqueeze(0).to(device)
-        with torch.no_grad():
-            emb = recognizer(img_tensor)
-        emb = emb / emb.norm(dim=1, keepdim=True)
-        embeddings.append(emb)
+        try:
+            emb = _embed_face_crop(target)
+            embeddings.append(emb)
+        except Exception as e:
+            print(f"[face_recognition] Failed to embed reference image {img_path.name}: {e}")
+            continue
 
         # Use metadata label if available, otherwise filename stem
         meta_path = img_path.parent / f"{img_path.stem}.meta.json"
@@ -159,7 +249,15 @@ def build_reference_embeddings(reference_image_paths: list) -> tuple:
 
     if not embeddings:
         raise ValueError("No valid reference images found.")
-    return torch.cat(embeddings, dim=0), labels
+        
+    if use_onnx:
+        # Return concatenated numpy array and labels
+        return np.concatenate(embeddings, axis=0), labels
+    else:
+        # Return PyTorch tensor and labels
+        import torch  # noqa: PLC0415
+        tensors = [torch.from_numpy(e) for e in embeddings]
+        return torch.cat(tensors, dim=0).to(_get_device()), labels
 
 
 # ─── OpenCV Fallback: Real Face Similarity Matching ──────────────────────
@@ -381,15 +479,16 @@ def _demo_face_search(
 
                 frame_filename = f"face_{job_id}_{frame_idx:06d}_{x}_{y}.jpg"
                 frame_path = job_dir / frame_filename
-                save_frame(frame, frame_path, draw_box={
+                box_details = {
                     "x1": x, "y1": y, "x2": x + w, "y2": y + h,
                     "label": label, "confidence": confidence,
-                })
+                }
+                save_frame(frame, frame_path, draw_box=box_details)
 
                 clip_filename: str | None = f"clip_{job_id}_{frame_idx:06d}.mp4"
                 clip_path = job_dir / clip_filename
                 try:
-                    extract_clip(video_path, clip_path, timestamp, window_seconds=5.0)
+                    extract_clip(video_path, clip_path, timestamp, window_seconds=5.0, draw_box=box_details)
                 except Exception:
                     clip_filename = None
 
@@ -539,15 +638,22 @@ def run_face_recognition_search(
                         continue
 
                     # Cosine similarity (higher = more similar)
-                    similarities = torch.nn.functional.cosine_similarity(
-                        db_tensor, face_emb.expand_as(db_tensor), dim=1
-                    )
-                    max_idx = torch.argmax(similarities).item()
-                    max_sim = similarities[max_idx].item()
+                    if _ONNX_AVAILABLE:
+                        # db_tensor is numpy array, face_emb is numpy array
+                        # both are already L2 normalized, so similarity is simple dot product
+                        similarities = np.dot(db_tensor, face_emb.T).flatten()
+                        max_idx = int(np.argmax(similarities))
+                        max_sim = float(similarities[max_idx])
+                    else:
+                        similarities = torch.nn.functional.cosine_similarity(
+                            db_tensor, face_emb.expand_as(db_tensor), dim=1
+                        )
+                        max_idx = torch.argmax(similarities).item()
+                        max_sim = similarities[max_idx].item()
 
                     # Convert similarity to match threshold
                     # similarity_threshold here means minimum cosine similarity
-                    if max_sim < (1.0 - similarity_threshold):
+                    if max_sim < similarity_threshold:
                         continue
 
                     label = db_labels[max_idx]
@@ -555,15 +661,16 @@ def run_face_recognition_search(
 
                     frame_filename = f"face_{job_id}_{frame_idx:06d}_{x_min}_{y_min}.jpg"
                     frame_path = job_dir / frame_filename
-                    save_frame(frame, frame_path, draw_box={
+                    box_details = {
                         "x1": x_min, "y1": y_min, "x2": x_max, "y2": y_max,
                         "label": label, "confidence": confidence,
-                    })
+                    }
+                    save_frame(frame, frame_path, draw_box=box_details)
 
                     clip_filename = f"clip_{job_id}_{frame_idx:06d}.mp4"
                     clip_path = job_dir / clip_filename
                     try:
-                        extract_clip(video_path, clip_path, timestamp, window_seconds=5.0)
+                        extract_clip(video_path, clip_path, timestamp, window_seconds=5.0, draw_box=box_details)
                     except Exception:
                         clip_filename = None  # type: ignore
 
@@ -600,6 +707,7 @@ def run_face_recognition_search(
         "created_at": time.time(),
         "match_count": len(matches),
         "matches": matches,
+        "query": "Face Re-ID: " + ", ".join([Path(p).stem for p in reference_image_paths]),
     }
     (job_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
     return matches

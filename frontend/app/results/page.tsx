@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
-import { getJobStatus, exportReport, resolveStorageUrl, downloadFramesZip, MatchResult, SearchJob } from "@/lib/api";
+import { getJobStatus, exportReport, resolveStorageUrl, downloadFramesZip, MatchResult, SearchJob, apiFetch } from "@/lib/api";
 import {
   TargetIcon,
   SearchIcon,
@@ -27,6 +27,67 @@ import {
 } from "@/components/Icons";
 
 const BASE_URL = "http://localhost:8000";
+
+// ── Magnifying Glass Hover Zoom Component ───────────────────────────────────────
+function ZoomImage({ src, alt }: { src: string; alt: string }) {
+  const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({ display: "none" });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const { left, top, width, height } = container.getBoundingClientRect();
+    const x = e.clientX - left;
+    const y = e.clientY - top;
+
+    if (x < 0 || y < 0 || x > width || y > height) {
+      setZoomStyle({ display: "none" });
+      return;
+    }
+
+    const pctX = (x / width) * 100;
+    const pctY = (y / height) * 100;
+
+    setZoomStyle({
+      display: "block",
+      position: "absolute",
+      left: `${x - 45}px`,
+      top: `${y - 45}px`,
+      width: "90px",
+      height: "90px",
+      borderRadius: "50%",
+      border: "2px solid var(--cyan)",
+      boxShadow: "0 0 10px rgba(0, 212, 255, 0.5), inset 0 0 8px rgba(0,0,0,0.5)",
+      pointerEvents: "none",
+      backgroundImage: `url(${src})`,
+      backgroundPosition: `${pctX}% ${pctY}%`,
+      backgroundSize: `${width * 2.5}px ${height * 2.5}px`,
+      backgroundRepeat: "no-repeat",
+      zIndex: 10,
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setZoomStyle({ display: "none" });
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ position: "relative", overflow: "hidden", cursor: "crosshair", borderRadius: "8px 8px 0 0" }}
+    >
+      <img
+        src={src}
+        alt={alt}
+        style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }}
+      />
+      <div style={zoomStyle} />
+    </div>
+  );
+}
 
 // ── Timeline Scrubber Component ───────────────────────────────────────
 function TimelineScrubber({
@@ -363,6 +424,24 @@ export default function ResultsPage() {
   const [jobId, setJobId] = useState("");
   const [job, setJob] = useState<SearchJob | null>(null);
   const [loadingJob, setLoadingJob] = useState(false);
+  const [pastJobs, setPastJobs] = useState<Record<string, any>>({});
+  const [loadingPastJobs, setLoadingPastJobs] = useState(false);
+
+  const loadPastJobs = useCallback(async () => {
+    setLoadingPastJobs(true);
+    try {
+      const data = await apiFetch<any>("/api/search/jobs");
+      setPastJobs(data.jobs || {});
+    } catch (err) {
+      console.error("Failed to load past search jobs:", err);
+    } finally {
+      setLoadingPastJobs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadPastJobs();
+  }, [loadPastJobs]);
   const [videoPlayer, setVideoPlayer] = useState<MatchResult | null>(null);
   const [selectedTimeline, setSelectedTimeline] = useState<MatchResult | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -694,10 +773,9 @@ export default function ResultsPage() {
                   >
                     <div style={{ position: "relative" }}>
                       {match.frame_url ? (
-                        <img
+                        <ZoomImage
                           src={resolveStorageUrl(match.frame_url)}
                           alt={`Match at ${match.timestamp_str}`}
-                          style={{ width: "100%", height: 160, objectFit: "cover" }}
                         />
                       ) : (
                         <div style={{ width: "100%", height: 160, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -835,14 +913,72 @@ export default function ResultsPage() {
         )}
 
         {!job && !loadingJob && (
-          <div className="empty-state">
-            <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center" }}>
-              <TargetIcon size={36} style={{ color: "var(--text-muted)" }} />
-            </div>
-            <div className="empty-state-title">No results loaded</div>
-            <div className="empty-state-sub">
-              Enter a Job ID above, or{" "}
-              <a href="/search" style={{ color: "var(--accent)" }}>run a new search →</a>
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div className="section-title" style={{ margin: 0 }}>Past Search Results</div>
+                <button className="btn btn-secondary btn-sm" onClick={loadPastJobs} disabled={loadingPastJobs}>
+                  {loadingPastJobs ? "Refreshing..." : "Refresh List"}
+                </button>
+              </div>
+
+              {Object.keys(pastJobs).length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center" }}>
+                    <TargetIcon size={36} style={{ color: "var(--text-muted)" }} />
+                  </div>
+                  <div className="empty-state-title">No search jobs found</div>
+                  <div className="empty-state-sub">
+                    Run an <a href="/search" style={{ color: "var(--accent)" }}>AI search</a> first, or enter a Job ID manually above.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "16px" }}>
+                  {Object.entries(pastJobs).map(([id, details]: [string, any]) => (
+                    <div 
+                      key={id}
+                      style={{
+                        background: "var(--bg-elevated)", border: "1px solid var(--border)",
+                        borderRadius: "10px", padding: "16px", display: "flex", flexDirection: "column", gap: "10px"
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                          <span style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 800, color: "var(--accent)" }}>
+                            {getSearchTypeLabel(details.type)}
+                          </span>
+                          <h4 style={{ margin: "4px 0", fontSize: "0.9rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                            Job ID: #{id}
+                          </h4>
+                        </div>
+                        <span className={`status-pill status-${details.status}`} style={{ fontSize: "0.65rem" }}>
+                          {details.status}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        Query: <strong style={{ color: "var(--text-primary)" }}>{details.query || details.query_details || "N/A"}</strong>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border)", paddingTop: "12px", marginTop: "4px" }}>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                          {details.match_count || details.frames_matched || 0} matches found
+                        </span>
+                        <button 
+                          onClick={() => {
+                            setJobId(id);
+                            loadJob(id);
+                          }}
+                          className="btn btn-primary btn-sm"
+                          style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                        >
+                          View Results →
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

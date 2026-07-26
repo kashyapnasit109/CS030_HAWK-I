@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS case_media (
 
 -- Reference Images (Suspect or Vehicle Photos)
 CREATE TABLE IF NOT EXISTS reference_images (
-  ref_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ref_id TEXT PRIMARY KEY,
   case_id INTEGER NULL,
   uploaded_by INTEGER NULL,
   image_path TEXT NOT NULL,
@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS detection_events (
 -- Re-ID Matches
 CREATE TABLE IF NOT EXISTS reid_matches (
   match_id INTEGER PRIMARY KEY AUTOINCREMENT,
-  ref_id INTEGER NOT NULL,
+  ref_id TEXT NOT NULL,
   event_id INTEGER NOT NULL,
   similarity_score REAL NOT NULL,
   reviewed INTEGER NOT NULL DEFAULT 0,
@@ -147,7 +147,7 @@ CREATE TABLE IF NOT EXISTS watchlists (
 CREATE TABLE IF NOT EXISTS watchlist_entries (
   entry_id INTEGER PRIMARY KEY AUTOINCREMENT,
   watchlist_id INTEGER NOT NULL,
-  reference_image_id INTEGER NULL,
+  reference_image_id TEXT NULL,
   plate_number TEXT NULL,
   alert_severity TEXT NOT NULL DEFAULT 'high', -- low, medium, high
   added_at REAL NOT NULL,

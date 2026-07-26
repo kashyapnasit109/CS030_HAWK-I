@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 import {
   DashboardIcon,
   UploadIcon,
@@ -18,7 +19,8 @@ import {
   BellIcon,
   WarningIcon,
   LockIcon,
-  SignalIcon
+  SignalIcon,
+  TrendingUpIcon
 } from "./Icons";
 
 interface NavItem {
@@ -30,8 +32,10 @@ interface NavItem {
 
 const monitorItems: NavItem[] = [
   { href: "/",         icon: DashboardIcon, label: "Dashboard",   roles: ["admin", "supervisor", "investigator", "operator"] },
+  { href: "/analytics",icon: ResultsIcon,   label: "VMS Analytics", roles: ["admin", "supervisor", "investigator", "operator"] },
   { href: "/live",     icon: LiveIcon,      label: "Live Wall",   roles: ["admin", "supervisor", "operator"] },
   { href: "/playback", icon: CameraIcon,    label: "Recordings",  roles: ["admin", "supervisor", "operator"] },
+  { href: "/cameras",  icon: CameraIcon,    label: "CCTV Streams", roles: ["admin", "supervisor", "investigator", "operator"] },
 ];
 
 const investigateItems: NavItem[] = [
@@ -45,15 +49,57 @@ const investigateItems: NavItem[] = [
 const systemItems: NavItem[] = [
   { href: "/settings",  icon: SettingsIcon,  label: "Settings",         roles: ["admin", "supervisor"] },
   { href: "/audit",     icon: ShieldIcon,    label: "Audit Trail",      roles: ["admin", "auditor"] },
+  { href: "/verify",    icon: ShieldIcon,    label: "Verify PDF",       roles: ["admin", "auditor", "supervisor", "investigator", "operator"] },
+  { href: "/investors", icon: TrendingUpIcon, label: "Investor Deck",    roles: ["admin", "supervisor"] },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  interface CaseInfo {
+    case_id: number;
+    case_number: string;
+    title: string;
+    status: string;
+  }
+
+  interface BgJob {
+    id: string;
+    type: string;
+    query: string;
+    timestamp: string;
+    videosCount: number;
+    status: "queued" | "running" | "completed" | "failed";
+    match_count: number;
+    frames_processed?: number;
+    frames_matched?: number;
+    error?: string;
+  }
+
+  interface LiveAlert {
+    id: string;
+    camera_id: string;
+    camera_name: string;
+    timestamp: number;
+    timestamp_str: string;
+    detections: Array<{ type: string; label: string; confidence: number }>;
+    snapshot_url: string;
+  }
+
   const [activeCase, setActiveCase] = useState("FIR/2026/012");
+  const [activeCaseId, setActiveCaseId] = useState<string>("");
+  const [cases, setCases] = useState<CaseInfo[]>([]);
   const [alertsCount, setAlertsCount] = useState(0);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Background Tasks & Notifications states
+  const [bgJobs, setBgJobs] = useState<BgJob[]>([]);
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [alerts, setAlerts] = useState<LiveAlert[]>([]);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [completedJobPopup, setCompletedJobPopup] = useState<BgJob | null>(null);
   
   // Auth state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -93,9 +139,185 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Load dynamic cases
   useEffect(() => {
-    setAlertsCount(3);
+    if (!isAuthenticated) return;
+    async function load() {
+      try {
+        const data = await apiFetch<{ cases: CaseInfo[]; count: number }>("/api/cases/list");
+        setCases(data.cases || []);
+        
+        const savedId = localStorage.getItem("visioncctv_active_case_id");
+        if (savedId) {
+          setActiveCaseId(savedId);
+          const matched = (data.cases || []).find(c => String(c.case_id) === savedId);
+          if (matched) {
+            setActiveCase(matched.case_number);
+          }
+        } else if (data.cases && data.cases.length > 0) {
+          const firstCase = data.cases[0];
+          localStorage.setItem("visioncctv_active_case_id", String(firstCase.case_id));
+          localStorage.setItem("visioncctv_active_case_number", firstCase.case_number);
+          setActiveCaseId(String(firstCase.case_id));
+          setActiveCase(firstCase.case_number);
+        }
+      } catch (err) {
+        console.error("Failed to load cases in layout:", err);
+      }
+    }
+    load();
+  }, [isAuthenticated]);
+
+  // Listen to activeCaseChanged custom event
+  useEffect(() => {
+    const handleCaseChange = () => {
+      const savedId = localStorage.getItem("visioncctv_active_case_id") || "";
+      setActiveCaseId(savedId);
+      const savedNum = localStorage.getItem("visioncctv_active_case_number") || "";
+      if (savedNum) {
+        setActiveCase(savedNum);
+      }
+    };
+    window.addEventListener("activeCaseChanged", handleCaseChange);
+    return () => window.removeEventListener("activeCaseChanged", handleCaseChange);
   }, []);
+
+  const handleCaseSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    setActiveCaseId(selectedId);
+    if (selectedId) {
+      localStorage.setItem("visioncctv_active_case_id", selectedId);
+      const matched = cases.find(c => String(c.case_id) === selectedId);
+      if (matched) {
+        localStorage.setItem("visioncctv_active_case_number", matched.case_number);
+        setActiveCase(matched.case_number);
+      }
+      window.dispatchEvent(new Event("activeCaseChanged"));
+    } else {
+      localStorage.removeItem("visioncctv_active_case_id");
+      localStorage.removeItem("visioncctv_active_case_number");
+      setActiveCase("");
+      window.dispatchEvent(new Event("activeCaseChanged"));
+    }
+  };
+
+  // Background Search Jobs Polling
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const pollBackgroundJobs = async () => {
+      const savedJobsRaw = localStorage.getItem("visioncctv_background_jobs");
+      if (!savedJobsRaw) return;
+
+      let savedJobs: BgJob[] = [];
+      try {
+        savedJobs = JSON.parse(savedJobsRaw);
+      } catch {
+        return;
+      }
+
+      if (savedJobs.length === 0) return;
+
+      let changed = false;
+      const updatedJobs = await Promise.all(
+        savedJobs.map(async (job) => {
+          if (job.status === "completed" || job.status === "failed") {
+            return job;
+          }
+
+          try {
+            const status = await apiFetch<any>(`/api/search/job/${job.id}`);
+            changed = true;
+            
+            if (status.status === "completed" && (job.status as string) !== "completed") {
+              try {
+                const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.type = "sine";
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.35);
+              } catch (e) {
+                console.error("Audio beep blocked:", e);
+              }
+              // Set floating modal popup for completion notice
+              setCompletedJobPopup({
+                ...job,
+                status: "completed",
+                match_count: status.match_count
+              });
+            }
+
+            return {
+              ...job,
+              status: status.status,
+              match_count: status.match_count,
+              frames_processed: status.frames_processed,
+              frames_matched: status.frames_matched,
+              error: status.error
+            };
+          } catch (err) {
+            return job;
+          }
+        })
+      );
+
+      if (changed) {
+        setBgJobs(updatedJobs);
+        localStorage.setItem("visioncctv_background_jobs", JSON.stringify(updatedJobs));
+      }
+    };
+
+    const savedJobsRaw = localStorage.getItem("visioncctv_background_jobs");
+    if (savedJobsRaw) {
+      try {
+        setBgJobs(JSON.parse(savedJobsRaw));
+      } catch {}
+    }
+
+    const interval = setInterval(pollBackgroundJobs, 3000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  // Listen to bgJobsChanged custom event
+  useEffect(() => {
+    const handleBgJobsChange = () => {
+      const savedJobsRaw = localStorage.getItem("visioncctv_background_jobs");
+      if (savedJobsRaw) {
+        try {
+          setBgJobs(JSON.parse(savedJobsRaw));
+        } catch {}
+      }
+    };
+    window.addEventListener("bgJobsChanged", handleBgJobsChange);
+    return () => window.removeEventListener("bgJobsChanged", handleBgJobsChange);
+  }, []);
+
+  // Poll alerts
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const pollAlerts = async () => {
+      try {
+        const data = await apiFetch<{ alerts: LiveAlert[]; count: number }>("/api/cameras/alerts/all?since=0");
+        if (data.alerts) {
+          const sorted = data.alerts.sort((a, b) => b.timestamp - a.timestamp);
+          setAlerts(sorted.slice(0, 10));
+          setAlertsCount(sorted.length > 5 ? 5 : sorted.length);
+        }
+      } catch (err) {
+        console.error("Failed to load alerts:", err);
+      }
+    };
+
+    pollAlerts();
+    const interval = setInterval(pollAlerts, 5000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,35 +463,40 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     return currentItem.roles.includes(user.role);
   };
 
+  if (pathname === "/verify") {
+    return <div style={{ background: "#0B0F14", minHeight: "100vh" }}>{children}</div>;
+  }
+
   if (!isAuthenticated) {
     return (
-      <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#0B0F14", fontFamily: "sans-serif", padding: "20px" }}>
-        <div style={{ width: "100%", maxWidth: "420px", background: "#121821", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", padding: "32px", boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}>
+      <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#050709", fontFamily: "sans-serif", padding: "20px" }}>
+        <div style={{ width: "100%", maxWidth: "420px", background: "#0A0D12", border: "1px solid rgba(59,130,246,0.18)", borderRadius: "20px", padding: "32px", boxShadow: "0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(59,130,246,0.08)" }}>
           <div style={{ textAlign: "center", marginBottom: "24px" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "52px", height: "52px", background: "linear-gradient(135deg, #2DD4BF, #00ff88)", borderRadius: "14px", marginBottom: "12px", boxShadow: "0 0 20px rgba(45, 212, 191, 0.3)" }}>
-              <EyeIcon size={28} style={{ color: "#0B0F14" }} />
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "52px", height: "52px", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", borderRadius: "14px", marginBottom: "12px", boxShadow: "0 0 24px rgba(59,130,246,0.45)" }}>
+              <EyeIcon size={26} style={{ color: "white" }} />
             </div>
-            <h1 style={{ color: "#E6EDF3", fontSize: "1.6rem", fontWeight: 700, margin: 0, letterSpacing: "-0.5px" }}>Sentinel<span style={{ color: "#2DD4BF" }}>Vision</span></h1>
-            <p style={{ color: "#64748b", fontSize: "0.85rem", marginTop: "6px" }}>Law Enforcement CCTV Intelligence Portal</p>
+            <h1 style={{ color: "#F1F5F9", fontSize: "1.6rem", fontWeight: 700, margin: 0, letterSpacing: "-0.5px" }}>Sentinel<span style={{ color: "#60A5FA" }}>Vision</span></h1>
+            <p style={{ color: "#475569", fontSize: "0.85rem", marginTop: "6px" }}>Law Enforcement CCTV Intelligence Portal</p>
           </div>
 
           {/* Mode Switcher Tabs */}
           {!mfaRequired && (
-            <div style={{ display: "flex", background: "#161e27", padding: "4px", borderRadius: "10px", marginBottom: "24px", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <div style={{ display: "flex", background: "#0E1117", padding: "4px", borderRadius: "10px", marginBottom: "24px", border: "1px solid rgba(255,255,255,0.06)" }}>
               <button
                 type="button"
                 onClick={() => { setAuthMode("login"); setLoginError(""); }}
                 style={{
                   flex: 1,
                   padding: "8px 16px",
-                  borderRadius: "8px",
+                  borderRadius: "7px",
                   border: "none",
-                  background: authMode === "login" ? "#2DD4BF" : "transparent",
-                  color: authMode === "login" ? "#0B0F14" : "#94a3b8",
+                  background: authMode === "login" ? "linear-gradient(135deg, #2563EB, #1D4ED8)" : "transparent",
+                  color: authMode === "login" ? "white" : "#94a3b8",
                   fontWeight: 700,
                   fontSize: "0.85rem",
                   cursor: "pointer",
-                  transition: "all 0.2s ease"
+                  transition: "all 0.2s ease",
+                  boxShadow: authMode === "login" ? "0 2px 10px rgba(59,130,246,0.4)" : "none"
                 }}
               >
                 Sign In
@@ -280,14 +507,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 style={{
                   flex: 1,
                   padding: "8px 16px",
-                  borderRadius: "8px",
+                  borderRadius: "7px",
                   border: "none",
-                  background: authMode === "signup" ? "#2DD4BF" : "transparent",
-                  color: authMode === "signup" ? "#0B0F14" : "#94a3b8",
+                  background: authMode === "signup" ? "linear-gradient(135deg, #2563EB, #1D4ED8)" : "transparent",
+                  color: authMode === "signup" ? "white" : "#94a3b8",
                   fontWeight: 700,
                   fontSize: "0.85rem",
                   cursor: "pointer",
-                  transition: "all 0.2s ease"
+                  transition: "all 0.2s ease",
+                  boxShadow: authMode === "signup" ? "0 2px 10px rgba(59,130,246,0.4)" : "none"
                 }}
               >
                 Sign Up
@@ -320,7 +548,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <button 
                 type="submit" 
                 disabled={loading}
-                style={{ width: "100%", background: "#2DD4BF", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer" }}
+                style={{ width: "100%", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px rgba(59,130,246,0.4)" }}
               >
                 {loading ? "Verifying..." : "Verify Code"}
               </button>
@@ -362,21 +590,21 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <button 
                 type="submit" 
                 disabled={loading}
-                style={{ width: "100%", background: "linear-gradient(135deg, #2DD4BF, #14b8a6)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s opacity" }}
+                style={{ width: "100%", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s all", boxShadow: "0 4px 16px rgba(59,130,246,0.4)" }}
               >
                 {loading ? "Authenticating..." : "Sign In"}
               </button>
 
               {/* Demo User Shortcuts */}
               <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                <p style={{ color: "#64748b", fontSize: "0.75rem", marginBottom: "8px", textAlign: "center" }}>Quick Demo Accounts (Password: <code style={{ color: "#2DD4BF" }}>hawki</code>):</p>
+                <p style={{ color: "#475569", fontSize: "0.75rem", marginBottom: "8px", textAlign: "center" }}>Quick Demo Accounts (Password: <code style={{ color: "#60A5FA" }}>hawki</code>):</p>
                 <div style={{ display: "flex", gap: "6px", justifyContent: "center", flexWrap: "wrap" }}>
                   {["admin", "investigator", "operator", "supervisor"].map((u) => (
                     <button
                       key={u}
                       type="button"
                       onClick={() => { setUsernameInput(u); setPasswordInput("hawki"); }}
-                      style={{ background: "#161e27", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", padding: "4px 8px", color: "#94a3b8", fontSize: "0.75rem", cursor: "pointer" }}
+                      style={{ background: "#0E1117", border: "1px solid rgba(59,130,246,0.2)", borderRadius: "6px", padding: "4px 10px", color: "#94a3b8", fontSize: "0.75rem", cursor: "pointer" }}
                     >
                       {u}
                     </button>
@@ -440,7 +668,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <button 
                 type="submit" 
                 disabled={loading}
-                style={{ width: "100%", background: "linear-gradient(135deg, #2DD4BF, #14b8a6)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s opacity" }}
+                style={{ width: "100%", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s all", boxShadow: "0 4px 16px rgba(59,130,246,0.4)" }}
               >
                 {loading ? "Creating Account..." : "Create Account"}
               </button>
@@ -457,8 +685,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <header className="topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
           <div className="topbar-logo" style={{ cursor: "pointer" }} onClick={() => router.push("/")}>
-            <div className="icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", background: "linear-gradient(135deg, var(--accent), #00ff88)", borderRadius: "8px" }}>
-              <EyeIcon size={18} style={{ color: "#0B0F14" }} />
+            <div className="icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "30px", height: "30px", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", borderRadius: "7px", boxShadow: "0 0 12px rgba(59,130,246,0.4)" }}>
+              <EyeIcon size={16} style={{ color: "white" }} />
             </div>
             <span>Sentinel<span className="accent">Vision</span></span>
           </div>
@@ -467,12 +695,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "6px", padding: "4px 12px" }}>
             <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700 }}>Case:</span>
             <select 
-              value={activeCase}
-              onChange={(e) => setActiveCase(e.target.value)}
+              value={activeCaseId}
+              onChange={handleCaseSelectChange}
               style={{ background: "transparent", color: "var(--text-primary)", border: "none", outline: "none", fontSize: "0.85rem", cursor: "pointer", fontWeight: 500 }}
             >
-              <option value="FIR/2026/012" style={{ background: "var(--bg-surface)" }}>FIR/2026/012 — MG Road Theft</option>
-              <option value="FIR/2026/015" style={{ background: "var(--bg-surface)" }}>FIR/2026/015 — Missing Person</option>
+              <option value="" style={{ background: "var(--bg-surface)" }}>Select Case...</option>
+              {cases.map((c) => (
+                <option key={c.case_id} value={String(c.case_id)} style={{ background: "var(--bg-surface)" }}>
+                  {c.case_number} — {c.title}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -487,16 +719,219 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          {/* Active Tasks Tracker */}
+          <div style={{ position: "relative" }}>
+            <div 
+              onClick={() => { setTasksOpen(!tasksOpen); setAlertsOpen(false); }}
+              style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "50%", background: "var(--bg-elevated)", border: "1px solid var(--border)" }}
+              title="Active Search Jobs"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={bgJobs.some(j => j.status === 'running' || j.status === 'queued') ? "spin-pulse" : ""}>
+                <line x1="22" y1="12" x2="2" y2="12" />
+                <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+                <path d="M6 16h.01" />
+                <path d="M10 16h.01" />
+              </svg>
+              {bgJobs.some(j => j.status === 'running' || j.status === 'queued') && (
+                <span style={{ position: "absolute", top: "-2px", right: "-2px", display: "flex", width: "10px", height: "10px" }}>
+                  <span className="animate-ping" style={{ position: "absolute", display: "inline-flex", height: "100%", width: "100%", borderRadius: "50%", background: "#3B82F6", opacity: 0.75 }}></span>
+                  <span style={{ position: "relative", display: "inline-flex", borderRadius: "50%", width: "10px", height: "10px", background: "#3B82F6" }}></span>
+                </span>
+              )}
+            </div>
+
+            {tasksOpen && (
+              <div 
+                style={{
+                  position: "absolute", top: "50px", right: "-20px", width: "400px",
+                  maxHeight: "500px", overflowY: "auto", background: "rgba(10, 13, 18, 0.97)",
+                  backdropFilter: "blur(20px)", border: "1px solid rgba(59,130,246,0.25)",
+                  boxShadow: "0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(59,130,246,0.12)",
+                  borderRadius: "12px", padding: "18px", zIndex: 500, display: "flex", flexDirection: "column", gap: "12px"
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "10px" }}>
+                  <span style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 6 }}>
+                    💼 AI Search Jobs ({bgJobs.length})
+                  </span>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <button 
+                      onClick={() => {
+                        localStorage.setItem("visioncctv_background_jobs", "[]");
+                        setBgJobs([]);
+                      }}
+                      style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: 700 }}
+                    >Clear All</button>
+                    <button 
+                      onClick={() => setTasksOpen(false)}
+                      style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "0.85rem" }}
+                    >✕</button>
+                  </div>
+                </div>
+
+                {bgJobs.length === 0 ? (
+                  <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", textAlign: "center", padding: "30px 0" }}>
+                    No search jobs triggered yet. Use AI Search to start background jobs.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {bgJobs.map((job) => (
+                      <div 
+                        key={job.id}
+                        style={{
+                          background: "rgba(59,130,246,0.03)", border: "1px solid rgba(59,130,246,0.15)",
+                          borderRadius: "8px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "6px"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#60A5FA", textTransform: "capitalize" }}>
+                            {job.type.replace("_", " ")}
+                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span className={`status-pill status-${job.status}`} style={{ fontSize: "0.55rem", padding: "1px 5px" }}>
+                              {job.status}
+                            </span>
+                            <button 
+                              onClick={() => {
+                                const updated = bgJobs.filter(j => j.id !== job.id);
+                                setBgJobs(updated);
+                                localStorage.setItem("visioncctv_background_jobs", JSON.stringify(updated));
+                              }}
+                              style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}
+                            >✕</button>
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                          Query: <span style={{ color: "var(--text-primary)" }}>{job.query}</span>
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                          <span>ID: #{job.id}</span>
+                          <button 
+                            onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}
+                            style={{ background: "transparent", color: "var(--accent)", border: "none", cursor: "pointer", fontWeight: 700, padding: 0 }}
+                          >
+                            {expandedJobId === job.id ? "Hide Details" : "Show Details"}
+                          </button>
+                        </div>
+
+                        {expandedJobId === job.id && (
+                          <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: "4px", padding: "6px 8px", fontSize: "0.68rem", display: "flex", flexDirection: "column", gap: "4px", marginTop: "4px" }}>
+                            <div>Videos scanned: {job.videosCount}</div>
+                            <div>Triggered: {job.timestamp}</div>
+                            {job.status === "running" && job.frames_processed !== undefined && (
+                              <div>Progress: {job.frames_processed} frames parsed, {job.frames_matched} matches found</div>
+                            )}
+                            {job.status === "completed" && (
+                              <div style={{ color: "var(--green)" }}>Completed successfully! Found {job.match_count} matches.</div>
+                            )}
+                            {job.status === "failed" && (
+                              <div style={{ color: "var(--accent)" }}>Error: {job.error || "Search pipeline failed"}</div>
+                            )}
+                          </div>
+                        )}
+
+                        {(job.status === "running" || job.status === "queued") && (
+                          <div style={{ height: "4px", background: "rgba(255,255,255,0.05)", borderRadius: "2px", overflow: "hidden", marginTop: "4px" }}>
+                            <div className="progress-bar-fill pulse" style={{ width: "100%", height: "100%", animation: "pulse 1.5s infinite" }}></div>
+                          </div>
+                        )}
+
+                        {job.status === "completed" && (
+                          <button 
+                            onClick={() => {
+                              router.push(`/results#${job.id}`);
+                              setTasksOpen(false);
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ marginTop: "4px", display: "flex", justifyContent: "center", fontSize: "0.7rem", padding: "4px 8px" }}
+                          >
+                            View Matching Results →
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Realtime Alert Bell */}
-          <div 
-            onClick={() => router.push("/results")}
-            style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "50%", background: "var(--bg-elevated)", border: "1px solid var(--border)" }}
-          >
-            <BellIcon size={18} />
-            {alertsCount > 0 && (
-              <span style={{ position: "absolute", top: "-2px", right: "-2px", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--yellow)", color: "#000", fontSize: "0.65rem", fontWeight: "bold", borderRadius: "50%", width: "16px", height: "16px" }}>
-                {alertsCount}
-              </span>
+          <div style={{ position: "relative" }}>
+            <div 
+              onClick={() => {
+                setAlertsOpen(!alertsOpen);
+                setTasksOpen(false);
+                setAlertsCount(0); // Reset alerts count when bell is clicked
+              }}
+              style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "50%", background: "var(--bg-elevated)", border: "1px solid var(--border)" }}
+            >
+              <BellIcon size={18} />
+              {alertsCount > 0 && (
+                <span style={{ position: "absolute", top: "-2px", right: "-2px", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--yellow)", color: "#000", fontSize: "0.65rem", fontWeight: "bold", borderRadius: "50%", width: "16px", height: "16px" }}>
+                  {alertsCount}
+                </span>
+              )}
+            </div>
+
+            {alertsOpen && (
+              <div 
+                style={{
+                  position: "absolute", top: "50px", right: "-20px", width: "360px",
+                  maxHeight: "400px", overflowY: "auto", background: "rgba(10, 13, 18, 0.97)",
+                  backdropFilter: "blur(20px)", border: "1px solid rgba(59,130,246,0.25)",
+                  boxShadow: "0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(59,130,246,0.1)",
+                  borderRadius: "12px", padding: "16px", zIndex: 500, display: "flex", flexDirection: "column", gap: "12px"
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "8px" }}>
+                  <span style={{ fontWeight: 800, fontSize: "0.9rem", color: "var(--text-primary)" }}>Recent VMS Alerts</span>
+                  <button 
+                    onClick={() => setAlertsOpen(false)}
+                    style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "0.85rem" }}
+                  >✕</button>
+                </div>
+
+                {alerts.length === 0 ? (
+                  <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", textAlign: "center", padding: "20px 0" }}>
+                    No recent live alerts. Active cameras will list detections here.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {alerts.map((alert) => (
+                      <div 
+                        key={alert.id}
+                        onClick={() => { router.push("/results"); setAlertsOpen(false); }}
+                        style={{
+                          display: "flex", gap: "10px", alignItems: "center", padding: "8px",
+                          background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)",
+                          borderRadius: "8px", cursor: "pointer", transition: "var(--transition)"
+                        }}
+                        className="history-item-hover"
+                      >
+                        <div style={{ width: "40px", height: "40px", borderRadius: "4px", background: "#000", overflow: "hidden", flexShrink: 0 }}>
+                          {alert.snapshot_url ? (
+                            <img src={`http://localhost:8000${alert.snapshot_url}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><AlertIcon size={18} style={{ color: "var(--text-muted)" }} /></div>
+                          )}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2px" }}>
+                            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--yellow)" }}>{alert.camera_name || alert.camera_id}</span>
+                            <span style={{ fontSize: "0.6rem", color: "var(--text-muted)" }}>{alert.timestamp_str.split(" ").pop()}</span>
+                          </div>
+                          <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {alert.detections.map(d => `${d.label} (${(d.confidence * 100).toFixed(0)}%)`).join(", ")}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
           
@@ -652,6 +1087,81 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       )}
+
+      {/* Background Job Completed Popup Modal */}
+      {completedJobPopup && (
+        <div 
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            width: "350px",
+            background: "rgba(10, 13, 18, 0.97)",
+            backdropFilter: "blur(20px)",
+            border: "1.5px solid rgba(59,130,246,0.45)",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(59,130,246,0.2)",
+            borderRadius: "12px",
+            padding: "16px",
+            zIndex: 9999,
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            animation: "slideIn 0.3s ease-out"
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 800, fontSize: "0.9rem", color: "#60A5FA", display: "flex", alignItems: "center", gap: 6 }}>
+              🟢 AI Search Completed
+            </span>
+            <button 
+              onClick={() => setCompletedJobPopup(null)}
+              style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "0.85rem" }}
+            >✕</button>
+          </div>
+          <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+            Job <span className="mono" style={{ color: "var(--text-primary)" }}>#{completedJobPopup.id}</span> ({completedJobPopup.type.replace("_", " ")}) has completed scanning all target video footage.
+          </div>
+          <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: "var(--green)" }}>
+            Found {completedJobPopup.match_count} evidence matches!
+          </div>
+          <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+            <button 
+              className="btn btn-primary btn-sm"
+              style={{ flex: 1, justifyContent: "center" }}
+              onClick={() => {
+                router.push(`/results#${completedJobPopup.id}`);
+                setCompletedJobPopup(null);
+              }}
+            >
+              View Results
+            </button>
+            <button 
+              className="btn btn-secondary btn-sm"
+              style={{ flex: 1, justifyContent: "center" }}
+              onClick={() => setCompletedJobPopup(null)}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+      <style>{`
+        @keyframes spin-pulse {
+          0% { transform: rotate(0deg) scale(1); }
+          50% { transform: rotate(180deg) scale(1.15); }
+          100% { transform: rotate(360deg) scale(1); }
+        }
+        .spin-pulse {
+          animation: spin-pulse 3s linear infinite;
+        }
+        @keyframes animate-ping {
+          0% { transform: scale(1); opacity: 1; }
+          75%, 100% { transform: scale(2); opacity: 0; }
+        }
+        .animate-ping {
+          animation: animate-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+      `}</style>
     </div>
   );
 }

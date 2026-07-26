@@ -45,11 +45,12 @@ def get_dominant_color(crop_img):
     except Exception:
         return "gray"
 
-def extract_person_attributes(frame, bbox, overlapping_labels=None) -> dict:
+def extract_person_attributes(frame, bbox, overlapping_labels=None, velocity: float = 0.0) -> dict:
     """
     Extract clothing colors, headgear, pose, and bag presence for a person bounding box.
     bbox: [x1, y1, x2, y2] absolute coordinates.
     overlapping_labels: list of strings of other objects detected near this person.
+    velocity: movement speed (distance in pixels between consecutive frames).
     """
     x1, y1, x2, y2 = map(int, bbox)
     height = y2 - y1
@@ -81,14 +82,14 @@ def extract_person_attributes(frame, bbox, overlapping_labels=None) -> dict:
     top_color = get_dominant_color(upper_crop)
     bottom_color = get_dominant_color(lower_crop)
     
-    # 2. Pose estimation based on aspect ratio
+    # 2. Pose estimation based on aspect ratio & velocity
     aspect_ratio = height / width
-    if aspect_ratio > 1.9:
-        pose_state = "standing"
-    elif aspect_ratio < 1.3:
+    if velocity > 25.0:  # Significant movement indicating running
+        pose_state = "running"
+    elif aspect_ratio < 1.35:
         pose_state = "crouching"
     else:
-        pose_state = "running" # intermediate state
+        pose_state = "standing"
         
     # 3. Headgear heuristic: check if head crop has highly saturated yellow/red/orange (common helmet colors)
     headgear = "none"

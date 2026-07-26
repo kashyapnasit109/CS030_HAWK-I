@@ -41,6 +41,20 @@ def _calculate_sha256(file_path: Path) -> str:
         return "N/A"
 
 
+def _calculate_md5(file_path: Path) -> str:
+    """Calculate the MD5 hash of a file."""
+    if not file_path or not file_path.exists():
+        return "N/A"
+    md5_hash = hashlib.md5()
+    try:
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                md5_hash.update(byte_block)
+        return md5_hash.hexdigest()
+    except Exception:
+        return "N/A"
+
+
 class ExportReportRequest(BaseModel):
     job_id: str
     title: str = "VisionCCTV Investigation Report"
@@ -58,8 +72,9 @@ def _generate_pdf(
     case_number: str = "N/A",
     department: str = "N/A",
     notes: str = "",
+    coc_logs: list[dict] = None,
 ) -> bytes:
-    """Generate a forensic PDF report from match results."""
+    """Generate a forensic PDF report from match results with dual signatures and CoC log integration."""
     from reportlab.lib import colors  # noqa: PLC0415
     from reportlab.lib.pagesizes import A4  # noqa: PLC0415
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle  # noqa: PLC0415
@@ -72,10 +87,10 @@ def _generate_pdf(
     doc = SimpleDocTemplate(
         buf,
         pagesize=A4,
-        rightMargin=2 * cm,
-        leftMargin=2 * cm,
-        topMargin=2.5 * cm,
-        bottomMargin=2 * cm,
+        rightMargin=1.5 * cm,
+        leftMargin=1.5 * cm,
+        topMargin=2.0 * cm,
+        bottomMargin=2.0 * cm,
     )
 
     styles = getSampleStyleSheet()
@@ -91,6 +106,8 @@ def _generate_pdf(
         parent=styles["Heading2"],
         fontSize=12,
         textColor=colors.HexColor("#16213e"),
+        spaceBefore=10,
+        spaceAfter=6,
     )
     normal_style = styles["Normal"]
 
@@ -110,7 +127,7 @@ def _generate_pdf(
         ["Job ID", job_id],
         ["Total Matches Found", str(len(matches))],
     ]
-    meta_table = Table(meta_data, colWidths=[5 * cm, 12 * cm])
+    meta_table = Table(meta_data, colWidths=[5 * cm, 13 * cm])
     meta_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#16213e")),
         ("TEXTCOLOR", (0, 0), (0, -1), colors.white),
@@ -128,22 +145,26 @@ def _generate_pdf(
     story.append(Spacer(1, 0.2 * cm))
 
     for i, match in enumerate(matches, 1):
-        story.append(Paragraph(f"Match #{i}", ParagraphStyle(
-            "match_title", parent=styles["Heading3"], textColor=colors.HexColor("#e94560"), fontSize=10
+        story.append(Paragraph(f"Evidence Match #{i}", ParagraphStyle(
+            "match_title", parent=styles["Heading3"], textColor=colors.HexColor("#e94560"), fontSize=10, spaceBefore=4, spaceAfter=2
         )))
 
-        # Resolve hashes
+        # Resolve hashes (Dual SHA-256 + MD5 signature checking)
         frame_url = match.get("frame_url", "")
-        frame_hash = "N/A"
+        frame_sha256 = "N/A"
+        frame_md5 = "N/A"
         if frame_url:
             frame_local = RESULTS_DIR / Path(frame_url.replace("/storage/results/", ""))
-            frame_hash = _calculate_sha256(frame_local)
+            frame_sha256 = _calculate_sha256(frame_local)
+            frame_md5 = _calculate_md5(frame_local)
 
         clip_url = match.get("clip_url", "")
-        clip_hash = "N/A"
+        clip_sha256 = "N/A"
+        clip_md5 = "N/A"
         if clip_url:
             clip_local = RESULTS_DIR / Path(clip_url.replace("/storage/results/", ""))
-            clip_hash = _calculate_sha256(clip_local)
+            clip_sha256 = _calculate_sha256(clip_local)
+            clip_md5 = _calculate_md5(clip_local)
 
         match_data = [
             ["Camera ID", match.get("camera_id", "N/A")],
@@ -151,10 +172,12 @@ def _generate_pdf(
             ["Label / Query", match.get("label", "N/A")],
             ["Confidence Score", f"{match.get('confidence', 0):.2%}"],
             ["Search Type", match.get("search_type", "N/A")],
-            ["Frame SHA-256", frame_hash[:32] + "\n" + frame_hash[32:] if frame_hash != "N/A" else "N/A"],
-            ["Clip SHA-256", clip_hash[:32] + "\n" + clip_hash[32:] if clip_hash != "N/A" else "N/A"],
+            ["Frame SHA-256", frame_sha256],
+            ["Frame MD5", frame_md5],
+            ["Clip SHA-256", clip_sha256],
+            ["Clip MD5", clip_md5],
         ]
-        t = Table(match_data, colWidths=[5 * cm, 12 * cm])
+        t = Table(match_data, colWidths=[5 * cm, 13 * cm])
         t.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#0f3460")),
             ("TEXTCOLOR", (0, 0), (0, -1), colors.white),
@@ -169,7 +192,7 @@ def _generate_pdf(
             frame_local = RESULTS_DIR / Path(frame_url.replace("/storage/results/", ""))
             if frame_local.exists():
                 try:
-                    img = RLImage(str(frame_local), width=8 * cm, height=5 * cm, kind="proportional")
+                    img = RLImage(str(frame_local), width=8 * cm, height=4.5 * cm, kind="proportional")
                     story.append(Spacer(1, 0.2 * cm))
                     story.append(img)
                 except Exception:
@@ -179,18 +202,46 @@ def _generate_pdf(
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#dee2e6")))
         story.append(Spacer(1, 0.3 * cm))
 
-    # Chain of custody block
-    story.append(Paragraph("Forensic Chain of Custody & Verification Sign-Off", heading_style))
+    # Forensic Chain of Custody Audit Trail Ingestion
+    story.append(Paragraph("Forensic Audit Trail (Chain of Custody)", heading_style))
+    story.append(Spacer(1, 0.2 * cm))
+    if coc_logs:
+        coc_table_data = [["Time (UTC)", "Action", "User / Officer", "Hash Value", "Notes"]]
+        for log in coc_logs:
+            log_time = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(log["created_at"]))
+            coc_table_data.append([
+                log_time,
+                log["action"].upper(),
+                log.get("username", "System"),
+                log["hash_value"][:16] + "...",
+                log.get("notes", "")
+            ])
+        coc_log_table = Table(coc_table_data, colWidths=[3.5 * cm, 2.5 * cm, 3.0 * cm, 3.5 * cm, 5.5 * cm])
+        coc_log_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#16213e")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTSIZE", (0, 0), (-1, -1), 7),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.HexColor("#f8f9fa"), colors.white]),
+            ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#dee2e6")),
+            ("PADDING", (0, 0), (-1, -1), 4),
+        ]))
+        story.append(coc_log_table)
+    else:
+        story.append(Paragraph("No forensic chain of custody entries recorded for these evidence files.", ParagraphStyle("no_coc", parent=normal_style, fontSize=8, textColor=colors.grey)))
+    story.append(Spacer(1, 0.5 * cm))
+
+    # Forensic Verification Sign-Off
+    story.append(Paragraph("Case Verification Sign-Off", heading_style))
     story.append(Spacer(1, 0.2 * cm))
     coc_data = [
         ["Released By (AI System)", "VisionCCTV Analysis Engine"],
         ["Released Date/Time (UTC)", time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())],
         ["Case Notes / Description", notes if notes else "No additional notes provided."],
-        ["Receiver Signature", "_____________________________________"],
-        ["Receiver Rank / Department", "_____________________________________"],
+        ["Auditor Signature", "_____________________________________"],
+        ["Auditor Rank / Department", "_____________________________________"],
         ["Verification Date", "__________________"],
     ]
-    coc_table = Table(coc_data, colWidths=[5 * cm, 12 * cm])
+    coc_table = Table(coc_data, colWidths=[5 * cm, 13 * cm])
     coc_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#16213e")),
         ("TEXTCOLOR", (0, 0), (0, -1), colors.white),
@@ -240,6 +291,25 @@ def export_report(
             detail=f"No results found for job '{request.job_id}'. Run a search first.",
         )
 
+    # Fetch matching CoC logs from database
+    hashes = [m.get("frame_hash") for m in all_matches if m.get("frame_hash")]
+    coc_logs = []
+    cursor = db.cursor()
+    if hashes:
+        placeholders = ",".join(["?"] * len(hashes))
+        try:
+            cursor.execute(
+                f"""SELECT c.coc_id, c.action, c.hash_value, c.notes, c.created_at, u.name as username 
+                   FROM chain_of_custody c
+                   LEFT JOIN users u ON c.user_id = u.user_id
+                   WHERE c.hash_value IN ({placeholders}) 
+                   ORDER BY c.created_at ASC;""",
+                hashes
+            )
+            coc_logs = [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"[export_report] Failed to fetch CoC logs: {e}")
+
     pdf_bytes = _generate_pdf(
         all_matches,
         request.title,
@@ -248,13 +318,14 @@ def export_report(
         case_number=request.case_number,
         department=request.department,
         notes=request.notes,
+        coc_logs=coc_logs,
     )
 
-    # Calculate PDF forensic signature hash
+    # Calculate PDF forensic signatures
     pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
+    pdf_md5 = hashlib.md5(pdf_bytes).hexdigest()
 
     # Find matching case ID
-    cursor = db.cursor()
     cursor.execute("SELECT case_id FROM cases WHERE case_number = ?;", (request.case_number,))
     case_row = cursor.fetchone()
     case_id = case_row["case_id"] if case_row else 1
@@ -270,6 +341,13 @@ def export_report(
            VALUES (?, ?, ?, ?, ?);""",
         (case_id, user["user_id"], f"/storage/results/reports/{pdf_name}", pdf_hash, time.time())
     )
+
+    # Log report export event to Chain of Custody audit logs
+    cursor.execute(
+        """INSERT INTO chain_of_custody (media_id, event_id, action, user_id, hash_value, notes, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?);""",
+        (None, None, "report_exported", user["user_id"], pdf_hash, f"Forensic report exported (Job: {request.job_id}, Case: {request.case_number})", time.time())
+    )
     db.commit()
 
     return Response(
@@ -277,7 +355,8 @@ def export_report(
         media_type="application/pdf",
         headers={
             "Content-Disposition": f'attachment; filename="visioncctv_report_{request.job_id}.pdf"',
-            "X-Forensic-Signature": pdf_hash
+            "X-Forensic-Signature": pdf_hash,
+            "X-Forensic-MD5": pdf_md5
         },
     )
 

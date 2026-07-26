@@ -61,5 +61,9 @@ backend/storage/thumbnails/*
 backend/storage/cameras/
 backend/storage/*.db
 *.pt
+*.onnx
+*.onnx.data
 test_search_apis.py
+*.log
+*.zip
 

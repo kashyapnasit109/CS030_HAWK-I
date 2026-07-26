@@ -289,6 +289,27 @@ export default function SearchPage() {
       setHistory(updatedHistory);
       localStorage.setItem("visioncctv_history", JSON.stringify(updatedHistory));
 
+      // Save search in background jobs list
+      const savedBgJobsRaw = localStorage.getItem("visioncctv_background_jobs");
+      let savedBgJobs = [];
+      if (savedBgJobsRaw) {
+        try {
+          savedBgJobs = JSON.parse(savedBgJobsRaw);
+        } catch {}
+      }
+      const newBgJob = {
+        id: result.job_id,
+        type: mode,
+        query: queryStr,
+        timestamp: new Date().toLocaleString(),
+        videosCount: selectedVideos.size,
+        status: result.status || "queued",
+        match_count: 0
+      };
+      savedBgJobs = [newBgJob, ...savedBgJobs];
+      localStorage.setItem("visioncctv_background_jobs", JSON.stringify(savedBgJobs));
+      window.dispatchEvent(new Event("bgJobsChanged"));
+
       setJobId(result.job_id);
       showToast(`Search job triggered (${result.job_id})`, "info");
       pollJob(result.job_id);

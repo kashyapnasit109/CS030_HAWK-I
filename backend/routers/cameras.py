@@ -6,11 +6,14 @@ Endpoints for adding/removing cameras, discovery, streaming, and live detection.
 import asyncio
 import json
 import time
+import uuid
+import sqlite3
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
+from database import get_db
 
 router = APIRouter()
 
@@ -24,6 +27,8 @@ class AddCameraRequest(BaseModel):
     username: str = "admin"
     password: str = "admin"
     channel: int = 1
+    is_nvr: bool = False
+    channels_count: int = 4
 
 
 class DiscoverRequest(BaseModel):
@@ -39,29 +44,64 @@ class StartDetectionRequest(BaseModel):
     interval_seconds: float = 2.0
 
 
+class ZoneCreateRequest(BaseModel):
+    zone_id: Optional[str] = None
+    name: str
+    zone_type: str = "restricted"
+    points: str  # JSON serialized points [[x,y],...]
+    active_from: str = "00:00"
+    active_to: str = "23:59"
+
+
 # ─── Camera CRUD ─────────────────────────────────────────────────────────
 
 @router.post("/add")
-async def api_add_camera(req: AddCameraRequest):
-    """Add a new camera by RTSP/HTTP URL or manufacturer preset."""
+def api_add_camera(req: AddCameraRequest):
+    """Add a new camera or NVR with multiple channels."""
     from ai_pipeline.camera_manager import add_camera  # noqa: PLC0415
 
-    result = add_camera(
-        url=req.url,
-        name=req.name,
-        brand=req.brand,
-        username=req.username,
-        password=req.password,
-        channel=req.channel,
-    )
-    return JSONResponse(
-        status_code=201 if result.get("is_connected") else 200,
-        content={"success": True, "camera": result},
-    )
+    if req.is_nvr:
+        added_cameras = []
+        # Add each channel as a separate stream
+        for ch in range(1, req.channels_count + 1):
+            cam_name = f"{req.name or 'NVR'} - Ch {ch}"
+            result = add_camera(
+                url=req.url,
+                name=cam_name,
+                brand=req.brand,
+                username=req.username,
+                password=req.password,
+                channel=ch,
+            )
+            added_cameras.append(result)
+        
+        # Determine if at least one camera is connected
+        any_connected = any(c.get("is_connected") for c in added_cameras)
+        return JSONResponse(
+            status_code=201 if any_connected else 200,
+            content={
+                "success": True, 
+                "cameras": added_cameras, 
+                "message": f"Successfully registered NVR '{req.name}' with {req.channels_count} channels"
+            },
+        )
+    else:
+        result = add_camera(
+            url=req.url,
+            name=req.name,
+            brand=req.brand,
+            username=req.username,
+            password=req.password,
+            channel=req.channel,
+        )
+        return JSONResponse(
+            status_code=201 if result.get("is_connected") else 200,
+            content={"success": True, "camera": result},
+        )
 
 
 @router.delete("/{camera_id}")
-async def api_remove_camera(camera_id: str):
+def api_remove_camera(camera_id: str):
     """Remove a camera from the system."""
     from ai_pipeline.camera_manager import remove_camera  # noqa: PLC0415
 
@@ -71,7 +111,7 @@ async def api_remove_camera(camera_id: str):
 
 
 @router.get("/list")
-async def api_list_cameras():
+def api_list_cameras():
     """List all registered cameras with live status."""
     from ai_pipeline.camera_manager import list_cameras  # noqa: PLC0415
 
@@ -82,7 +122,7 @@ async def api_list_cameras():
 # ─── Camera Discovery ───────────────────────────────────────────────────
 
 @router.post("/discover")
-async def api_discover_cameras(req: DiscoverRequest):
+def api_discover_cameras(req: DiscoverRequest):
     """
     Scan local network for IP cameras.
     This can take 30-60 seconds depending on subnet size.
@@ -104,7 +144,7 @@ async def api_discover_cameras(req: DiscoverRequest):
 # ─── Streaming ───────────────────────────────────────────────────────────
 
 @router.get("/{camera_id}/snapshot")
-async def api_get_snapshot(camera_id: str):
+def api_get_snapshot(camera_id: str):
     """Get a JPEG snapshot from a camera."""
     from ai_pipeline.camera_manager import get_snapshot  # noqa: PLC0415
 
@@ -120,7 +160,7 @@ async def api_get_snapshot(camera_id: str):
 
 
 @router.get("/{camera_id}/stream")
-async def api_stream_camera(camera_id: str):
+def api_stream_camera(camera_id: str):
     """
     MJPEG live stream endpoint.
     Connect with: <img src="/api/cameras/{id}/stream" />
@@ -141,7 +181,7 @@ async def api_stream_camera(camera_id: str):
 # ─── Live Detection ─────────────────────────────────────────────────────
 
 @router.post("/{camera_id}/start-detection")
-async def api_start_detection(camera_id: str, req: StartDetectionRequest):
+def api_start_detection(camera_id: str, req: StartDetectionRequest):
     """Start live AI detection on a camera feed."""
     from ai_pipeline.camera_manager import start_live_detection  # noqa: PLC0415
 
@@ -158,7 +198,7 @@ async def api_start_detection(camera_id: str, req: StartDetectionRequest):
 
 
 @router.post("/{camera_id}/stop-detection")
-async def api_stop_detection(camera_id: str):
+def api_stop_detection(camera_id: str):
     """Stop live detection on a camera."""
     from ai_pipeline.camera_manager import stop_live_detection  # noqa: PLC0415
 
@@ -167,7 +207,7 @@ async def api_stop_detection(camera_id: str):
 
 
 @router.get("/{camera_id}/detections")
-async def api_get_detections(camera_id: str, since: float = 0):
+def api_get_detections(camera_id: str, since: float = 0):
     """Get recent detection alerts for a camera."""
     from ai_pipeline.camera_manager import get_detection_alerts  # noqa: PLC0415
 
@@ -176,12 +216,58 @@ async def api_get_detections(camera_id: str, since: float = 0):
 
 
 @router.get("/alerts/all")
-async def api_get_all_alerts(since: float = 0):
+def api_get_all_alerts(since: float = 0):
     """Get all detection alerts across all cameras."""
     from ai_pipeline.camera_manager import get_all_alerts  # noqa: PLC0415
 
     alerts = get_all_alerts(since=since)
     return {"alerts": alerts, "count": len(alerts)}
+
+
+# ─── Camera Zones CRUD ──────────────────────────────────────────────────
+
+@router.get("/{camera_id}/zones")
+def get_camera_zones(camera_id: str, db: sqlite3.Connection = Depends(get_db)):
+    """Retrieve all visual ROI zones configured for this camera."""
+    cursor = db.cursor()
+    cursor.execute(
+        "SELECT zone_id, name, zone_type, points, active_from, active_to FROM zones WHERE camera_id = ?;",
+        (camera_id,)
+    )
+    return {"zones": [dict(row) for row in cursor.fetchall()]}
+
+
+@router.post("/{camera_id}/zones")
+def save_camera_zone(camera_id: str, req: ZoneCreateRequest, db: sqlite3.Connection = Depends(get_db)):
+    """Save or update an ROI zone polygon in the database."""
+    zone_id = req.zone_id or f"zone_{str(uuid.uuid4())[:8]}"
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            """INSERT INTO zones (zone_id, camera_id, name, zone_type, points, active_from, active_to)
+               VALUES (?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(zone_id) DO UPDATE SET
+                 name=excluded.name,
+                 zone_type=excluded.zone_type,
+                 points=excluded.points,
+                 active_from=excluded.active_from,
+                 active_to=excluded.active_to;""",
+            (zone_id, camera_id, req.name, req.zone_type, req.points, req.active_from, req.active_to)
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    return {"success": True, "zone_id": zone_id}
+
+
+@router.delete("/{camera_id}/zones/{zone_id}")
+def delete_camera_zone(camera_id: str, zone_id: str, db: sqlite3.Connection = Depends(get_db)):
+    """Delete a configured ROI zone."""
+    cursor = db.cursor()
+    cursor.execute("DELETE FROM zones WHERE zone_id = ? AND camera_id = ?;", (zone_id, camera_id))
+    db.commit()
+    return {"success": True}
 
 
 # ─── SSE Event Stream ───────────────────────────────────────────────────
@@ -212,3 +298,4 @@ async def api_detection_stream(camera_id: str):
             "X-Accel-Buffering": "no",
         },
     )
+
