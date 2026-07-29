@@ -6,7 +6,7 @@ import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import AddSuspectModal from "@/components/AddSuspectModal";
 import {
-  listVideos, listReferences,
+  listVideos, listReferences, uploadReference,
   startImageSearch, startKeywordSearch, startLprSearch, startObjectSearch, startActivityAnalysis, getJobStatus,
   cancelSearchJob, cancelAllSearchJobs,
   VideoMeta, ReferenceMeta, SearchJob
@@ -26,7 +26,9 @@ import {
   ImageIcon,
   HourglassIcon,
   WarningIcon,
-  SparklesIcon
+  SparklesIcon,
+  PlusIcon,
+  UploadIcon
 } from "@/components/Icons";
 
 type SearchMode = "image" | "keyword" | "lpr" | "object" | "activity" | "attributes";
@@ -88,6 +90,54 @@ export default function SearchPage() {
   const [headgear, setHeadgear] = useState("all");
   const [bagPresent, setBagPresent] = useState("all"); // all, yes, no
   const [poseState, setPoseState] = useState("all"); // all, standing, running, crouching
+
+  // Add Suspect Reference Modal states
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [modalFile, setModalFile] = useState<File | null>(null);
+  const [modalPreview, setModalPreview] = useState<string | null>(null);
+  const [modalLabel, setModalLabel] = useState("");
+  const [modalUploading, setModalUploading] = useState(false);
+
+  const handleModalFilePick = (file: File) => {
+    setModalFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setModalPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+    if (!modalLabel) {
+      setModalLabel(file.name.replace(/\.[^.]+$/, "").replace(/_/g, " "));
+    }
+  };
+
+  const handleModalUpload = async () => {
+    if (!modalFile) {
+      showToast("Please select an image file first", "error");
+      return;
+    }
+    if (!modalLabel.trim()) {
+      showToast("Please enter a suspect name / label", "error");
+      return;
+    }
+    setModalUploading(true);
+    try {
+      const res = await uploadReference(modalFile, modalLabel.trim());
+      showToast(`Suspect reference "${modalLabel}" added successfully`, "success");
+      setModalFile(null);
+      setModalPreview(null);
+      setModalLabel("");
+      setAddModalOpen(false);
+
+      // Refresh references list & auto select newly added reference
+      const data = await listReferences();
+      setRefs(data.references);
+      if (res && res.reference && res.reference.id) {
+        setSelectedRefs((prev) => new Set([...prev, res.reference.id]));
+      }
+    } catch (err: any) {
+      showToast(err.message || "Failed to upload reference image", "error");
+    } finally {
+      setModalUploading(false);
+    }
+  };
 
   // Update similarity/confidence threshold default based on mode
   useEffect(() => {
@@ -382,7 +432,11 @@ export default function SearchPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {/* Input Selection Card */}
             <div className="card">
+<<<<<<< HEAD
               <div className="section-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+=======
+              <div className="section-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+>>>>>>> 4371a14033babe5079f94d4647900705d0d5a7f3
                 <span>
                   {mode === "image" ? "Suspect Database References" :
                    mode === "keyword" ? "Keyword Query Description" :
@@ -392,11 +446,19 @@ export default function SearchPage() {
                 </span>
                 {mode === "image" && (
                   <button
+<<<<<<< HEAD
                     className="btn btn-secondary btn-sm"
                     onClick={() => setAddSuspectOpen(true)}
                     style={{ fontSize: "0.72rem", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}
                   >
                     + Add Suspect Image
+=======
+                    onClick={() => setAddModalOpen(true)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.75rem", padding: "4px 10px" }}
+                  >
+                    <PlusIcon size={14} /> Add Suspect Images
+>>>>>>> 4371a14033babe5079f94d4647900705d0d5a7f3
                   </button>
                 )}
               </div>
@@ -406,8 +468,15 @@ export default function SearchPage() {
                   {loading ? (
                     <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>Loading references…</div>
                   ) : refs.length === 0 ? (
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                      No references found. <a href="/suspects" style={{ color: "var(--accent)" }}>Add suspect photos →</a>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: 12 }}>
+                      <span>No references found in database.</span>
+                      <button
+                        onClick={() => setAddModalOpen(true)}
+                        className="btn btn-primary btn-sm"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                      >
+                        <PlusIcon size={14} /> Add Suspect Images
+                      </button>
                     </div>
                   ) : (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
@@ -828,6 +897,7 @@ export default function SearchPage() {
           </div>
         </div>
 
+<<<<<<< HEAD
         {/* Add Suspect Image Modal */}
         {addSuspectOpen && (
           <AddSuspectModal
@@ -837,6 +907,101 @@ export default function SearchPage() {
               setSelectedRefs((prev) => new Set(prev).add(newRef.id));
             }}
           />
+=======
+        {/* Add Suspect Reference Image Modal */}
+        {addModalOpen && (
+          <div 
+            style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
+            onClick={() => setAddModalOpen(false)}
+          >
+            <div 
+              style={{ width: "100%", maxWidth: "460px", background: "rgba(13, 17, 23, 0.98)", border: "1px solid rgba(59, 130, 246, 0.3)", borderRadius: "14px", padding: "24px", boxShadow: "0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(59,130,246,0.15)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", borderBottom: "1px solid var(--border)", paddingBottom: "12px" }}>
+                <h3 style={{ margin: 0, color: "var(--text-primary)", fontSize: "1.1rem", fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
+                  <UserIcon size={20} style={{ color: "#60A5FA" }} /> Add Suspect Reference Image
+                </h3>
+                <button 
+                  onClick={() => setAddModalOpen(false)}
+                  style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "1rem" }}
+                >✕</button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div
+                  style={{
+                    border: "2px dashed rgba(59, 130, 246, 0.35)",
+                    borderRadius: "10px",
+                    padding: "24px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    background: "rgba(59, 130, 246, 0.03)",
+                    transition: "var(--transition)"
+                  }}
+                  onClick={() => {
+                    const el = document.getElementById("search-modal-file-input");
+                    el?.click();
+                  }}
+                >
+                  <input
+                    id="search-modal-file-input"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={(e) => e.target.files?.[0] && handleModalFilePick(e.target.files[0])}
+                  />
+                  {modalPreview ? (
+                    <img src={modalPreview} alt="Preview" style={{ maxHeight: 150, margin: "0 auto", borderRadius: 8, objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                      <UploadIcon size={32} style={{ color: "#60A5FA" }} />
+                      <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--text-primary)" }}>Click or drop suspect photo here</span>
+                      <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Supports JPG, PNG, WebP image formats</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label">Suspect Name / Label</label>
+                  <input
+                    className="input-field"
+                    placeholder="e.g. Suspect Alpha, Target 01"
+                    value={modalLabel}
+                    onChange={(e) => setModalLabel(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ flex: 1, justifyContent: "center" }}
+                    onClick={() => setAddModalOpen(false)}
+                    disabled={modalUploading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    style={{ flex: 1, justifyContent: "center", display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)" }}
+                    onClick={handleModalUpload}
+                    disabled={!modalFile || modalUploading}
+                  >
+                    {modalUploading ? (
+                      <>
+                        <HourglassIcon size={16} /> Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <UploadIcon size={16} /> Add Suspect Photo
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+>>>>>>> 4371a14033babe5079f94d4647900705d0d5a7f3
         )}
       </AppLayout>
     </ToastProvider>
