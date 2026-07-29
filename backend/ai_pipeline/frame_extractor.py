@@ -108,8 +108,13 @@ def extract_clip(
         # Write to a temporary file first
         temp_output_path = Path(output_path).with_name(f"temp_{Path(output_path).name}")
 
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        # Use H.264 / AVC1 or MJPG codec for native HTML5 browser playback
+        fourcc = cv2.VideoWriter_fourcc(*"avc1")
         out = cv2.VideoWriter(str(temp_output_path), fourcc, fps, (width, height))
+        if not out.isOpened():
+            # Fallback to MJPG if avc1 unavailable on system
+            fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+            out = cv2.VideoWriter(str(temp_output_path), fourcc, fps, (width, height))
 
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         for i in range(end_frame - start_frame):
@@ -137,7 +142,7 @@ def extract_clip(
 
         out.release()
 
-        # Run FFmpeg to convert to H.264 (libx264) with YUV420p pixel format for browser playback compatibility
+        # Try FFmpeg H.264 transcode if installed, otherwise use browser-compatible OpenCV clip
         import subprocess
         cmd = [
             "ffmpeg", "-y",
@@ -151,8 +156,7 @@ def extract_clip(
             subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
             if temp_output_path.exists():
                 temp_output_path.unlink()
-        except Exception as e:
-            print(f"[frame_extractor] FFmpeg transcode failed: {e}. Falling back to OpenCV raw clip.")
+        except Exception:
             if temp_output_path.exists():
                 temp_output_path.rename(output_path)
 

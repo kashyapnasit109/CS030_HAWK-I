@@ -79,7 +79,9 @@ def _keyword_to_color_hsv(keyword: str) -> tuple[np.ndarray, np.ndarray] | None:
 # Common COCO object keywords for matching in fallback mode
 _COCO_KEYWORDS = {
     "person": ["person", "man", "woman", "boy", "girl", "child", "people", "human",
-               "pedestrian", "suspect", "individual", "walker"],
+               "pedestrian", "suspect", "individual", "walker", "shooter", "armed person"],
+    "gun": ["gun", "guns", "pistol", "handgun", "revolver", "rifle", "firearm", "weapon", "weapons", "armed", "shotgun"],
+    "knife": ["knife", "blade", "weapon", "weapons", "dagger", "sword"],
     "car": ["car", "automobile", "sedan", "vehicle"],
     "truck": ["truck", "lorry"],
     "bus": ["bus"],
@@ -93,7 +95,6 @@ _COCO_KEYWORDS = {
     "umbrella": ["umbrella"],
     "cell phone": ["phone", "cellphone", "mobile"],
     "laptop": ["laptop", "computer"],
-    "knife": ["knife", "blade", "weapon"],
     "bottle": ["bottle"],
     "cup": ["cup", "glass", "mug"],
     "chair": ["chair", "seat"],
@@ -404,9 +405,21 @@ def run_keyword_search(
         model, processor = _get_clip()
         matches = []
 
-        # FIX: Use contrastive prompts for proper CLIP scoring
-        # Instead of softmax on 1 class (always 1.0), compare against
-        # the target query vs. a set of negative/neutral prompts
+        # Build rich visual prompts for weapons and target queries
+        kw_lower = translated_keyword.lower()
+        if any(w in kw_lower for w in ["gun", "guns", "pistol", "handgun", "weapon", "weapons", "firearm", "rifle", "revolver", "shotgun"]):
+            target_prompts = [
+                f"a photo of {translated_keyword}",
+                "a person holding a gun",
+                "a handgun",
+                "a pistol",
+                "a firearm",
+                "a weapon",
+                "an armed person",
+            ]
+        else:
+            target_prompts = [translated_keyword, f"a photo of a {translated_keyword}"]
+
         negative_prompts = [
             "an empty room",
             "a blank wall",
@@ -414,7 +427,7 @@ def run_keyword_search(
             "nothing interesting",
             "a random scene",
         ]
-        all_prompts = [translated_keyword] + negative_prompts
+        all_prompts = target_prompts + negative_prompts
 
         cap = cv2.VideoCapture(str(video_path))
         video_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
@@ -441,7 +454,6 @@ def run_keyword_search(
                 pil_image = Image.fromarray(frame_rgb)
 
                 with torch.no_grad():
-                    # FIX: Use multiple prompts for contrastive scoring
                     inputs = processor(
                         text=all_prompts,
                         images=pil_image,
@@ -450,12 +462,11 @@ def run_keyword_search(
                     )
                     outputs = model(**inputs)
 
-                    # logits_per_image shape: [1, num_prompts]
-                    # Apply softmax across all prompts (now meaningful with >1 class)
+                    # Softmax across all prompts
                     probs = outputs.logits_per_image.softmax(dim=1)
 
-                    # The probability for our target keyword (index 0)
-                    similarity = float(probs[0][0].item())
+                    # Take the max probability among all target prompts
+                    similarity = float(torch.max(probs[0][:len(target_prompts)]).item())
 
                 frames_processed = frame_idx // frame_interval + 1
                 if progress_cb:

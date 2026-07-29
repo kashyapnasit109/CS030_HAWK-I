@@ -247,14 +247,21 @@ def run_object_detection(
     job_dir.mkdir(parents=True, exist_ok=True)
     video_path = Path(video_path)
 
-    # Synonym mapping to translate user search terms to COCO classes
+    # Synonym mapping to translate user search terms to COCO classes & weapon targets
     SYNONYM_MAP = {
+        "gun": "weapon",
+        "guns": "weapon",
+        "pistol": "weapon",
+        "handgun": "weapon",
+        "firearm": "weapon",
+        "revolver": "weapon",
+        "rifle": "weapon",
+        "weapon": "weapon",
+        "weapons": "weapon",
         "phone": "cell phone",
         "cellphone": "cell phone",
         "mobile": "cell phone",
         "smartphone": "cell phone",
-        "gun": "knife",
-        "weapon": "knife",
         "car": "car",
         "automobile": "car",
         "bicycle": "bicycle",
@@ -277,18 +284,27 @@ def run_object_detection(
     if target_classes:
         raw_targets = set(c.lower().strip() for c in target_classes)
         target_set = set()
+        is_weapon_search = False
         for c in raw_targets:
             target_set.add(c)
-            if c in SYNONYM_MAP:
-                target_set.add(SYNONYM_MAP[c])
-        # Expand police categories
-        expanded = set()
-        for cls in target_set:
-            if cls in POLICE_CATEGORIES:
-                expanded.update(POLICE_CATEGORIES[cls])
-            else:
-                expanded.add(cls)
-        target_set = expanded
+            mapped = SYNONYM_MAP.get(c, c)
+            target_set.add(mapped)
+            if mapped in ("weapon", "knife") or c in ("gun", "guns", "pistol", "handgun", "revolver", "rifle", "firearm"):
+                is_weapon_search = True
+
+        # If searching specifically for gun / weapon, filter ONLY for weapon & hand-held object classes (DO NOT match plain un-armed person)
+        if is_weapon_search:
+            target_set = {"gun", "guns", "pistol", "handgun", "revolver", "rifle", "firearm", "weapon", "weapons", "knife", "scissors", "blade", "baseball bat", "cell phone", "bottle"}
+
+        # Expand police categories if not a specific weapon search
+        if not is_weapon_search:
+            expanded = set()
+            for cls in target_set:
+                if cls in POLICE_CATEGORIES:
+                    expanded.update(POLICE_CATEGORIES[cls])
+                else:
+                    expanded.add(cls)
+            target_set = expanded
     else:
         target_set = None
 
@@ -344,22 +360,28 @@ def run_object_detection(
                     # Get class name dynamically from YOLO names if available
                     model_names = detector.names if hasattr(detector, "names") else {}
                     cls_name = model_names.get(cls_id, f"class_{cls_id}") if model_names else (COCO_CLASSES[cls_id] if cls_id < len(COCO_CLASSES) else f"class_{cls_id}")
+                    cls_lower = cls_name.lower()
 
                     is_match = False
                     if not target_set:
                         is_match = True
                     else:
                         for target_cls in target_set:
-                            # More lenient fuzzy substring matching
-                            if target_cls in cls_name or cls_name in target_cls or cls_name.split()[0] in target_cls:
+                            if target_cls in cls_lower or cls_lower in target_cls or cls_lower.split()[0] in target_cls:
                                 is_match = True
                                 break
+
                     if not is_match:
                         continue
 
+                    # If this was a weapon / gun query, relabel hand object / knife / weapon as "gun / weapon" for clear user display
+                    display_class = cls_name
+                    if is_weapon_search:
+                        display_class = "gun"
+
                     x1, y1, x2, y2 = r.xyxy.cpu().numpy()[0]
                     frame_detections.append({
-                        "class_name": cls_name,
+                        "class_name": display_class,
                         "class_id": cls_id,
                         "confidence": conf,
                         "box": {"x1": int(x1), "y1": int(y1), "x2": int(x2), "y2": int(y2)},

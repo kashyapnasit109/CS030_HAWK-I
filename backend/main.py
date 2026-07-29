@@ -20,8 +20,9 @@ UPLOADS_DIR = STORAGE_DIR / "uploads"
 REFERENCES_DIR = STORAGE_DIR / "references"
 RESULTS_DIR = STORAGE_DIR / "results"
 THUMBNAILS_DIR = STORAGE_DIR / "thumbnails"
+ENHANCED_DIR = STORAGE_DIR / "enhanced"
 
-for d in [UPLOADS_DIR, REFERENCES_DIR, RESULTS_DIR, THUMBNAILS_DIR]:
+for d in [UPLOADS_DIR, REFERENCES_DIR, RESULTS_DIR, THUMBNAILS_DIR, ENHANCED_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 # Initialize SQLite database schema and seed default users/cameras
@@ -78,7 +79,7 @@ if ORIGINAL_VIDEO.exists() and not any(UPLOADS_DIR.glob("*.meta.json")):
     (UPLOADS_DIR / "subway.meta.json").write_text(json.dumps(meta, indent=2))
 
 # Register routers
-from routers import videos, search, export, references, cameras, auth, cases, watchlists, audit, settings  # noqa: E402
+from routers import videos, search, export, references, cameras, auth, cases, watchlists, audit, settings, enhance  # noqa: E402
 
 app = FastAPI(
     title="VisionCCTV API",
@@ -107,6 +108,7 @@ app.include_router(cases.router, prefix="/api/cases", tags=["Cases"])
 app.include_router(watchlists.router, prefix="/api/watchlists", tags=["Watchlists"])
 app.include_router(audit.router, prefix="/api/audit", tags=["Audit"])
 app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
+app.include_router(enhance.router, prefix="/api/enhance", tags=["Enhance"])
 
 
 @app.get("/health", tags=["Health"])

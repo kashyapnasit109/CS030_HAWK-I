@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
+import EnhanceModal from "@/components/EnhanceModal";
+import AddSuspectModal from "@/components/AddSuspectModal";
 import { getJobStatus, exportReport, resolveStorageUrl, downloadFramesZip, MatchResult, SearchJob, apiFetch } from "@/lib/api";
 import {
   TargetIcon,
@@ -24,6 +26,9 @@ import {
   ListIcon,
   PlayIcon,
   DownloadIcon,
+  SparklesIcon,
+  MaximizeIcon,
+  TagIcon,
 } from "@/components/Icons";
 
 const BASE_URL = "http://localhost:8000";
@@ -273,16 +278,24 @@ function VideoPlayerModal({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [activeTab, setActiveTab] = useState<"video" | "frame">(match.clip_url ? "video" : "frame");
 
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
     const handlePlay = () => setPlaying(true);
     const handlePause = () => setPlaying(false);
+    const handleError = () => setVideoError(true);
     el.addEventListener("play", handlePlay);
     el.addEventListener("pause", handlePause);
-    return () => { el.removeEventListener("play", handlePlay); el.removeEventListener("pause", handlePause); };
-  }, []);
+    el.addEventListener("error", handleError);
+    return () => {
+      el.removeEventListener("play", handlePlay);
+      el.removeEventListener("pause", handlePause);
+      el.removeEventListener("error", handleError);
+    };
+  }, [activeTab]);
 
   const downloadClip = () => {
     if (match.clip_url) {
@@ -314,8 +327,8 @@ function VideoPlayerModal({
         style={{
           background: "var(--bg-card)", border: "1px solid var(--border)",
           borderRadius: "var(--radius-xl)", overflow: "hidden",
-          maxWidth: 760, width: "100%",
-          boxShadow: "0 32px 80px rgba(0,0,0,0.8), 0 0 60px rgba(233,69,96,0.1)",
+          maxWidth: 820, width: "100%",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.85), 0 0 60px rgba(0,229,255,0.15)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -326,9 +339,9 @@ function VideoPlayerModal({
           background: "var(--bg-elevated)",
           borderBottom: "1px solid var(--border)",
         }}>
-          <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--accent)", animation: playing ? "pulse 1s infinite" : "none" }} />
-          <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>
-            Evidence Clip — {match.timestamp_str}
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: playing ? "var(--green)" : "var(--accent)", animation: playing ? "pulse 1s infinite" : "none" }} />
+          <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text-primary)" }}>
+            Evidence Detection Preview — {match.timestamp_str}
           </span>
           <span className="badge badge-cyan" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
             <VideoIcon size={11} /> {match.camera_id}
@@ -337,7 +350,7 @@ function VideoPlayerModal({
             background: "var(--accent-dim)", color: "var(--accent)",
             border: "1px solid rgba(233,69,96,0.3)",
           }}>
-            {(match.confidence * 100).toFixed(1)}% match
+            {(match.confidence * 100).toFixed(1)}% Match
           </span>
           <button
             className="btn btn-ghost btn-sm"
@@ -346,49 +359,99 @@ function VideoPlayerModal({
           ><CloseIcon size={14} /></button>
         </div>
 
-        {/* Video or Frame */}
-        <div style={{ background: "#000", position: "relative" }}>
-          {match.clip_url ? (
+        {/* View Mode Switcher */}
+        <div style={{
+          display: "flex", background: "rgba(0,0,0,0.4)",
+          borderBottom: "1px solid var(--border)", padding: "6px 16px", gap: 8
+        }}>
+          <button
+            onClick={() => setActiveTab("frame")}
+            style={{
+              padding: "6px 14px", borderRadius: 6, fontSize: "0.75rem", fontWeight: 700,
+              background: activeTab === "frame" ? "var(--cyan-dim)" : "transparent",
+              border: `1px solid ${activeTab === "frame" ? "var(--cyan)" : "transparent"}`,
+              color: activeTab === "frame" ? "var(--cyan)" : "var(--text-muted)",
+              cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+            }}
+          >
+            <ImageIcon size={14} /> Detection Overlay Frame
+          </button>
+          {match.clip_url && (
+            <button
+              onClick={() => setActiveTab("video")}
+              style={{
+                padding: "6px 14px", borderRadius: 6, fontSize: "0.75rem", fontWeight: 700,
+                background: activeTab === "video" ? "var(--accent-dim)" : "transparent",
+                border: `1px solid ${activeTab === "video" ? "var(--accent)" : "transparent"}`,
+                color: activeTab === "video" ? "var(--accent)" : "var(--text-muted)",
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+              }}
+            >
+              <FilmIcon size={14} /> Video Stream Playback
+            </button>
+          )}
+        </div>
+
+        {/* Media Content */}
+        <div style={{ background: "#000", position: "relative", minHeight: 320, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {activeTab === "video" && match.clip_url && !videoError ? (
             <video
               ref={videoRef}
               src={resolveStorageUrl(match.clip_url)}
               controls
               autoPlay
-              style={{ width: "100%", maxHeight: 420, display: "block", objectFit: "contain" }}
+              onError={() => setVideoError(true)}
+              style={{ width: "100%", maxHeight: 460, display: "block", objectFit: "contain" }}
             />
           ) : (
-            <img
-              src={resolveStorageUrl(match.frame_url)}
-              alt="Evidence frame"
-              style={{ width: "100%", maxHeight: 420, objectFit: "contain", display: "block" }}
-            />
+            <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
+              <img
+                src={resolveStorageUrl(match.frame_url)}
+                alt="Evidence frame with overlay"
+                style={{ width: "100%", maxHeight: 460, objectFit: "contain", display: "block" }}
+              />
+              {/* Detection Overlay Badge */}
+              <div style={{
+                position: "absolute", top: 12, left: 12,
+                background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)",
+                border: "1px solid var(--green)", borderRadius: 6,
+                padding: "6px 12px", display: "flex", alignItems: "center", gap: 8
+              }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)" }} />
+                <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "white" }}>
+                  {match.label}
+                </span>
+                <span style={{ fontSize: "0.7rem", color: "var(--green)", fontWeight: 700 }}>
+                  {(match.confidence * 100).toFixed(0)}%
+                </span>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer Metadata */}
         <div style={{ padding: "16px 20px" }}>
-          {/* Metadata grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
             {[
-              ["Label", match.label],
-              ["Camera", match.camera_id],
-              ["Time", match.timestamp_str],
-              ["Confidence", `${(match.confidence * 100).toFixed(2)}%`],
+              ["Detection Target", match.label],
+              ["Camera ID", match.camera_id],
+              ["Frame Timestamp", match.timestamp_str],
+              ["AI Match Score", `${(match.confidence * 100).toFixed(1)}%`],
             ].map(([k, v]) => (
               <div key={k} style={{ background: "var(--bg-elevated)", padding: "10px 12px", borderRadius: 8, textAlign: "center" }}>
                 <div style={{ fontSize: "0.6rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>{k}</div>
-                <div style={{ fontWeight: 600, fontFamily: "JetBrains Mono, monospace", fontSize: "0.8rem" }}>{v}</div>
+                <div style={{ fontWeight: 600, fontFamily: "JetBrains Mono, monospace", fontSize: "0.8rem", color: "var(--text-primary)" }}>{v}</div>
               </div>
             ))}
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
             <button className="btn btn-primary" onClick={downloadFrame} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <ImageIcon size={14} /> Download Frame
+              <ImageIcon size={14} /> Download Evidence Frame
             </button>
             {match.clip_url && (
               <button className="btn btn-secondary" onClick={downloadClip} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <FilmIcon size={14} /> Download Clip
+                <FilmIcon size={14} /> Download Evidence Clip
               </button>
             )}
             <button className="btn btn-ghost" onClick={onClose} style={{ marginLeft: "auto" }}>Close</button>
@@ -443,6 +506,8 @@ export default function ResultsPage() {
     loadPastJobs();
   }, [loadPastJobs]);
   const [videoPlayer, setVideoPlayer] = useState<MatchResult | null>(null);
+  const [enhanceMatch, setEnhanceMatch] = useState<{ match: MatchResult; mode?: "general" | "face" | "lpr" | "super_res"; scale?: number } | null>(null);
+  const [addSuspectMatch, setAddSuspectMatch] = useState<MatchResult | null>(null);
   const [selectedTimeline, setSelectedTimeline] = useState<MatchResult | null>(null);
   const [exporting, setExporting] = useState(false);
   const [zipping, setZipping] = useState(false);
@@ -858,6 +923,43 @@ export default function ResultsPage() {
                           className="btn btn-secondary btn-sm"
                           onClick={(e) => {
                             e.stopPropagation();
+                            setEnhanceMatch({ match, mode: "face", scale: 2.0 });
+                          }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 4,
+                            background: "rgba(0,212,255,0.12)", color: "var(--cyan)",
+                            border: "1px solid rgba(0,212,255,0.3)"
+                          }}
+                        ><SparklesIcon size={12} /> Enhance</button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEnhanceMatch({ match, mode: "super_res", scale: 4.0 });
+                          }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 4,
+                            background: "rgba(233,69,96,0.12)", color: "var(--accent)",
+                            border: "1px solid rgba(233,69,96,0.3)"
+                          }}
+                        ><MaximizeIcon size={12} /> Upscale</button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAddSuspectMatch(match);
+                          }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 4,
+                            background: "rgba(34,197,94,0.12)", color: "var(--green)",
+                            border: "1px solid rgba(34,197,94,0.3)"
+                          }}
+                          title="Save this extracted frame as a labeled suspect reference photo"
+                        ><TagIcon size={12} /> Label Suspect</button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const a = document.createElement("a");
                             a.href = resolveStorageUrl(match.frame_url);
                             a.download = `frame_${match.label}_${i}.jpg`;
@@ -902,6 +1004,40 @@ export default function ResultsPage() {
                     <div style={{ color: confidenceColor(match.confidence), fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>
                       {(match.confidence * 100).toFixed(0)}%
                     </div>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={(e) => { e.stopPropagation(); setAddSuspectMatch(match); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 4,
+                        background: "rgba(34,197,94,0.12)", color: "var(--green)",
+                        border: "1px solid rgba(34,197,94,0.3)"
+                      }}
+                      title="Save as labeled suspect reference"
+                    >
+                      <TagIcon size={12} /> Label Suspect
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={(e) => { e.stopPropagation(); setEnhanceMatch({ match, mode: "face", scale: 2.0 }); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 4,
+                        background: "rgba(0,212,255,0.12)", color: "var(--cyan)",
+                        border: "1px solid rgba(0,212,255,0.3)"
+                      }}
+                    >
+                      <SparklesIcon size={12} /> Enhance
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={(e) => { e.stopPropagation(); setEnhanceMatch({ match, mode: "super_res", scale: 4.0 }); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 4,
+                        background: "rgba(233,69,96,0.12)", color: "var(--accent)",
+                        border: "1px solid rgba(233,69,96,0.3)"
+                      }}
+                    >
+                      <MaximizeIcon size={12} /> Upscale
+                    </button>
                     <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setVideoPlayer(match); }} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <PlayIcon size={12} /> Play
                     </button>
@@ -988,6 +1124,25 @@ export default function ResultsPage() {
           <VideoPlayerModal
             match={videoPlayer}
             onClose={() => setVideoPlayer(null)}
+          />
+        )}
+
+        {/* AI Image Enhancer & Upscaler Modal */}
+        {enhanceMatch && (
+          <EnhanceModal
+            match={enhanceMatch.match}
+            initialMode={enhanceMatch.mode}
+            initialScale={enhanceMatch.scale}
+            onClose={() => setEnhanceMatch(null)}
+          />
+        )}
+
+        {/* Add Suspect Image Modal */}
+        {addSuspectMatch && (
+          <AddSuspectModal
+            initialImageUrl={addSuspectMatch.frame_url}
+            initialLabel={addSuspectMatch.label}
+            onClose={() => setAddSuspectMatch(null)}
           />
         )}
 

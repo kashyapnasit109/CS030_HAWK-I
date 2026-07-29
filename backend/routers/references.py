@@ -109,3 +109,69 @@ def delete_reference(ref_id: str, db: sqlite3.Connection = Depends(get_db)):
         print(f"Failed to delete reference image from database: {e}")
 
     return {"success": True, "deleted_id": ref_id}
+
+
+from pydantic import BaseModel
+import base64
+import urllib.request
+
+class ReferenceFromUrlRequest(BaseModel):
+    image_url: str
+    label: str = "Suspect"
+    subject_type: str = "person"
+
+@router.post("/from-url")
+def upload_reference_from_url(
+    req: ReferenceFromUrlRequest,
+    db: sqlite3.Connection = Depends(get_db)
+):
+    """Save an existing image URL or screenshot as a labeled suspect reference image."""
+    image_bytes = None
+    cleaned = req.image_url.strip()
+
+    if cleaned.startswith("data:image"):
+        _, b64_data = cleaned.split(",", 1)
+        image_bytes = base64.b64decode(b64_data)
+    elif cleaned.startswith("http://") or cleaned.startswith("https://"):
+        try:
+            with urllib.request.urlopen(cleaned, timeout=10) as resp:
+                image_bytes = resp.read()
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to fetch image URL: {e}")
+    else:
+        # Local storage path
+        rel_path = cleaned.replace("/storage/", "")
+        local_path = BASE_DIR / "storage" / rel_path
+        if not local_path.exists():
+            raise HTTPException(status_code=404, detail=f"Source image '{cleaned}' not found")
+        image_bytes = local_path.read_bytes()
+
+    ref_id = str(uuid.uuid4())[:8]
+    safe_name = f"{ref_id}.jpg"
+    ref_path = REFERENCES_DIR / safe_name
+    ref_path.write_bytes(image_bytes)
+
+    label_text = req.label.strip() or "Suspect"
+    meta = {
+        "id": ref_id,
+        "original_filename": safe_name,
+        "stored_filename": safe_name,
+        "label": label_text,
+        "subject_type": req.subject_type,
+        "upload_time": time.time(),
+        "image_url": f"/storage/references/{safe_name}",
+    }
+    (REFERENCES_DIR / f"{ref_id}.meta.json").write_text(json.dumps(meta, indent=2))
+
+    try:
+        cursor = db.cursor()
+        cursor.execute(
+            """INSERT INTO reference_images (ref_id, case_id, uploaded_by, image_path, subject_type, label, embedding, created_at)
+               VALUES (?, NULL, NULL, ?, ?, ?, NULL, ?);""",
+            (ref_id, safe_name, req.subject_type, label_text, time.time())
+        )
+        db.commit()
+    except Exception as e:
+        print(f"Failed to insert reference image to database: {e}")
+
+    return {"success": True, "reference": meta}

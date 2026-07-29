@@ -41,12 +41,14 @@ export default function LivePage() {
     async function load() {
       try {
         const r = await listReferences();
-        setRefs(r.references);
-        if (r.references.length > 0) {
-          setSelectedRef(r.references[0]);
+        const refs = Array.isArray(r?.references) ? r.references : [];
+        setRefs(refs);
+        if (refs.length > 0) {
+          setSelectedRef(refs[0]);
         }
       } catch {
         showToast("Failed to load reference images", "error");
+        setRefs([]);
       }
     }
     load();

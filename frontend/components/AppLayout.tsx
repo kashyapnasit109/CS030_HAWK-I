@@ -21,7 +21,8 @@ import {
   LockIcon,
   SignalIcon,
   TrendingUpIcon,
-  CheckIcon
+  CheckIcon,
+  ScienceIcon
 } from "./Icons";
 
 interface NavItem {
@@ -49,6 +50,7 @@ const investigateItems: NavItem[] = [
 
 const systemItems: NavItem[] = [
   { href: "/settings",  icon: SettingsIcon,  label: "Settings",         roles: ["admin", "supervisor"] },
+  { href: "/metrics",   icon: ScienceIcon,   label: "AI Metrics & Accuracy", roles: ["admin", "supervisor", "investigator", "operator"] },
   { href: "/audit",     icon: ShieldIcon,    label: "Audit Trail",      roles: ["admin", "auditor"] },
   { href: "/verify",    icon: ShieldIcon,    label: "Verify PDF",       roles: ["admin", "auditor", "supervisor", "investigator", "operator"] },
   { href: "/investors", icon: TrendingUpIcon, label: "Investor Deck",    roles: ["admin", "supervisor"] },

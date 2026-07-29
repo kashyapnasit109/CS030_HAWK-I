@@ -402,7 +402,11 @@ export const SparklesIcon = ({ size = 18, ...props }: IconProps) =>
     size,
     (
       <>
-        <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z" />
+        <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z" />
+        <path d="M5 3v4" />
+        <path d="M19 17v4" />
+        <path d="M3 5h4" />
+        <path d="M17 19h4" />
       </>
     ),
     props
@@ -810,5 +814,85 @@ export const PauseIcon = ({ size = 18, ...props }: IconProps) =>
     ),
     props
   );
+
+export const ZapIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    ),
+    props
+  );
+
+export const MaximizeIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+        <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+        <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+        <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+      </>
+    ),
+    props
+  );
+
+export const ArrowRightLeftIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <path d="m16 3 4 4-4 4" />
+        <path d="M20 7H4" />
+        <path d="m8 21-4-4 4-4" />
+        <path d="M4 17h16" />
+      </>
+    ),
+    props
+  );
+
+export const WandIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <path d="m15 4 5 5" />
+        <path d="m2 22 10-10" />
+        <path d="M20 2v4" />
+        <path d="M18 4h4" />
+        <path d="M10 2v2" />
+        <path d="M9 3h2" />
+      </>
+    ),
+    props
+  );
+
+export const GaugeIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <path d="m12 14 4-4" />
+        <path d="M3.34 19a10 10 0 1 1 17.32 0" />
+      </>
+    ),
+    props
+  );
+
+export const LayersIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <polygon points="12 2 2 7 12 12 22 7 12 2" />
+        <polyline points="2 17 12 22 22 17" />
+        <polyline points="2 12 12 17 22 12" />
+      </>
+    ),
+    props
+  );
+
+
 
 

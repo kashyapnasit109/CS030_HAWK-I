@@ -105,107 +105,96 @@ def _preprocess_plate_region(frame: np.ndarray, x: int, y: int, w: int, h: int) 
 
 def _detect_plate_regions(frame: np.ndarray) -> list[tuple[int, int, int, int]]:
     """
-    Find license-plate-like rectangular regions in a frame using
-    edge detection + contour filtering.
-    Improved with multiple detection strategies for better coverage.
-    Returns list of (x, y, w, h).
+    Candidate plate region extraction for standard, motorcycle, and square plates.
+    Returns list of candidate bounding boxes (x, y, w, h).
     """
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    h_f, w_f = frame.shape[:2]
 
-    regions = []
+    # Downscale frame for fast contour search if resolution is high
+    scale_factor = 1.0
+    search_frame = frame
+    if w_f > 1280:
+        scale_factor = 1280.0 / w_f
+        search_frame = cv2.resize(frame, (1280, int(h_f * scale_factor)))
 
-    # Strategy 1: Edge-based contour detection
-    blurred = cv2.bilateralFilter(gray, 11, 17, 17)
+    gray = cv2.cvtColor(search_frame, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     edged = cv2.Canny(blurred, 30, 200)
-    contours, _ = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:30]
 
+    contours, _ = cv2.findContours(edged, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:25]
+
+    candidates = []
     for c in contours:
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.018 * peri, True)
-        if 4 <= len(approx) <= 6:
-            x, y, w, h = cv2.boundingRect(approx)
-            aspect_ratio = w / float(h) if h > 0 else 0
-            area = w * h
-            # Relaxed aspect ratio for various plate types (2.0 - 6.0)
-            if 1.5 <= aspect_ratio <= 6.5 and 500 <= area <= 80000:
-                regions.append((x, y, w, h))
-
-    # Strategy 2: Morphological approach for plates with borders
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
-    _, binary = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (20, 5))
-    morph = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
-    contours2, _ = cv2.findContours(morph, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    for c in contours2:
         x, y, w, h = cv2.boundingRect(c)
         aspect_ratio = w / float(h) if h > 0 else 0
         area = w * h
-        if 1.5 <= aspect_ratio <= 6.5 and 500 <= area <= 80000:
-            # Check if not already covered
-            is_dup = False
-            for (rx, ry, rw, rh) in regions:
-                overlap_x = max(0, min(x + w, rx + rw) - max(x, rx))
-                overlap_y = max(0, min(y + h, ry + rh) - max(y, ry))
-                overlap_area = overlap_x * overlap_y
-                if overlap_area > 0.5 * min(area, rw * rh):
-                    is_dup = True
-                    break
-            if not is_dup:
-                regions.append((x, y, w, h))
+
+        # Relaxed aspect ratio (1.2 to 6.5) to capture all vehicle plate formats & angles
+        if 1.2 <= aspect_ratio <= 6.5 and 400 <= area <= 80000:
+            if scale_factor != 1.0:
+                orig_x = int(x / scale_factor)
+                orig_y = int(y / scale_factor)
+                orig_w = int(w / scale_factor)
+                orig_h = int(h / scale_factor)
+            else:
+                orig_x, orig_y, orig_w, orig_h = x, y, w, h
+
+            score = 1.0 - abs(aspect_ratio - 3.2) / 4.0
+            candidates.append((score, (orig_x, orig_y, orig_w, orig_h)))
+
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    regions = [c[1] for c in candidates[:6]]
+
+    # Include bottom 60% of frame as a fallback region if no candidate boxes found
+    if not regions:
+        regions.append((0, int(h_f * 0.3), w_f, int(h_f * 0.7)))
 
     return regions
 
 
 def _ocr_plate_region(frame: np.ndarray, x: int, y: int, w: int, h: int) -> tuple[str, float]:
     """
-    Run OCR on a plate bounding region with improved preprocessing.
-    Returns (plate_text, confidence). Falls back to empty string if OCR unavailable.
+    Run single-pass OCR on a candidate plate region with adaptive upscaling.
+    Returns (plate_text, confidence).
     """
     if not _OCR_AVAILABLE:
         return "", 0.0
 
-    # Enhanced preprocessing
-    preprocessed = _preprocess_plate_region(frame, x, y, w, h)
-    if preprocessed.size == 0:
+    pad = 6
+    y1 = max(0, y - pad)
+    y2 = min(frame.shape[0], y + h + pad)
+    x1 = max(0, x - pad)
+    x2 = min(frame.shape[1], x + w + pad)
+    crop = frame[y1:y2, x1:x2]
+
+    if crop.size == 0:
         return "", 0.0
+
+    # Upscale crop to optimal height for OCR
+    h_c, w_c = crop.shape[:2]
+    if h_c > 0 and h_c < 120:
+        scale = 120.0 / h_c
+        crop = cv2.resize(crop, (int(w_c * scale), 120), interpolation=cv2.INTER_CUBIC)
 
     try:
         reader = _get_ocr_reader()
-
-        # Try both preprocessed and raw crops for best results
-        results = []
-
-        # OCR on preprocessed image
-        r1 = reader.readtext(preprocessed, detail=1, allowlist="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-        results.extend(r1)
-
-        # OCR on raw (color) crop for backup
-        pad = 6
-        y1 = max(0, y - pad)
-        y2 = min(frame.shape[0], y + h + pad)
-        x1 = max(0, x - pad)
-        x2 = min(frame.shape[1], x + w + pad)
-        raw_crop = frame[y1:y2, x1:x2]
-        if raw_crop.size > 0:
-            scale = max(1, 200 // max(h, 1))
-            if scale > 1:
-                raw_crop = cv2.resize(raw_crop, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-            r2 = reader.readtext(raw_crop, detail=1, allowlist="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-            results.extend(r2)
+        results = reader.readtext(
+            crop,
+            detail=1,
+            allowlist="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+            paragraph=False,
+            batch_size=1
+        )
 
         if not results:
             return "", 0.0
 
-        # Take the highest-confidence result
         best = max(results, key=lambda r: r[2])
         text = re.sub(r"[^A-Z0-9]", "", best[1].upper())
         conf = float(best[2])
 
-        # Require minimum text length for valid plate
-        if len(text) < 3:
+        if len(text) < 2:
             return "", 0.0
 
         return text, conf
@@ -329,8 +318,11 @@ def run_lpr_search(
                 if _OCR_AVAILABLE:
                     detected_text, ocr_conf = _ocr_plate_region(frame, x, y, w, h)
                     match_score = _text_match_score(detected_text, clean_target)
-                    # Weight: 70% text match + 30% OCR confidence
-                    combined_conf = 0.7 * match_score + 0.3 * ocr_conf
+                    # Text match score is primary — boost if OCR confidence is high
+                    if match_score > 0:
+                        combined_conf = max(match_score, 0.7 * match_score + 0.3 * ocr_conf)
+                    else:
+                        combined_conf = 0.0
                     display_text = detected_text if detected_text else "(unreadable)"
                 else:
                     # Fallback: contour-only — we can't verify text, give a low score

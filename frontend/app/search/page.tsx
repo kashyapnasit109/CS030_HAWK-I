@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
+import AddSuspectModal from "@/components/AddSuspectModal";
 import {
   listVideos, listReferences,
   startImageSearch, startKeywordSearch, startLprSearch, startObjectSearch, startActivityAnalysis, getJobStatus,
+  cancelSearchJob, cancelAllSearchJobs,
   VideoMeta, ReferenceMeta, SearchJob
 } from "@/lib/api";
 import {
@@ -59,6 +61,7 @@ export default function SearchPage() {
   const [refs, setRefs] = useState<ReferenceMeta[]>([]);
   const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
   const [selectedRefs, setSelectedRefs] = useState<Set<string>>(new Set());
+  const [addSuspectOpen, setAddSuspectOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [plateText, setPlateText] = useState("");
   const [targetClassesStr, setTargetClassesStr] = useState("");
@@ -104,28 +107,29 @@ export default function SearchPage() {
   }, [mode]);
 
   // Load history & assets on mount
-  useEffect(() => {
-    async function load() {
-      try {
-        const [v, r] = await Promise.all([listVideos(), listReferences()]);
-        setVideos(v.videos);
-        setRefs(r.references);
-        setSelectedVideos(new Set(v.videos.map((vv) => vv.id)));
-        setSelectedRefs(new Set(r.references.map((rr) => rr.id)));
+  const loadData = useCallback(async () => {
+    try {
+      const [v, r] = await Promise.all([listVideos(), listReferences()]);
+      setVideos(v.videos);
+      setRefs(r.references);
+      setSelectedVideos(new Set(v.videos.map((vv) => vv.id)));
+      setSelectedRefs(new Set(r.references.map((rr) => rr.id)));
 
-        // Load search history
-        const saved = localStorage.getItem("visioncctv_history");
-        if (saved) {
-          setHistory(JSON.parse(saved));
-        }
-      } catch {
-        showToast("Failed to load assets", "error");
-      } finally {
-        setLoading(false);
+      // Load search history
+      const saved = localStorage.getItem("visioncctv_history");
+      if (saved) {
+        setHistory(JSON.parse(saved));
       }
+    } catch {
+      showToast("Failed to load assets", "error");
+    } finally {
+      setLoading(false);
     }
-    load();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Poll job status
   const pollJob = useCallback((id: string) => {
@@ -314,8 +318,22 @@ export default function SearchPage() {
       showToast(`Search job triggered (${result.job_id})`, "info");
       pollJob(result.job_id);
     } catch (err: any) {
+      showToast(err.message || "Failed to start search pipeline", "error");
+    }
+  };
+
+  const handleStopJob = async () => {
+    try {
+      if (jobId) {
+        await cancelSearchJob(jobId);
+      } else {
+        await cancelAllSearchJobs();
+      }
       setPolling(false);
-      showToast(err.message || "Failed to initiate search job", "error");
+      setJob((prev) => prev ? { ...prev, status: "failed", error: "Job cancelled by user" } as any : null);
+      showToast("Search job stopped successfully", "info");
+    } catch (err: any) {
+      showToast(err.message || "Failed to stop search job", "error");
     }
   };
 
@@ -364,12 +382,23 @@ export default function SearchPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {/* Input Selection Card */}
             <div className="card">
-              <div className="section-title">
-                {mode === "image" ? "Suspect Database References" :
-                 mode === "keyword" ? "Keyword Query Description" :
-                 mode === "lpr" ? "Target License Plate" :
-                 mode === "object" ? "Target Classes" :
-                 mode === "attributes" ? "Clothing & Accessories Filter" : "Activity Thresholds"}
+              <div className="section-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>
+                  {mode === "image" ? "Suspect Database References" :
+                   mode === "keyword" ? "Keyword Query Description" :
+                   mode === "lpr" ? "Target License Plate" :
+                   mode === "object" ? "Target Classes" :
+                   mode === "attributes" ? "Clothing & Accessories Filter" : "Activity Thresholds"}
+                </span>
+                {mode === "image" && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setAddSuspectOpen(true)}
+                    style={{ fontSize: "0.72rem", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}
+                  >
+                    + Add Suspect Image
+                  </button>
+                )}
               </div>
 
               {mode === "image" && (
@@ -626,17 +655,28 @@ export default function SearchPage() {
               )}
             </div>
 
-            {/* Run Button */}
-            <button
-              className="btn btn-primary btn-lg"
-              style={{ width: "100%", justifyContent: "center" }}
-              onClick={handleSearch}
-              disabled={polling}
-            >
-              {polling
-                ? <><HourglassIcon size={16} /> Processing AI Pipeline...</>
-                : <><SearchIcon size={16} /> Run Intelligence Search</>}
-            </button>
+            {/* Run & Cancel Buttons */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                className="btn btn-primary btn-lg"
+                style={{ flex: 1, justifyContent: "center" }}
+                onClick={handleSearch}
+                disabled={polling}
+              >
+                {polling
+                  ? <><HourglassIcon size={16} /> Processing AI Pipeline...</>
+                  : <><SearchIcon size={16} /> Run Intelligence Search</>}
+              </button>
+              {polling && (
+                <button
+                  className="btn btn-secondary btn-lg"
+                  onClick={handleStopJob}
+                  style={{ background: "rgba(233,69,96,0.18)", color: "var(--accent)", border: "1px solid rgba(233,69,96,0.4)" }}
+                >
+                  <CloseIcon size={16} /> Stop Search
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Right Column: Asset Selection & Status */}
@@ -691,7 +731,7 @@ export default function SearchPage() {
             </div>
 
             {/* Active Job Tracker */}
-            {(job || pollError) && (
+            {(job || pollError || polling) && (
               <div className="card" style={{ borderColor: job?.status === "completed" ? "rgba(0,255,136,0.3)" : job?.status === "failed" || pollError ? "rgba(233,69,96,0.3)" : "var(--border)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <div className="section-title" style={{ marginBottom: 0 }}>Active Job Status</div>
@@ -699,7 +739,7 @@ export default function SearchPage() {
                 </div>
                 {jobId && <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: 8 }}>Job ID: <span className="mono">{jobId}</span></div>}
 
-                {(job?.status === "running" || job?.status === "queued") && (
+                {(job?.status === "running" || job?.status === "queued" || polling) && (
                   <>
                     <div className="progress-bar" style={{ marginBottom: 8 }}>
                       <div className="progress-bar-fill pulse" style={{ width: "100%", animation: "pulse 1.5s infinite" }} />
@@ -715,6 +755,13 @@ export default function SearchPage() {
                         <HourglassIcon size={12} /> Starting pipeline… extracting frames
                       </div>
                     )}
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleStopJob}
+                      style={{ marginTop: 12, width: "100%", justifyContent: "center", background: "rgba(233,69,96,0.15)", color: "var(--accent)", border: "1px solid rgba(233,69,96,0.3)" }}
+                    >
+                      <CloseIcon size={14} /> Stop Current Search Job
+                    </button>
                   </>
                 )}
 
@@ -780,6 +827,17 @@ export default function SearchPage() {
             )}
           </div>
         </div>
+
+        {/* Add Suspect Image Modal */}
+        {addSuspectOpen && (
+          <AddSuspectModal
+            onClose={() => setAddSuspectOpen(false)}
+            onSuccess={(newRef) => {
+              loadData();
+              setSelectedRefs((prev) => new Set(prev).add(newRef.id));
+            }}
+          />
+        )}
       </AppLayout>
     </ToastProvider>
   );

@@ -215,10 +215,37 @@ def _save_matches_to_db(job_id: str, matches: list[dict], search_type: str):
 
 
 def _update_progress(job_id: str, frames_processed: int, frames_matched: int):
-    """Called by AI pipelines to report incremental progress."""
+    """Called by AI pipelines to report incremental progress. Raises InterruptedError if cancelled."""
     if job_id in _jobs:
+        if _jobs[job_id].get("status") == "cancelled" or _jobs[job_id].get("cancelled"):
+            raise InterruptedError("Search job cancelled by user")
         _jobs[job_id]["frames_processed"] = frames_processed
         _jobs[job_id]["frames_matched"] = frames_matched
+
+
+@router.post("/cancel/{job_id}")
+def cancel_job(job_id: str):
+    """Cancel a running or queued search job."""
+    if job_id not in _jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    _jobs[job_id]["status"] = "cancelled"
+    _jobs[job_id]["cancelled"] = True
+    _jobs[job_id]["error"] = "Cancelled by user"
+    return {"success": True, "message": f"Job {job_id} cancelled", "job_id": job_id}
+
+
+@router.post("/cancel-all")
+def cancel_all_jobs():
+    """Cancel all active or running search jobs."""
+    cancelled_count = 0
+    for job_id, job in _jobs.items():
+        if job.get("status") in ("queued", "running"):
+            job["status"] = "cancelled"
+            job["cancelled"] = True
+            job["error"] = "Cancelled by user"
+            cancelled_count += 1
+    return {"success": True, "message": f"Cancelled {cancelled_count} active job(s)", "count": cancelled_count}
 
 
 def _run_keyword_search_task(job_id: str, request: KeywordSearchRequest):

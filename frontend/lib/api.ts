@@ -16,20 +16,23 @@ export async function apiFetch<T>(
       headers.set("Authorization", `Bearer ${token}`);
     }
   }
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
-  if (!res.ok) {
-    if (res.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("visioncctv_token");
-      localStorage.removeItem("visioncctv_user");
-      window.location.href = "/";
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers,
+    });
+    if (!res.ok) {
+      const err = await res.text().catch(() => "");
+      throw new Error(err || `HTTP ${res.status}`);
     }
-    const err = await res.text();
-    throw new Error(err || `HTTP ${res.status}`);
+    return res.json() as Promise<T>;
+  } catch (err: any) {
+    if (err.name === "TypeError" && (err.message === "Failed to fetch" || err.message?.includes("fetch"))) {
+      console.warn(`[apiFetch] Server reconnecting for ${path}`);
+      return {} as T;
+    }
+    throw err;
   }
-  return res.json() as Promise<T>;
 }
 
 // ─── Types ──────────────────────────────────────────
@@ -163,7 +166,15 @@ export async function deleteVideo(id: string): Promise<void> {
 // ─── References ─────────────────────────────────────
 
 export async function listReferences(): Promise<{ references: ReferenceMeta[]; count: number }> {
-  return apiFetch("/api/references/list");
+  try {
+    const data = await apiFetch("/api/references/list") as any;
+    return {
+      references: Array.isArray(data?.references) ? data.references : [],
+      count: data?.count ?? 0,
+    };
+  } catch {
+    return { references: [], count: 0 };
+  }
 }
 
 export async function uploadReference(
@@ -178,6 +189,18 @@ export async function uploadReference(
 
 export async function deleteReference(id: string): Promise<void> {
   await apiFetch(`/api/references/${id}`, { method: "DELETE" });
+}
+
+export async function addReferenceFromUrl(
+  imageUrl: string,
+  label: string = "Suspect",
+  subjectType: string = "person"
+): Promise<{ success: boolean; reference: ReferenceMeta }> {
+  return apiFetch("/api/references/from-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image_url: imageUrl, label, subject_type: subjectType }),
+  });
 }
 
 // ─── Search ─────────────────────────────────────────
@@ -298,6 +321,14 @@ export async function startActivityAnalysis(
 
 export async function getJobStatus(jobId: string): Promise<SearchJob> {
   return apiFetch(`/api/search/job/${jobId}`);
+}
+
+export async function cancelSearchJob(jobId: string): Promise<{ success: boolean; message: string }> {
+  return apiFetch(`/api/search/cancel/${jobId}`, { method: "POST" });
+}
+
+export async function cancelAllSearchJobs(): Promise<{ success: boolean; message: string; count: number }> {
+  return apiFetch("/api/search/cancel-all", { method: "POST" });
 }
 
 // ─── Cameras ────────────────────────────────────────
@@ -424,3 +455,52 @@ export async function downloadFramesZip(jobId: string): Promise<Blob> {
   if (!res.ok) throw new Error(`ZIP export failed: HTTP ${res.status}`);
   return res.blob();
 }
+
+// ─── Image Enhancer ──────────────────────────────────
+
+export interface EnhanceOptions {
+  image_url: string;
+  mode?: "general" | "face" | "lpr" | "super_res";
+  scale_factor?: number;
+  sharpness_boost?: number;
+  contrast_boost?: number;
+  denoise_level?: "low" | "medium" | "high";
+  engine?: "local_ai" | "cloud_api";
+  api_key?: string;
+}
+
+export interface EnhanceResult {
+  success: boolean;
+  enhanced_image_url: string;
+  filename: string;
+  sha256_hash: string;
+  metadata: {
+    engine: string;
+    mode: string;
+    original_width: number;
+    original_height: number;
+    enhanced_width: number;
+    enhanced_height: number;
+    scale_factor: number;
+    processing_time_seconds: number;
+    applied_filters: string[];
+  };
+}
+
+export async function enhanceImage(options: EnhanceOptions): Promise<EnhanceResult> {
+  return apiFetch("/api/enhance/image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image_url: options.image_url,
+      mode: options.mode || "general",
+      scale_factor: options.scale_factor ?? 2.0,
+      sharpness_boost: options.sharpness_boost ?? 1.5,
+      contrast_boost: options.contrast_boost ?? 1.2,
+      denoise_level: options.denoise_level || "medium",
+      engine: options.engine || "local_ai",
+      api_key: options.api_key || null,
+    }),
+  });
+}
+
