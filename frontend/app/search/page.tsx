@@ -218,7 +218,15 @@ export default function SearchPage() {
             showToast(`Search failed: ${status.error}`, "error");
           }
         }
-      } catch (err) {
+      } catch (err: any) {
+        // 404 means the job no longer exists (e.g. server restarted) — stop immediately
+        if (err?.status === 404) {
+          clearInterval(interval);
+          setPolling(false);
+          setPollError("Job not found — the server may have restarted. Please run a new search.");
+          showToast("Job not found — please run a new search", "error");
+          return;
+        }
         consecutiveErrors++;
         if (consecutiveErrors >= 5) {
           clearInterval(interval);
@@ -375,15 +383,17 @@ export default function SearchPage() {
   const handleStopJob = async () => {
     try {
       if (jobId) {
-        await cancelSearchJob(jobId);
+        await cancelSearchJob(jobId).catch(() => {});
       } else {
-        await cancelAllSearchJobs();
+        await cancelAllSearchJobs().catch(() => {});
       }
-      setPolling(false);
-      setJob((prev) => prev ? { ...prev, status: "failed", error: "Job cancelled by user" } as any : null);
-      showToast("Search job stopped successfully", "info");
     } catch (err: any) {
-      showToast(err.message || "Failed to stop search job", "error");
+      // Ignore errors when canceling
+    } finally {
+      setPolling(false);
+      setJobId(null);
+      setJob((prev) => prev ? { ...prev, status: "failed", error: "Job stopped by user" } as any : null);
+      showToast("Search job stopped", "info");
     }
   };
 
@@ -432,11 +442,7 @@ export default function SearchPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {/* Input Selection Card */}
             <div className="card">
-<<<<<<< HEAD
-              <div className="section-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-=======
               <div className="section-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
->>>>>>> 4371a14033babe5079f94d4647900705d0d5a7f3
                 <span>
                   {mode === "image" ? "Suspect Database References" :
                    mode === "keyword" ? "Keyword Query Description" :
@@ -446,19 +452,11 @@ export default function SearchPage() {
                 </span>
                 {mode === "image" && (
                   <button
-<<<<<<< HEAD
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setAddSuspectOpen(true)}
-                    style={{ fontSize: "0.72rem", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}
-                  >
-                    + Add Suspect Image
-=======
                     onClick={() => setAddModalOpen(true)}
                     className="btn btn-secondary btn-sm"
                     style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.75rem", padding: "4px 10px" }}
                   >
                     <PlusIcon size={14} /> Add Suspect Images
->>>>>>> 4371a14033babe5079f94d4647900705d0d5a7f3
                   </button>
                 )}
               </div>
@@ -897,17 +895,6 @@ export default function SearchPage() {
           </div>
         </div>
 
-<<<<<<< HEAD
-        {/* Add Suspect Image Modal */}
-        {addSuspectOpen && (
-          <AddSuspectModal
-            onClose={() => setAddSuspectOpen(false)}
-            onSuccess={(newRef) => {
-              loadData();
-              setSelectedRefs((prev) => new Set(prev).add(newRef.id));
-            }}
-          />
-=======
         {/* Add Suspect Reference Image Modal */}
         {addModalOpen && (
           <div 
@@ -1001,7 +988,6 @@ export default function SearchPage() {
               </div>
             </div>
           </div>
->>>>>>> 4371a14033babe5079f94d4647900705d0d5a7f3
         )}
       </AppLayout>
     </ToastProvider>

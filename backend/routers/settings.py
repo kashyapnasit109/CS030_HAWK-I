@@ -37,7 +37,8 @@ DEFAULT_SETTINGS = {
         "lpr_levenshtein_distance": 2,
         "frame_sample_fps": 1.0,
         "max_concurrent_jobs": 2,
-        "device_provider": "CPU"
+        "device_provider": "CPU",
+        "cuda_device_index": 0
     },
     "ai_models": {
         "active_object_model": "yolov8n",
@@ -97,6 +98,7 @@ class AiSettings(BaseModel):
     frame_sample_fps: float
     max_concurrent_jobs: int
     device_provider: str
+    cuda_device_index: int = 0
 
 class ForensicSettings(BaseModel):
     pdf_hash_algorithm: str
@@ -157,9 +159,38 @@ def save_settings(payload: SettingsPayload):
         STORAGE_DIR.mkdir(parents=True, exist_ok=True)
         with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
             json.dump(settings_dict, f, indent=2)
+
+        # Invalidate device cache so next inference picks up the new GPU choice
+        try:
+            from ai_pipeline.device_manager import invalidate_device_cache  # noqa: PLC0415
+            invalidate_device_cache()
+        except Exception:
+            pass
+
         return {"success": True, "message": "Settings updated successfully", "settings": settings_dict}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save settings: {str(e)}")
+
+
+@router.get("/gpu-info")
+def get_gpu_info():
+    """Return a list of available GPU/CPU compute devices detected on this machine."""
+    try:
+        from ai_pipeline.device_manager import list_gpus  # noqa: PLC0415
+        return {"devices": list_gpus()}
+    except Exception as e:
+        # Always return at least a CPU entry even if torch is missing
+        return {
+            "devices": [
+                {
+                    "index": -1,
+                    "name": "CPU (no GPU acceleration)",
+                    "vram_total_mb": 0,
+                    "vram_free_mb": 0,
+                    "is_cuda": False,
+                }
+            ]
+        }
 
 
 class DownloadModelRequest(BaseModel):

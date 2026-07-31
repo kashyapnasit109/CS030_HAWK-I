@@ -2,6 +2,7 @@ import json
 import time
 import uuid
 import sqlite3
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -227,7 +228,7 @@ def _update_progress(job_id: str, frames_processed: int, frames_matched: int):
 def cancel_job(job_id: str):
     """Cancel a running or queued search job."""
     if job_id not in _jobs:
-        raise HTTPException(status_code=404, detail="Job not found")
+        return {"success": True, "message": f"Job {job_id} not found or already completed", "job_id": job_id}
 
     _jobs[job_id]["status"] = "cancelled"
     _jobs[job_id]["cancelled"] = True
@@ -344,7 +345,9 @@ def search_by_image(
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Face Re-ID: {', '.join(request.reference_ids)}"
     }
-    background_tasks.add_task(_run_face_search_task, job_id, request)
+    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    t = threading.Thread(target=_run_face_search_task, args=(job_id, request), daemon=True)
+    t.start()
     return {"job_id": job_id, "status": "queued"}
 
 
@@ -361,7 +364,9 @@ def search_by_keyword(
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Keyword: \"{request.keyword}\""
     }
-    background_tasks.add_task(_run_keyword_search_task, job_id, request)
+    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    t = threading.Thread(target=_run_keyword_search_task, args=(job_id, request), daemon=True)
+    t.start()
     return {"job_id": job_id, "status": "queued"}
 
 
@@ -378,7 +383,9 @@ def search_by_lpr(
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Plate: \"{request.plate_text}\""
     }
-    background_tasks.add_task(_run_lpr_search_task, job_id, request)
+    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    t = threading.Thread(target=_run_lpr_search_task, args=(job_id, request), daemon=True)
+    t.start()
     return {"job_id": job_id, "status": "queued"}
 
 
@@ -611,7 +618,9 @@ def search_by_object(request: ObjectSearchRequest, background_tasks: BackgroundT
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Object: {', '.join(request.target_classes)}" if request.target_classes else "Object: All"
     }
-    background_tasks.add_task(_run_object_search_task, job_id, request)
+    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    t = threading.Thread(target=_run_object_search_task, args=(job_id, request), daemon=True)
+    t.start()
     return {"job_id": job_id, "status": "queued"}
 
 
@@ -624,7 +633,9 @@ def search_activity(request: ActivityAnalysisRequest, background_tasks: Backgrou
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Activity: Crowd >= {request.crowd_threshold}"
     }
-    background_tasks.add_task(_run_activity_analysis_task, job_id, request)
+    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    t = threading.Thread(target=_run_activity_analysis_task, args=(job_id, request), daemon=True)
+    t.start()
     return {"job_id": job_id, "status": "queued"}
 
 

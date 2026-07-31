@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, useMemo, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import {
   DashboardIcon,
@@ -263,7 +263,21 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               frames_matched: status.frames_matched,
               error: status.error
             };
-          } catch (err) {
+          } catch (err: any) {
+            // If the server returns 404 the job no longer exists (e.g. after a
+            // server restart which clears the in-memory job store).
+            // Mark it as failed so polling stops immediately.
+            const is404 =
+              err?.status === 404 ||
+              (typeof err?.message === "string" && err.message.includes("404"));
+            if (is404) {
+              changed = true;
+              return {
+                ...job,
+                status: "failed",
+                error: "Job not found (server was restarted — please run a new search)",
+              };
+            }
             return job;
           }
         })
@@ -278,11 +292,25 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     const savedJobsRaw = localStorage.getItem("visioncctv_background_jobs");
     if (savedJobsRaw) {
       try {
-        setBgJobs(JSON.parse(savedJobsRaw));
+        const loaded = JSON.parse(savedJobsRaw) as BgJob[];
+        // Immediately mark any still-"queued"/"running" jobs as failed —
+        // they are stale from a previous server session and will only 404.
+        const cleaned = loaded.map((j) =>
+          j.status === "queued" || j.status === "running"
+            ? { ...j, status: "failed" as const, error: "Server was restarted — please run a new search" }
+            : j
+        );
+        setBgJobs(cleaned);
+        localStorage.setItem("visioncctv_background_jobs", JSON.stringify(cleaned));
       } catch {}
     }
 
-    const interval = setInterval(pollBackgroundJobs, 3000);
+
+    const interval = setInterval(() => {
+      // Pause polling when tab is not visible to save resources
+      if (document.visibilityState === "hidden") return;
+      pollBackgroundJobs();
+    }, 4000);
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
@@ -318,7 +346,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     };
 
     pollAlerts();
-    const interval = setInterval(pollAlerts, 5000);
+    const interval = setInterval(() => {
+      // Pause polling when tab is hidden
+      if (document.visibilityState === "hidden") return;
+      pollAlerts();
+    }, 8000);
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
@@ -458,13 +490,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     setSearchQuery("");
   };
 
-  // Access check for the current page
-  const isPageAuthorized = () => {
+  // Access check for the current page — memoized to avoid re-running on every render
+  const isPageAuthorized = useMemo(() => {
     if (!user) return false;
     const currentItem = [...monitorItems, ...investigateItems, ...systemItems].find(item => item.href === pathname);
-    if (!currentItem) return true; // Unlisted sub-pages are passed
+    if (!currentItem) return true; // Unlisted sub-pages are passed through
     return currentItem.roles.includes(user.role);
-  };
+  }, [user, pathname]);
 
   if (pathname === "/verify") {
     return <div style={{ background: "#0B0F14", minHeight: "100vh" }}>{children}</div>;
@@ -487,6 +519,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <div style={{ display: "flex", background: "#0E1117", padding: "4px", borderRadius: "10px", marginBottom: "24px", border: "1px solid rgba(255,255,255,0.06)" }}>
               <button
                 type="button"
+                suppressHydrationWarning
                 onClick={() => { setAuthMode("login"); setLoginError(""); }}
                 style={{
                   flex: 1,
@@ -506,6 +539,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               </button>
               <button
                 type="button"
+                suppressHydrationWarning
                 onClick={() => { setAuthMode("signup"); setLoginError(""); }}
                 style={{
                   flex: 1,
@@ -571,6 +605,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 <input 
                   type="text" 
                   required
+                  suppressHydrationWarning
                   placeholder="e.g. investigator"
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
@@ -583,6 +618,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 <input 
                   type="password" 
                   required
+                  suppressHydrationWarning
                   placeholder="••••••••"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
@@ -592,6 +628,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
               <button 
                 type="submit" 
+                suppressHydrationWarning
                 disabled={loading}
                 style={{ width: "100%", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s all", boxShadow: "0 4px 16px rgba(59,130,246,0.4)" }}
               >
@@ -606,6 +643,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                     <button
                       key={u}
                       type="button"
+                      suppressHydrationWarning
                       onClick={() => { setUsernameInput(u); setPasswordInput("hawki"); }}
                       style={{ background: "#0E1117", border: "1px solid rgba(59,130,246,0.2)", borderRadius: "6px", padding: "4px 10px", color: "#94a3b8", fontSize: "0.75rem", cursor: "pointer" }}
                     >
@@ -959,11 +997,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {allowedMonitorItems.map((item) => {
             const Icon = item.icon;
             return (
-              <Link key={item.href} href={item.href}>
-                <div className={`nav-item ${pathname === item.href ? "active" : ""}`}>
-                  <Icon size={16} />
-                  {item.label}
-                </div>
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch={true}
+                className={`nav-item ${pathname === item.href ? "active" : ""}`}
+              >
+                <Icon size={16} />
+                {item.label}
               </Link>
             );
           })}
@@ -972,11 +1013,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {allowedInvestigateItems.map((item) => {
             const Icon = item.icon;
             return (
-              <Link key={item.href} href={item.href}>
-                <div className={`nav-item ${pathname === item.href ? "active" : ""}`}>
-                  <Icon size={16} />
-                  {item.label}
-                </div>
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch={true}
+                className={`nav-item ${pathname === item.href ? "active" : ""}`}
+              >
+                <Icon size={16} />
+                {item.label}
               </Link>
             );
           })}
@@ -985,11 +1029,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {allowedSystemItems.map((item) => {
             const Icon = item.icon;
             return (
-              <Link key={item.href} href={item.href}>
-                <div className={`nav-item ${pathname === item.href ? "active" : ""}`}>
-                  <Icon size={16} />
-                  {item.label}
-                </div>
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch={true}
+                className={`nav-item ${pathname === item.href ? "active" : ""}`}
+              >
+                <Icon size={16} />
+                {item.label}
               </Link>
             );
           })}
@@ -1016,7 +1063,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content */}
       <main className="main-content">
-        {isPageAuthorized() ? (
+        {isPageAuthorized ? (
           children
         ) : (
           <div style={{ display: "flex", flexDirection: "column", height: "100%", alignItems: "center", justifyContent: "center", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "16px", padding: "40px", textAlign: "center" }}>

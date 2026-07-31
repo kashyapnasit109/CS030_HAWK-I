@@ -33,7 +33,8 @@ export default function SettingsPage() {
       lpr_levenshtein_distance: 2,
       frame_sample_fps: 1.0,
       max_concurrent_jobs: 2,
-      device_provider: "CPU"
+      device_provider: "CPU",
+      cuda_device_index: 0
     },
     ai_models: {
       active_object_model: "yolov8n",
@@ -91,6 +92,10 @@ export default function SettingsPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const modelFileInputRef = useRef<HTMLInputElement>(null);
+
+  // GPU device enumeration state
+  const [gpuDevices, setGpuDevices] = useState<any[]>([]);
+  const [gpuLoading, setGpuLoading] = useState(false);
 
   const refetchSettings = async () => {
     try {
@@ -206,7 +211,22 @@ export default function SettingsPage() {
         setLoading(false);
       }
     }
+    async function fetchGpuInfo() {
+      setGpuLoading(true);
+      try {
+        const res = await fetch("http://localhost:8000/api/settings/gpu-info");
+        if (res.ok) {
+          const data = await res.json();
+          setGpuDevices(data.devices || []);
+        }
+      } catch (err) {
+        // Not fatal — GPU list just won't show
+      } finally {
+        setGpuLoading(false);
+      }
+    }
     fetchSettings();
+    fetchGpuInfo();
   }, []);
 
   // Save settings via POST
@@ -431,14 +451,116 @@ export default function SettingsPage() {
                       <input className="input-field" type="number" min={1} max={4} value={settings.ai.max_concurrent_jobs} onChange={(e) => updateSetting("ai", "max_concurrent_jobs", Number(e.target.value))} required />
                     </div>
 
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Hardware Acceleration execution provider</label>
-                      <select className="input-field" value={settings.ai.device_provider} onChange={(e) => updateSetting("ai", "device_provider", e.target.value)}>
-                        <option value="CPU">CPU Engine (ONNX CPUExecutionProvider)</option>
-                        <option value="CUDA">CUDA GPU Acceleration (NVIDIA CUDAExecutionProvider)</option>
-                        <option value="OpenVINO">Intel OpenVINO Acceleration (CPU/iGPU)</option>
-                        <option value="DirectML">DirectML GPU Engine (Windows Hardware API)</option>
-                      </select>
+                    <div className="input-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
+                      <label className="input-label" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "0.9rem" }}>⚡</span> AI Inference Hardware — Select Compute Device
+                      </label>
+                      <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "4px 0 12px 0" }}>
+                        Choose which processor runs all AI models (YOLO, FaceNet, LPR). Select your dedicated NVIDIA GPU for maximum speed.
+                      </p>
+
+                      {gpuLoading ? (
+                        <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", padding: "12px 0" }}>🔍 Enumerating compute devices...</div>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          {(gpuDevices.length > 0 ? gpuDevices : [
+                            { index: -1, name: "CPU (no GPU acceleration)", vram_total_mb: 0, vram_free_mb: 0, is_cuda: false }
+                          ]).map((dev: any) => {
+                            const isCudaDevice = dev.is_cuda;
+                            const isSelected = isCudaDevice
+                              ? settings.ai.device_provider === "CUDA" && settings.ai.cuda_device_index === dev.index
+                              : settings.ai.device_provider === "CPU";
+                            const vramPct = dev.vram_total_mb > 0 ? Math.round((dev.vram_free_mb / dev.vram_total_mb) * 100) : 0;
+
+                            return (
+                              <div
+                                key={dev.index}
+                                onClick={() => {
+                                  if (isCudaDevice) {
+                                    updateSetting("ai", "device_provider", "CUDA");
+                                    updateSetting("ai", "cuda_device_index", dev.index);
+                                  } else {
+                                    updateSetting("ai", "device_provider", "CPU");
+                                  }
+                                }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "16px",
+                                  padding: "14px 18px",
+                                  borderRadius: "10px",
+                                  border: isSelected
+                                    ? isCudaDevice ? "2px solid var(--cyan)" : "2px solid var(--accent)"
+                                    : "1px solid var(--border)",
+                                  background: isSelected
+                                    ? isCudaDevice ? "rgba(0,212,255,0.07)" : "rgba(0,255,136,0.05)"
+                                    : "var(--bg-elevated)",
+                                  cursor: "pointer",
+                                  transition: "all 0.18s ease",
+                                  boxShadow: isSelected ? (isCudaDevice ? "0 0 18px rgba(0,212,255,0.12)" : "0 0 14px rgba(0,255,136,0.08)") : "none",
+                                }}
+                              >
+                                {/* Device Icon */}
+                                <div style={{
+                                  width: "44px", height: "44px", borderRadius: "10px",
+                                  background: isCudaDevice ? "rgba(0,212,255,0.12)" : "rgba(160,160,160,0.1)",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  fontSize: "1.4rem", flexShrink: 0
+                                }}>
+                                  {isCudaDevice ? "🎮" : "🖥️"}
+                                </div>
+
+                                {/* Device Info */}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                                    <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                      {dev.name}
+                                    </span>
+                                    {isCudaDevice && (
+                                      <span style={{ fontSize: "0.65rem", background: "rgba(0,212,255,0.15)", color: "var(--cyan)", border: "1px solid rgba(0,212,255,0.3)", borderRadius: "4px", padding: "1px 6px", fontWeight: 700, flexShrink: 0 }}>CUDA</span>
+                                    )}
+                                    {isSelected && (
+                                      <span style={{ fontSize: "0.65rem", background: isCudaDevice ? "rgba(0,212,255,0.2)" : "rgba(0,255,136,0.15)", color: isCudaDevice ? "var(--cyan)" : "var(--green)", border: `1px solid ${isCudaDevice ? "rgba(0,212,255,0.4)" : "rgba(0,255,136,0.3)"}`, borderRadius: "4px", padding: "1px 8px", fontWeight: 700, flexShrink: 0 }}>🟢 Active</span>
+                                    )}
+                                  </div>
+
+                                  {isCudaDevice && dev.vram_total_mb > 0 ? (
+                                    <div>
+                                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: "4px" }}>
+                                        <span>VRAM: {dev.vram_free_mb} MB free of {dev.vram_total_mb} MB</span>
+                                        <span style={{ color: vramPct > 60 ? "var(--green)" : vramPct > 30 ? "#f59e0b" : "#ef4444" }}>{vramPct}% free</span>
+                                      </div>
+                                      <div style={{ height: "5px", background: "var(--bg-card)", borderRadius: "3px", overflow: "hidden" }}>
+                                        <div style={{ height: "100%", width: `${vramPct}%`, background: vramPct > 60 ? "var(--green)" : vramPct > 30 ? "#f59e0b" : "#ef4444", borderRadius: "3px", transition: "width 0.3s ease" }} />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                                      {isCudaDevice ? "Querying VRAM..." : "System RAM — slower inference, no VRAM required"}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Radio dot */}
+                                <div style={{
+                                  width: "18px", height: "18px", borderRadius: "50%",
+                                  border: `2px solid ${isSelected ? (isCudaDevice ? "var(--cyan)" : "var(--accent)") : "var(--border)"}`,
+                                  background: isSelected ? (isCudaDevice ? "var(--cyan)" : "var(--accent)") : "transparent",
+                                  flexShrink: 0, transition: "all 0.18s ease"
+                                }} />
+                              </div>
+                            );
+                          })}
+
+                          {/* RTX performance tip */}
+                          {settings.ai.device_provider === "CUDA" && (
+                            <div style={{ padding: "10px 14px", background: "rgba(0,212,255,0.05)", border: "1px solid rgba(0,212,255,0.15)", borderRadius: "8px", fontSize: "0.78rem", color: "var(--text-secondary)", display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                              <span style={{ fontSize: "1rem", flexShrink: 0 }}>⚡</span>
+                              <span><strong style={{ color: "var(--cyan)" }}>GPU acceleration active.</strong> YOLO, FaceNet, and LPR inference will run on your dedicated GPU — expect 5–15× faster analysis compared to CPU mode. Make sure your PyTorch installation includes CUDA support.</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

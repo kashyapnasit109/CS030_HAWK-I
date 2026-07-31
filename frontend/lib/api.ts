@@ -22,8 +22,10 @@ export async function apiFetch<T>(
       headers,
     });
     if (!res.ok) {
-      const err = await res.text().catch(() => "");
-      throw new Error(err || `HTTP ${res.status}`);
+      const body = await res.text().catch(() => "");
+      const err = new Error(body || `HTTP ${res.status}`) as Error & { status: number };
+      err.status = res.status;
+      throw err;
     }
     return res.json() as Promise<T>;
   } catch (err: any) {

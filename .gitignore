@@ -66,4 +66,5 @@ backend/storage/*.db
 test_search_apis.py
 *.log
 *.zip
+*.db-journal
 

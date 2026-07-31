@@ -653,9 +653,9 @@ def start_live_detection(
                     try:
                         from ai_pipeline.object_detection import _get_yolo_detector, COCO_CLASSES, _TORCH_AVAILABLE as OBJ_TORCH
                         if OBJ_TORCH:
-                            import torch
+                            from ai_pipeline.device_manager import get_torch_device  # noqa: PLC0415
                             detector = _get_yolo_detector()
-                            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+                            device = get_torch_device()
                             results = detector(frame, device=device, verbose=False)
                             for r in results[0].boxes:
                                 conf = float(r.conf.item())

@@ -46,6 +46,23 @@ except Exception as e:
     print(f"[keyword_search] PyTorch unavailable ({e}). Using fallback mode.")
 
 
+_clip_device = None
+
+
+def _get_clip_device():
+    """Return the torch device for CLIP, honouring the user-selected GPU."""
+    global _clip_device
+    if _clip_device is None:
+        try:
+            from ai_pipeline.device_manager import get_torch_device  # noqa: PLC0415
+            _clip_device = get_torch_device()
+        except Exception:
+            import torch  # noqa: PLC0415
+            _clip_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"[CLIP] Using device: {_clip_device}")
+    return _clip_device
+
+
 def _get_clip():
     global _clip_model, _clip_processor
     if _clip_model is None:
@@ -54,7 +71,11 @@ def _get_clip():
         _clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
         _clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
         _clip_model.eval()
-        print("[CLIP] Model loaded.")
+        # ✅ Fix Bug 1: move model to user-selected GPU
+        device = _get_clip_device()
+        if device is not None:
+            _clip_model = _clip_model.to(device)
+        print(f"[CLIP] Model loaded on {device}.")
     return _clip_model, _clip_processor
 
 
@@ -398,12 +419,14 @@ def run_keyword_search(
         print("[keyword_search] Running in fallback mode (detection + color matching)")
         matches = _demo_keyword_search(video_path, translated_keyword, camera_id, similarity_threshold, job_id, start_time, end_time, progress_cb)
     else:
-        from ai_pipeline.frame_extractor import save_frame, extract_clip, format_timestamp  # noqa: PLC0415
+        from ai_pipeline.frame_extractor import save_frame, format_timestamp, extract_clips_parallel  # noqa: PLC0415
         from PIL import Image  # noqa: PLC0415
         import torch  # noqa: PLC0415
 
         model, processor = _get_clip()
         matches = []
+        # ✅ Fix Bug 4: collect clip extraction tasks to run in parallel after scan
+        clip_tasks: list[dict] = []
 
         # Build rich visual prompts for weapons and target queries
         kw_lower = translated_keyword.lower()
@@ -460,6 +483,10 @@ def run_keyword_search(
                         return_tensors="pt",
                         padding=True,
                     )
+                    # ✅ Fix Bug 1: move input tensors to the same device as model
+                    clip_dev = _get_clip_device()
+                    if clip_dev is not None:
+                        inputs = {k: v.to(clip_dev) if hasattr(v, "to") else v for k, v in inputs.items()}
                     outputs = model(**inputs)
 
                     # Softmax across all prompts
@@ -470,7 +497,10 @@ def run_keyword_search(
 
                 frames_processed = frame_idx // frame_interval + 1
                 if progress_cb:
-                    progress_cb(frames_processed, len(matches))
+                    try:
+                        progress_cb(frames_processed, len(matches))
+                    except InterruptedError:
+                        break
 
                 if similarity < similarity_threshold:
                     frame_idx += 1
@@ -482,30 +512,45 @@ def run_keyword_search(
 
                 clip_filename = f"clip_{job_id}_{frame_idx:06d}.mp4"
                 clip_path = job_dir / clip_filename
-                try:
-                    extract_clip(video_path, clip_path, timestamp, window_seconds=5.0)
-                except Exception:
-                    clip_filename = None  # type: ignore
-
                 frame_hash = _sha256_file(frame_path)
-                clip_hash = _sha256_file(job_dir / clip_filename) if clip_filename else "N/A"
 
                 matches.append({
                     "camera_id": camera_id,
                     "timestamp": timestamp,
                     "timestamp_str": format_timestamp(timestamp),
                     "frame_url": f"/storage/results/{job_id}/{frame_filename}",
-                    "clip_url": f"/storage/results/{job_id}/{clip_filename}" if clip_filename else None,
+                    "clip_url": f"/storage/results/{job_id}/{clip_filename}",
                     "confidence": round(similarity, 4),
                     "label": keyword,
                     "search_type": "keyword",
                     "frame_hash": frame_hash,
-                    "clip_hash": clip_hash,
+                    "clip_hash": "pending",
+                })
+                # Collect for parallel extraction after scan loop
+                clip_tasks.append({
+                    "video_path": video_path,
+                    "output_path": clip_path,
+                    "center_timestamp": timestamp,
+                    "window_seconds": 5.0,
                 })
 
                 frame_idx += 1
         finally:
             cap.release()
+
+        # ✅ Fix Bug 4: extract all clips in parallel AFTER the GPU scan loop finishes
+        if clip_tasks:
+            print(f"[keyword_search] Extracting {len(clip_tasks)} clip(s) in parallel...")
+            extract_clips_parallel(clip_tasks, max_workers=4)
+            # Update clip_hash and clip_url now that files are written
+            for match in matches:
+                clip_name = Path(match["clip_url"]).name
+                clip_p = job_dir / clip_name
+                if clip_p.exists():
+                    match["clip_hash"] = _sha256_file(clip_p)
+                else:
+                    match["clip_url"] = None
+                    match["clip_hash"] = "N/A"
 
     manifest = {
         "job_id": job_id,

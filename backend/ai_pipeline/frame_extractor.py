@@ -174,3 +174,40 @@ def format_timestamp(seconds: float) -> str:
     m = int((seconds % 3600) // 60)
     s = seconds % 60
     return f"{h:02d}:{m:02d}:{s:06.3f}"
+
+
+def extract_clips_parallel(
+    tasks: list[dict],
+    max_workers: int = 4,
+) -> None:
+    """
+    ✅ Fix Bug 4: Extract multiple clips concurrently using a thread pool
+    instead of blocking the scan loop with serial ffmpeg calls.
+
+    Each task dict must have keys:
+        video_path, output_path, center_timestamp, window_seconds, draw_box (optional)
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed  # noqa: PLC0415
+
+    if not tasks:
+        return
+
+    def _do_extract(task: dict) -> None:
+        try:
+            extract_clip(
+                video_path=task["video_path"],
+                output_path=task["output_path"],
+                center_timestamp=task["center_timestamp"],
+                window_seconds=task.get("window_seconds", 5.0),
+                draw_box=task.get("draw_box"),
+            )
+        except Exception as e:
+            print(f"[frame_extractor] Parallel clip extraction failed for {task.get('output_path')}: {e}")
+
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {pool.submit(_do_extract, t): t for t in tasks}
+        for fut in as_completed(futures):
+            # Surface exceptions as warnings; don't crash the caller
+            exc = fut.exception()
+            if exc:
+                print(f"[frame_extractor] Clip thread raised: {exc}")

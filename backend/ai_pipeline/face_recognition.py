@@ -78,10 +78,14 @@ except Exception as e:
 
 
 def _get_device():
-    import torch  # noqa: PLC0415
     global _device
     if _device is None:
-        _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        try:
+            from ai_pipeline.device_manager import get_torch_device  # noqa: PLC0415
+            _device = get_torch_device()
+        except Exception:
+            import torch  # noqa: PLC0415
+            _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(f"[face_recognition] Using device: {_device}")
     return _device
 
@@ -90,11 +94,11 @@ def _get_face_detector():
     global _face_detector
     if _face_detector is None:
         from ultralytics import YOLO  # noqa: PLC0415
-        if _ONNX_AVAILABLE and YOLO_ONNX_PATH.exists():
-            print("[face_recognition] Loading YOLOv8 ONNX model...")
-            _face_detector = YOLO(str(YOLO_ONNX_PATH), task="pose")
-        else:
-            print("[face_recognition] Loading YOLOv8 PyTorch model...")
+        import os
+        os.environ["ULTRALYTICS_AUTOINSTALL"] = "false"
+        os.environ["YOLO_AUTOINSTALL"] = "false"
+
+        if _TORCH_AVAILABLE:
             target_path = None
             if MODEL_PATH.exists():
                 target_path = str(MODEL_PATH)
@@ -104,7 +108,7 @@ def _get_face_detector():
                 target_path = "yolov8n.pt"
 
             try:
-                print(f"[face_recognition] Initializing YOLO face detector using {target_path}")
+                print(f"[face_recognition] Initializing PyTorch YOLO face detector using {target_path} on {_get_device()}")
                 _face_detector = YOLO(target_path)
                 _face_detector.to(_get_device())
             except Exception as e:
@@ -115,6 +119,13 @@ def _get_face_detector():
                 except Exception as e2:
                     print(f"[face_recognition] YOLO face detector initialization failed: {e2}")
                     _face_detector = None
+        elif _ONNX_AVAILABLE and YOLO_ONNX_PATH.exists():
+            print("[face_recognition] Loading YOLOv8 ONNX model...")
+            _face_detector = YOLO(str(YOLO_ONNX_PATH), task="pose")
+        else:
+            print("[face_recognition] No suitable YOLO face detector model found.")
+            _face_detector = None
+
     return _face_detector
 
 
@@ -183,7 +194,19 @@ def _embed_face_crop(face_bgr: np.ndarray) -> np.ndarray:
         if _facenet_session is None or _loaded_facenet_onnx_path != actual_path:
             import onnxruntime as ort  # noqa: PLC0415
             print(f"[face_recognition] Loading ONNX FaceNet model from {actual_path}...")
-            _facenet_session = ort.InferenceSession(actual_path, providers=["CPUExecutionProvider"])
+            # ✅ Fix Bug 3: use CUDA provider when GPU is selected
+            try:
+                from ai_pipeline.device_manager import get_torch_device  # noqa: PLC0415
+                import torch  # noqa: PLC0415
+                dev = get_torch_device()
+                if dev is not None and dev.type == "cuda" and "CUDAExecutionProvider" in ort.get_available_providers():
+                    providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+                    print("[face_recognition] ONNX FaceNet: using CUDAExecutionProvider")
+                else:
+                    providers = ["CPUExecutionProvider"]
+            except Exception:
+                providers = ["CPUExecutionProvider"]
+            _facenet_session = ort.InferenceSession(actual_path, providers=providers)
             _loaded_facenet_onnx_path = actual_path
             
         face_rgb = cv2.cvtColor(face_bgr, cv2.COLOR_BGR2RGB)
@@ -640,6 +663,14 @@ def run_face_recognition_search(
 
                     results = detector(frame, device=device, verbose=False)
 
+                    # ✅ Report progress after each sampled frame
+                    if progress_cb:
+                        try:
+                            frames_processed = frame_idx // frame_interval + 1
+                            progress_cb(frames_processed, len(matches))
+                        except Exception:
+                            pass
+
                     # Process ALL faces in the frame (no break)
                     for r in results[0]:
                         if r.boxes.conf.item() < confidence_threshold:
@@ -718,109 +749,6 @@ def run_face_recognition_search(
                 progress_cb=progress_cb,
             )
 
-        cap = cv2.VideoCapture(str(video_path))
-        video_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
-        frame_interval = max(1, int(video_fps / sample_fps))
-        frame_idx = 0
-
-        try:
-            while cap.isOpened():
-                success, frame = cap.read()
-                if not success:
-                    break
-                if frame_idx % frame_interval != 0:
-                    frame_idx += 1
-                    continue
-
-                timestamp = frame_idx / video_fps
-                if start_time is not None and timestamp < start_time:
-                    frame_idx += 1
-                    continue
-                if end_time is not None and timestamp > end_time:
-                    break
-
-                results = detector(frame, device=device, verbose=False)
-
-                # Process ALL faces in the frame (no break)
-                for r in results[0]:
-                    if r.boxes.conf.item() < confidence_threshold:
-                        continue
-
-                    x_c, y_c, w_b, h_b = r.boxes.xywh.cpu().numpy()[0]
-                    x_min = max(0, int(x_c - w_b / 2))
-                    y_min = max(0, int(y_c - h_b / 2))
-                    x_max = min(frame.shape[1], int(x_c + w_b / 2))
-                    y_max = min(frame.shape[0], int(y_c + h_b / 2))
-
-                    face_crop = frame[y_min:y_max, x_min:x_max]
-                    if face_crop.size == 0:
-                        continue
-
-                    try:
-                        face_emb = _embed_face_crop(face_crop)
-                    except Exception:
-                        continue
-
-                    # Cosine similarity (higher = more similar)
-                    if _ONNX_AVAILABLE:
-                        # db_tensor is numpy array, face_emb is numpy array
-                        # both are already L2 normalized, so similarity is simple dot product
-                        similarities = np.dot(db_tensor, face_emb.T).flatten()
-                        max_idx = int(np.argmax(similarities))
-                        max_sim = float(similarities[max_idx])
-                    else:
-                        similarities = torch.nn.functional.cosine_similarity(
-                            db_tensor, face_emb.expand_as(db_tensor), dim=1
-                        )
-                        max_idx = torch.argmax(similarities).item()
-                        max_sim = similarities[max_idx].item()
-
-                    # Convert similarity to match threshold
-                    # similarity_threshold here means minimum cosine similarity
-                    if max_sim < similarity_threshold:
-                        continue
-
-                    label = db_labels[max_idx]
-                    confidence = float(max_sim)
-
-                    frame_filename = f"face_{job_id}_{frame_idx:06d}_{x_min}_{y_min}.jpg"
-                    frame_path = job_dir / frame_filename
-                    box_details = {
-                        "x1": x_min, "y1": y_min, "x2": x_max, "y2": y_max,
-                        "label": label, "confidence": confidence,
-                    }
-                    save_frame(frame, frame_path, draw_box=box_details)
-
-                    clip_filename = f"clip_{job_id}_{frame_idx:06d}.mp4"
-                    clip_path = job_dir / clip_filename
-                    try:
-                        extract_clip(video_path, clip_path, timestamp, window_seconds=5.0, draw_box=box_details)
-                    except Exception:
-                        clip_filename = None  # type: ignore
-
-                    frame_hash = _sha256_file(frame_path)
-                    clip_hash = _sha256_file(clip_path) if clip_filename else "N/A"
-                    matches.append({
-                        "camera_id": camera_id,
-                        "timestamp": timestamp,
-                        "timestamp_str": format_timestamp(timestamp),
-                        "frame_url": f"/storage/results/{job_id}/{frame_filename}",
-                        "clip_url": f"/storage/results/{job_id}/{clip_filename}" if clip_filename else None,
-                        "confidence": round(confidence, 4),
-                        "label": label,
-                        "box": {"x1": x_min, "y1": y_min, "x2": x_max, "y2": y_max},
-                        "search_type": "face_recognition",
-                        "frame_hash": frame_hash,
-                        "clip_hash": clip_hash,
-                    })
-
-                frame_idx += 1
-
-                frames_processed = frame_idx // frame_interval + 1
-                if progress_cb:
-                    progress_cb(frames_processed, len(matches))
-        finally:
-            cap.release()
 
     manifest = {
         "job_id": job_id,

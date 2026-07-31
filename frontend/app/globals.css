@@ -56,7 +56,7 @@
   padding: 0;
 }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: auto; }
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
@@ -199,29 +199,27 @@ img { max-width: 100%; display: block; }
   overflow-y: auto;
   max-height: calc(100vh - 60px);
   min-width: 0;
-  animation: fadeInSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: contents;
+  animation: fadeInSlide 0.08s ease-out forwards;
 }
 
 /* ─── Cards & Surfaces ──────────────────────────── */
 .card {
-  background: rgba(14, 17, 23, 0.85);
-  backdrop-filter: blur(16px);
+  background: var(--bg-card);
   border: 1px solid rgba(59,130,246,0.12);
   border-radius: var(--radius-lg);
   padding: 24px;
-  transition: var(--transition);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.02);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
 }
 
 .card:hover {
   border-color: rgba(59,130,246,0.28);
   box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(59,130,246,0.1);
-  transform: translateY(-1px);
 }
 
 .card-glass {
-  background: rgba(10, 13, 18, 0.9);
-  backdrop-filter: blur(20px);
+  background: rgba(10, 13, 18, 0.95);
   border: 1px solid rgba(59,130,246,0.18);
   border-radius: var(--radius-lg);
   padding: 24px;
@@ -450,7 +448,6 @@ select.input-field {
 
 .result-card:hover {
   border-color: rgba(59,130,246,0.35);
-  transform: translateY(-3px);
   box-shadow: 0 8px 32px rgba(59,130,246,0.12);
 }
 
@@ -733,8 +730,7 @@ select.input-field {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-primary);
-  backdrop-filter: blur(20px);
-  animation: slideIn 0.25s ease;
+  animation: slideIn 0.2s ease;
   max-width: 340px;
   display: flex;
   align-items: center;
@@ -973,11 +969,10 @@ body::before {
 }
 
 .card {
-  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s cubic-bezier(0.4,0,0.2,1), border-color 0.2s;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .card:hover {
   border-color: rgba(59,130,246,0.25);
   box-shadow: 0 12px 36px rgba(0,0,0,0.6), 0 0 20px rgba(59,130,246,0.1);
 }
-

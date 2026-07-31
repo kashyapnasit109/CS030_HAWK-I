@@ -114,9 +114,10 @@ def _get_yolo_detector():
         _yolo_detector = YOLO(model_path)
         _loaded_model_path = model_path
         if _TORCH_AVAILABLE:
-            import torch  # noqa: PLC0415
-            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-            _yolo_detector.to(device)
+            from ai_pipeline.device_manager import get_torch_device  # noqa: PLC0415
+            device = get_torch_device()
+            if device is not None:
+                _yolo_detector.to(device)
         print(f"[object_detection] YOLO model loaded successfully")
     return _yolo_detector
 
@@ -347,8 +348,8 @@ def run_object_detection(
             frame_detections = []
 
             if use_yolo:
-                import torch  # noqa: PLC0415
-                device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+                from ai_pipeline.device_manager import get_torch_device  # noqa: PLC0415
+                device = get_torch_device()
                 results = detector(frame, device=device, verbose=False)
 
                 for r in results[0].boxes:

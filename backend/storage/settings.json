@@ -25,7 +25,19 @@
     "lpr_levenshtein_distance": 2,
     "frame_sample_fps": 1.0,
     "max_concurrent_jobs": 2,
-    "device_provider": "CPU"
+    "device_provider": "CUDA"
+  },
+  "forensic": {
+    "pdf_hash_algorithm": "SHA-256",
+    "default_investigator": "System Admin",
+    "default_department": "Cyber Forensics Unit",
+    "sign_reports": true,
+    "nvr_sync_logging": true
+  },
+  "security": {
+    "session_timeout_minutes": 60,
+    "enforce_mfa_all_admins": false,
+    "password_complexity": "medium"
   },
   "ai_models": {
     "active_object_model": "custom_1785217498",
@@ -228,17 +240,5 @@
         ]
       }
     ]
-  },
-  "forensic": {
-    "pdf_hash_algorithm": "SHA-256",
-    "default_investigator": "System Admin",
-    "default_department": "Cyber Forensics Unit",
-    "sign_reports": true,
-    "nvr_sync_logging": true
-  },
-  "security": {
-    "session_timeout_minutes": 60,
-    "enforce_mfa_all_admins": false,
-    "password_complexity": "medium"
   }
 }
