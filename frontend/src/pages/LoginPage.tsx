@@ -29,13 +29,17 @@ export default function LoginPage() {
         body: JSON.stringify({ username, password }),
       });
       
-      // Guard against empty responses (e.g. network error, server crash)
       const text = await res.text();
       if (!text) {
         throw new Error("Server returned an empty response. Is the backend running?");
       }
       
-      const data = JSON.parse(text);
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (pErr) {
+        throw new Error("Invalid response format from server.");
+      }
       
       if (!res.ok) {
         throw new Error(data.error || "Login failed");
@@ -46,7 +50,11 @@ export default function LoginPage() {
       const from = location.state?.from?.pathname || "/";
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err.message);
+      if (err.name === "TypeError" && err.message?.toLowerCase().includes("fetch")) {
+        setError("Unable to connect to backend server. Please verify backend (node server.js) is running.");
+      } else {
+        setError(err.message || "Authentication failed.");
+      }
     } finally {
       setLoading(false);
     }
