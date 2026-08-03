@@ -11,6 +11,8 @@ import {
   ScanLine,
   Gauge,
   Boxes,
+  ShieldAlert,
+  LogIn,
 } from "lucide-react";
 import { Logo } from "../ui/Logo";
 
@@ -20,6 +22,8 @@ const navItems = [
   { to: "/modules/anpr", icon: ScanLine, label: "ANPR Module" },
   { to: "/modules/velocity", icon: Gauge, label: "Velocity Module" },
   { to: "/modules/misplacement", icon: Boxes, label: "Misplacement" },
+  { to: "/modules/threat", icon: ShieldAlert, label: "Threat/Anomaly" },
+  { to: "/modules/entry", icon: LogIn, label: "Unauthorized Entry" },
   { to: "/search", icon: Search, label: "Search" },
   { to: "/alerts", icon: Bell, label: "Alerts" },
   { to: "/vehicles", icon: Car, label: "Vehicle Log" },

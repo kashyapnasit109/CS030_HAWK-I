@@ -13,6 +13,8 @@ import SettingsPage from "./pages/SettingsPage";
 import ANPRTestBench from "./pages/ANPRTestBench";
 import VelocityTestBench from "./pages/VelocityTestBench";
 import MisplacementTestBench from "./pages/MisplacementTestBench";
+import ThreatTestBench from "./pages/ThreatTestBench";
+import EntryTestBench from "./pages/EntryTestBench";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -46,6 +48,8 @@ export default function App() {
           <Route path="/modules/anpr" element={<ANPRTestBench />} />
           <Route path="/modules/velocity" element={<VelocityTestBench />} />
           <Route path="/modules/misplacement" element={<MisplacementTestBench />} />
+          <Route path="/modules/threat" element={<ThreatTestBench />} />
+          <Route path="/modules/entry" element={<EntryTestBench />} />
         </Route>
 
         {/* Catch-all redirect */}

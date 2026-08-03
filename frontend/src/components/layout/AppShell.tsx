@@ -10,6 +10,8 @@ const pageTitles: Record<string, string> = {
   "/modules/anpr": "ANPR Test Bench",
   "/modules/velocity": "Velocity Detection Test Bench",
   "/modules/misplacement": "Object Misplacement Test Bench",
+  "/modules/threat": "Threat & Anomaly Detection Test Bench",
+  "/modules/entry": "Unauthorized Entry Detection Test Bench",
   "/search": "Search",
   "/alerts": "Alerts",
   "/vehicles": "Vehicle Log",

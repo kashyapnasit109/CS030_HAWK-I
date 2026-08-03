@@ -57,6 +57,32 @@ export default function AlertsPage() {
     }
   };
 
+  const handleFalsePositive = async (alertId: number) => {
+    if (user?.role === "viewer") {
+      alert("Error: Viewer role is not permitted to modify alerts.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/alerts/${alertId}/feedback`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ note: "Marked from Dashboard" })
+      });
+      if (res.ok) {
+        fetchAlerts();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to mark false positive");
+      }
+    } catch (err) {
+      console.error("Error marking false positive", err);
+    }
+  };
+
   const getSeverityStyle = (severity: string): BadgeVariant => {
     return severity === "danger" ? "crimson" : severity === "warning" ? "amber" : "blue";
   };
@@ -110,15 +136,29 @@ export default function AlertsPage() {
                     {mappedSeverity === "crimson" ? "High" : mappedSeverity === "amber" ? "Medium" : "Info"}
                   </Badge>
                   
-                  {alert.status !== "resolved" && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleUpdateStatus(alert.alert_id, alert.status)}
-                      icon={<CheckCircle2 className="h-4 w-4" />}
-                    >
-                      {alert.status === "open" ? "Acknowledge" : "Resolve"}
-                    </Button>
+                  {alert.status !== "resolved" && user?.role !== "viewer" && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleUpdateStatus(alert.alert_id, alert.status)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2 text-hawk-emerald" />
+                        {alert.status === "open" ? "Acknowledge" : "Resolve"}
+                      </Button>
+                      {alert.status === "open" && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleFalsePositive(alert.alert_id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity hover:border-hawk-crimson hover:bg-hawk-crimson/10 hover:text-hawk-crimson"
+                          title="Mark False Positive"
+                        >
+                          False Positive
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               </Card>

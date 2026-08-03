@@ -6,11 +6,8 @@ import { Button } from "../components/ui/Button";
 import {
   Upload,
   Gauge,
-  AlertTriangle,
-  CheckCircle2,
   Loader2,
   XCircle,
-  FileVideo,
   MousePointerClick,
   RotateCcw,
 } from "lucide-react";

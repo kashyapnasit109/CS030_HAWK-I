@@ -56,3 +56,26 @@ exports.updateAlertStatus = async (req, res) => {
     res.json({ message: 'Alert updated successfully (fallback mode)' });
   }
 };
+
+exports.markFalsePositive = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { note } = req.body;
+    
+    // Check if feedback already exists
+    const [existing] = await db.query('SELECT * FROM feedback WHERE alert_id = ?', [id]);
+    if (existing.length > 0) {
+      await db.query('UPDATE feedback SET marked_false_positive = true, note = ? WHERE alert_id = ?', [note || '', id]);
+    } else {
+      await db.query('INSERT INTO feedback (alert_id, marked_false_positive, note) VALUES (?, true, ?)', [id, note || '']);
+    }
+    
+    // Auto-resolve the alert if marked false positive
+    await db.query('UPDATE alerts SET status = "resolved" WHERE alert_id = ?', [id]);
+    
+    res.json({ message: 'Alert marked as false positive' });
+  } catch (err) {
+    console.error('Mark false positive error:', err);
+    res.status(500).json({ error: 'Database error marking false positive' });
+  }
+};

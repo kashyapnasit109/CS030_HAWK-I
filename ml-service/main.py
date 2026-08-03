@@ -16,6 +16,8 @@ from models.loader import load_models, get_model_status
 from routes.anpr import router as anpr_router
 from routes.velocity import router as velocity_router
 from routes.misplacement import router as misplacement_router
+from routes.threat import router as threat_router
+from routes.entry import router as entry_router
 
 # Configure logging
 logging.basicConfig(
@@ -79,3 +81,5 @@ async def health():
 app.include_router(anpr_router, prefix="/detect", tags=["Detection"])
 app.include_router(velocity_router, prefix="/detect", tags=["Detection"])
 app.include_router(misplacement_router, prefix="/detect", tags=["Detection"])
+app.include_router(threat_router, prefix="/detect", tags=["Detection"])
+app.include_router(entry_router, prefix="/detect", tags=["Detection"])

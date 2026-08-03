@@ -22,5 +22,20 @@ router.post(
   ]),
   modulesController.testMisplacement
 );
+);
+
+// Threat / Anomaly Detection Test Bench
+router.post('/threat/test', authenticate, upload.single('file'), modulesController.testThreat);
+
+// Unauthorized Entry Detection Test Bench (dual file upload)
+router.post(
+  '/entry/test',
+  authenticate,
+  upload.fields([
+    { name: 'entry_gate', maxCount: 1 },
+    { name: 'interior', maxCount: 1 }
+  ]),
+  modulesController.testEntry
+);
 
 module.exports = router;

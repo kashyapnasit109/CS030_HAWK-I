@@ -6,7 +6,6 @@ import { Button } from "../components/ui/Button";
 import {
   Upload,
   Boxes,
-  AlertTriangle,
   Loader2,
   XCircle,
   PlusCircle,
