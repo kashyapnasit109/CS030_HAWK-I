@@ -9,7 +9,8 @@ Hawk-I is a next-generation, dark-glassmorphic **security command center platfor
 - 💎 **Jewel-Tone Glassmorphic Aesthetic**: Deep charcoal-navy background (`#0A0A0C`) with frosted glass panels, ambient colored light glows, and custom typography (*Clash Display* for headers & metrics, *Inter* / *Outfit* for data displays).
 - 🔐 **Role-Based Authentication (RBAC)**: Secure JWT-based session authorization supporting **Admin**, **Operator**, and **Viewer** roles with server-enforced privilege checks.
 - ⚡ **Resilient Hybrid Data Layer**: Connects to a live **MySQL database** via pooled connection queries, with built-in **automatic fallback mode** for offline or zero-configuration development runs.
-- 🚘 **ANPR Test Bench & ML Microservice**: Real-time License Plate Recognition powered by **YOLOv8** vehicle localization + **EasyOCR** text extraction, integrated directly with a backend SQL vehicle registry lookup.
+- 🚘 **ANPR & Vision Modules Test Bench**: Real-time License Plate Recognition (YOLOv8 + EasyOCR), **Velocity Detection** (YOLOv8 ByteTrack + OpenCV dynamic FPS + 2-point pixel-to-meter spatial calibration), and **Object Misplacement Detection** (OpenCV background differencing + reference/current frame YOLOv8 object classification).
+- 🎨 **Jewel-Tone Design System**: Burgundy (`#9F2138`) for newly placed objects, Sapphire (`#3D6FE0`) for missing objects, Emerald for normal speeds, and Crimson for speed limit violations.
 - 📊 **Real-Time Analytics & KPI Metrics**: Visualizes system throughput, AI detections today, active stream FPS, camera health indices, and alert severity distributions with responsive Area & Donut charts.
 - 🚨 **Interactive Security Alerts**: Live alert feed with filterable severity levels (High/Medium/Info) and status lifecycle state transitions (Open → Acknowledged → Resolved).
 

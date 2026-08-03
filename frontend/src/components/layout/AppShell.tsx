@@ -8,6 +8,8 @@ const pageTitles: Record<string, string> = {
   "/live": "Live View",
   "/modules": "Modules",
   "/modules/anpr": "ANPR Test Bench",
+  "/modules/velocity": "Velocity Detection Test Bench",
+  "/modules/misplacement": "Object Misplacement Test Bench",
   "/search": "Search",
   "/alerts": "Alerts",
   "/vehicles": "Vehicle Log",

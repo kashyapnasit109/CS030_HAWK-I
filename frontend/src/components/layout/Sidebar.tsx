@@ -9,6 +9,8 @@ import {
   BarChart3,
   Settings,
   ScanLine,
+  Gauge,
+  Boxes,
 } from "lucide-react";
 import { Logo } from "../ui/Logo";
 
@@ -16,6 +18,8 @@ const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/live", icon: Video, label: "Live View" },
   { to: "/modules/anpr", icon: ScanLine, label: "ANPR Module" },
+  { to: "/modules/velocity", icon: Gauge, label: "Velocity Module" },
+  { to: "/modules/misplacement", icon: Boxes, label: "Misplacement" },
   { to: "/search", icon: Search, label: "Search" },
   { to: "/alerts", icon: Bell, label: "Alerts" },
   { to: "/vehicles", icon: Car, label: "Vehicle Log" },
