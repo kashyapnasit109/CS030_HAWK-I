@@ -1,0 +1,29 @@
+{
+  "name": "hawk-i-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hawk-I backend API server",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "build": "echo 'No build step needed for plain JS'",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.2",
+    "form-data": "^4.0.6",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
+    "mysql2": "^3.23.2",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
