@@ -14,6 +14,7 @@ app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/vehicles', require('./routes/vehicles'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/modules', require('./routes/modules'));
+app.use('/api/search', require('./routes/search'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

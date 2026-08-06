@@ -22,7 +22,6 @@ router.post(
   ]),
   modulesController.testMisplacement
 );
-);
 
 // Threat / Anomaly Detection Test Bench
 router.post('/threat/test', authenticate, upload.single('file'), modulesController.testThreat);

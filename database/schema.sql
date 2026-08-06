@@ -97,3 +97,13 @@ CREATE TABLE IF NOT EXISTS camera_health_logs (
   checked_at DATETIME NOT NULL,
   FOREIGN KEY (camera_id) REFERENCES cameras(camera_id) ON DELETE CASCADE
 );
+
+-- 10. event_embeddings
+CREATE TABLE IF NOT EXISTS event_embeddings (
+  embedding_id INT AUTO_INCREMENT PRIMARY KEY,
+  event_id INT NOT NULL UNIQUE,
+  description_text TEXT NOT NULL,
+  embedding_vector JSON NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (event_id) REFERENCES detection_events(event_id) ON DELETE CASCADE
+);

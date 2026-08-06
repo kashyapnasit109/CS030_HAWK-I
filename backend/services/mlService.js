@@ -60,3 +60,19 @@ exports.callEntry = async (entryBuffer, entryName, entryMime, interiorBuffer, in
 
   return fetchFromMLService('/detect/entry', formData);
 };
+
+exports.callEmbed = async (text) => {
+  const fetch = (await import('node-fetch')).default;
+  const response = await fetch(`${ML_SERVICE_URL}/embed`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`ML service error (${response.status}): ${errorBody}`);
+  }
+
+  return await response.json();
+};

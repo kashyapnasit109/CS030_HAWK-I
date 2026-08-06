@@ -14,13 +14,15 @@ logger = logging.getLogger("hawk-ml")
 # Global model references
 _yolo_model = None
 _ocr_reader = None
+_sentence_transformer = None
 _yolo_error = None
 _ocr_error = None
+_embed_error = None
 
 
 def load_models():
     """Called once at FastAPI startup. Loads all models into memory."""
-    global _yolo_model, _ocr_reader, _yolo_error, _ocr_error
+    global _yolo_model, _ocr_reader, _sentence_transformer, _yolo_error, _ocr_error, _embed_error
 
     device = os.getenv("DEVICE", "cpu")
 
@@ -48,6 +50,16 @@ def load_models():
         _ocr_error = str(e)
         logger.error(f"❌ Failed to load EasyOCR reader: {e}")
 
+    # ── Load SentenceTransformer ─────────────────────────────────────
+    try:
+        logger.info("Loading SentenceTransformer (all-MiniLM-L6-v2)...")
+        from sentence_transformers import SentenceTransformer
+        _sentence_transformer = SentenceTransformer("all-MiniLM-L6-v2", device=device)
+        logger.info("✅ SentenceTransformer loaded successfully.")
+    except Exception as e:
+        _embed_error = str(e)
+        logger.error(f"❌ Failed to load SentenceTransformer: {e}")
+
 
 def get_yolo():
     """Returns the loaded YOLO model, or None if it failed to load."""
@@ -57,6 +69,10 @@ def get_yolo():
 def get_ocr():
     """Returns the loaded EasyOCR reader, or None if it failed to load."""
     return _ocr_reader
+
+def get_embedder():
+    """Returns the loaded SentenceTransformer, or None if it failed to load."""
+    return _sentence_transformer
 
 
 def get_model_status():
@@ -70,4 +86,8 @@ def get_model_status():
             "loaded": _ocr_reader is not None,
             "error": _ocr_error,
         },
+        "sentence_transformer": {
+            "loaded": _sentence_transformer is not None,
+            "error": _embed_error,
+        }
     }

@@ -22,6 +22,7 @@ exports.getCameras = async (req, res) => {
 };
 
 const mlService = require('../services/mlService');
+const descriptionService = require('../services/descriptionService');
 
 exports.simulateFeed = async (req, res) => {
   const { camera_id } = req.params;
@@ -180,6 +181,31 @@ exports.simulateFeed = async (req, res) => {
         VALUES (?, ?, ?, 'open')
       `, [eventId, alertType, severity]);
       alertId = alertResult.insertId;
+    }
+
+    // Embed and store description
+    let descriptionText = "Event detected.";
+    let embeddingVector = [];
+    try {
+      const [camRows] = await db.query('SELECT name, zone_type FROM cameras WHERE camera_id = ?', [camera_id]);
+      if (camRows.length > 0) {
+        const cam = camRows[0];
+        // Ensure detected_at evaluates to valid Date string (if 'NOW()' we use current time for generation)
+        const eventTime = backdate_timestamp || new Date().toISOString();
+        descriptionText = descriptionService.generateDescription(cam.name, cam.zone_type, eventTime, dbModuleEnum, objectType, mlResult);
+        
+        const embedRes = await mlService.callEmbed(descriptionText);
+        if (embedRes && embedRes.embedding) {
+          embeddingVector = embedRes.embedding;
+          await db.query(`
+            INSERT INTO event_embeddings (event_id, description_text, embedding_vector)
+            VALUES (?, ?, ?)
+          `, [eventId, descriptionText, JSON.stringify(embeddingVector)]);
+        }
+      }
+    } catch (embErr) {
+      console.error('Failed to generate or store embedding during simulation:', embErr);
+      // Non-fatal, continue with response
     }
 
     // Update Camera Health & Last Seen
