@@ -8,12 +8,14 @@
   --bg-card:       #0E1117;
   --bg-elevated:   #131920;
 
-  /* Borders */
-  --border:        rgba(255,255,255,0.06);
+  /* Borders — neutral by default; accent reserved for focus/active/hover */
+  --border:        rgba(255,255,255,0.07);
   --border-hover:  rgba(255,255,255,0.14);
+  --border-accent: rgba(59,130,246,0.35);
 
   /* Blue accent palette — replaces all teal/cyan */
   --accent:        #3B82F6;
+  --accent-hover:  #4F8DF7;
   --accent-dim:    rgba(59,130,246,0.12);
   --accent-glow:   rgba(59,130,246,0.35);
   --blue:          #1D4ED8;
@@ -21,7 +23,7 @@
   --blue-bright:   #60A5FA;
   --blue-dim:      rgba(59,130,246,0.12);
 
-  /* Legacy alias (cyan → blue) for gradual migration */
+  /* Legacy alias (cyan → blue) — kept so any stray var(--cyan) resolves to blue */
   --cyan:          #3B82F6;
   --cyan-dim:      rgba(59,130,246,0.12);
 
@@ -35,18 +37,26 @@
   /* Text */
   --text-primary:  #F1F5F9;
   --text-secondary:#94A3B8;
-  --text-muted:    #475569;
+  --text-muted:    #64748B;
 
   /* Radii */
   --radius-sm:     6px;
   --radius-md:     12px;
-  --radius-lg:     18px;
-  --radius-xl:     24px;
+  --radius-lg:     16px;
+  --radius-xl:     22px;
 
-  /* Shadows */
-  --shadow-card:   0 8px 32px rgba(0,0,0,0.7);
-  --shadow-glow:   0 0 40px rgba(59,130,246,0.2);
+  /* Shadows — softer, layered (premium depth without heavy black blocks) */
+  --shadow-sm:     0 1px 2px rgba(0,0,0,0.4);
+  --shadow-card:   0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.35);
+  --shadow-lg:     0 2px 4px rgba(0,0,0,0.4), 0 16px 48px rgba(0,0,0,0.45);
+  --shadow-glow:   0 0 0 1px var(--border-accent), 0 8px 28px rgba(59,130,246,0.12);
   --transition:    0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Global focus-visible ring for keyboard accessibility */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ─── Reset & Base ──────────────────────────────── */
@@ -113,12 +123,12 @@ img { max-width: 100%; display: block; }
 .topbar-logo .icon {
   width: 30px;
   height: 30px;
-  background: linear-gradient(135deg, #2563EB, #1D4ED8);
-  border-radius: 7px;
+  background: var(--accent);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 12px rgba(59,130,246,0.4);
+  box-shadow: 0 2px 10px rgba(59,130,246,0.35);
 }
 
 .topbar-badge {
@@ -206,24 +216,26 @@ img { max-width: 100%; display: block; }
 /* ─── Cards & Surfaces ──────────────────────────── */
 .card {
   background: var(--bg-card);
-  border: 1px solid rgba(59,130,246,0.12);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 24px;
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  box-shadow: var(--shadow-card);
 }
 
 .card:hover {
-  border-color: rgba(59,130,246,0.28);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(59,130,246,0.1);
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-lg);
 }
 
 .card-glass {
-  background: rgba(10, 13, 18, 0.95);
-  border: 1px solid rgba(59,130,246,0.18);
+  background: rgba(14, 17, 23, 0.72);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 24px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.7), 0 0 30px rgba(59,130,246,0.12);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
 
 /* ─── Buttons ───────────────────────────────────── */
@@ -242,16 +254,17 @@ img { max-width: 100%; display: block; }
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #2563EB, #1D4ED8);
-  color: white;
-  box-shadow: 0 4px 16px rgba(59,130,246,0.4);
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #3B82F6, #2563EB);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(59,130,246,0.5);
+  background: var(--accent-hover);
+  box-shadow: 0 4px 16px rgba(59,130,246,0.28);
 }
+
+.btn-primary:active { transform: translateY(0.5px); }
 
 .btn-secondary {
   background: var(--bg-elevated);
@@ -411,8 +424,12 @@ select.input-field {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent), transparent);
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
+
+.stat-card:hover::before { opacity: 1; }
 
 .stat-value {
   font-size: 2rem;
@@ -447,8 +464,8 @@ select.input-field {
 }
 
 .result-card:hover {
-  border-color: rgba(59,130,246,0.35);
-  box-shadow: 0 8px 32px rgba(59,130,246,0.12);
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-lg);
 }
 
 .result-card-thumb {
@@ -547,7 +564,7 @@ select.input-field {
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--blue-bright));
+  background: var(--accent);
   border-radius: 2px;
   transition: width 0.4s ease;
 }
@@ -781,7 +798,7 @@ select.input-field {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(59,130,246,0.06) 50%, var(--bg-elevated) 75%);
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(255,255,255,0.05) 50%, var(--bg-elevated) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);
@@ -910,21 +927,14 @@ select.input-field {
   align-items: center;
   gap: 6px;
   padding: 4px 12px;
-  background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(29,78,216,0.15));
-  border: 1px solid rgba(59,130,246,0.35);
+  background: var(--accent-dim);
+  border: 1px solid var(--border-accent);
   border-radius: 100px;
   font-size: 0.7rem;
   font-weight: 700;
   color: var(--blue-bright);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-/* ─── Hero gradient animation ───────────────────── */
-@keyframes gradientShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
 }
 
 /* ─── Premium table styles ──────────────────────── */
@@ -956,23 +966,13 @@ select.input-field {
   color: var(--text-primary);
 }
 
-/* ─── Ambient Cyber Grid & Glow Effects ─────────── */
+/* ─── Ambient depth — single faint top glow, no cyan ─── */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background-image: 
-    radial-gradient(circle at 15% 15%, rgba(59,130,246,0.05) 0%, transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(0,229,255,0.03) 0%, transparent 40%);
+  background-image:
+    radial-gradient(120% 60% at 50% -10%, rgba(59,130,246,0.05) 0%, transparent 55%);
   pointer-events: none;
   z-index: -1;
-}
-
-.card {
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-.card:hover {
-  border-color: rgba(59,130,246,0.25);
-  box-shadow: 0 12px 36px rgba(0,0,0,0.6), 0 0 20px rgba(59,130,246,0.1);
 }

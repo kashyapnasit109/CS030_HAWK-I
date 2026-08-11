@@ -62,8 +62,8 @@ function ZoomImage({ src, alt }: { src: string; alt: string }) {
       width: "90px",
       height: "90px",
       borderRadius: "50%",
-      border: "2px solid var(--cyan)",
-      boxShadow: "0 0 10px rgba(0, 212, 255, 0.5), inset 0 0 8px rgba(0,0,0,0.5)",
+      border: "2px solid var(--accent)",
+      boxShadow: "0 0 10px rgba(59,130,246,0.5), inset 0 0 8px rgba(0,0,0,0.5)",
       pointerEvents: "none",
       backgroundImage: `url(${src})`,
       backgroundPosition: `${pctX}% ${pctY}%`,
@@ -138,7 +138,7 @@ function TimelineScrubber({
           <div style={{
             position: "absolute", top: "50%", left: 0,
             width: `${(matches[matches.length - 1].timestamp / duration) * 100}%`,
-            height: 4, background: "linear-gradient(90deg, var(--accent), rgba(233,69,96,0.3))",
+            height: 4, background: "var(--accent)",
             borderRadius: 2, transform: "translateY(-50%)",
           }} />
         )}
@@ -160,9 +160,9 @@ function TimelineScrubber({
                 width: isSelected ? 14 : 10,
                 height: isSelected ? 14 : 10,
                 borderRadius: "50%",
-                background: isSelected ? "var(--cyan)" : "var(--accent)",
-                border: `2px solid ${isSelected ? "white" : "rgba(233,69,96,0.5)"}`,
-                boxShadow: isSelected ? "0 0 12px var(--cyan)" : "0 0 6px rgba(233,69,96,0.6)",
+                background: isSelected ? "var(--accent)" : "var(--accent)",
+                border: `2px solid ${isSelected ? "white" : "rgba(59,130,246,0.5)"}`,
+                boxShadow: isSelected ? "0 0 12px var(--accent)" : "0 0 6px rgba(59,130,246,0.6)",
                 cursor: "pointer",
                 zIndex: isSelected ? 2 : 1,
                 transition: "all 0.15s ease",
@@ -180,10 +180,10 @@ function TimelineScrubber({
             onClick={() => onSelect(m)}
             style={{
               padding: "3px 8px", borderRadius: 100, cursor: "pointer",
-              background: selected === m ? "rgba(0,212,255,0.15)" : "rgba(233,69,96,0.08)",
-              border: `1px solid ${selected === m ? "rgba(0,212,255,0.4)" : "rgba(233,69,96,0.2)"}`,
+              background: selected === m ? "rgba(96,165,250,0.15)" : "rgba(59,130,246,0.08)",
+              border: `1px solid ${selected === m ? "rgba(96,165,250,0.4)" : "rgba(59,130,246,0.2)"}`,
               fontSize: "0.68rem", fontFamily: "JetBrains Mono, monospace",
-              color: selected === m ? "var(--cyan)" : "var(--text-muted)",
+              color: selected === m ? "var(--accent)" : "var(--text-muted)",
               transition: "all 0.15s ease",
             }}
           >
@@ -207,12 +207,12 @@ function CameraTrailMap({ matches }: { matches: MatchResult[] }) {
 
   return (
     <div style={{
-      background: "linear-gradient(135deg, rgba(15,52,96,0.4), rgba(10,10,15,0.6))",
-      border: "1px solid rgba(0,212,255,0.2)",
+      background: "var(--bg-card)",
+      border: "1px solid rgba(96,165,250,0.2)",
       borderRadius: "var(--radius-lg)", padding: "20px 24px", marginBottom: 24,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <MapIcon size={20} style={{ color: "var(--cyan)" }} />
+        <MapIcon size={20} style={{ color: "var(--accent)" }} />
         <div>
           <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>Suspect Camera Trail Map</div>
           <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
@@ -238,9 +238,9 @@ function CameraTrailMap({ matches }: { matches: MatchResult[] }) {
               {/* Camera Node */}
               <div style={{
                 width: 32, height: 32, borderRadius: "50%",
-                background: "var(--cyan-dim)", border: "1.5px solid var(--cyan)",
+                background: "var(--accent-dim)", border: "1.5px solid var(--accent)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontWeight: 800, fontSize: "0.68rem", color: "var(--cyan)"
+                fontWeight: 800, fontSize: "0.68rem", color: "var(--accent)"
               }}>
                 {m.camera_id.split("-").pop() || m.camera_id}
               </div>
@@ -257,7 +257,7 @@ function CameraTrailMap({ matches }: { matches: MatchResult[] }) {
             {/* Connection line */}
             {i < matches.length - 1 && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 8px" }}>
-                <div style={{ width: 36, height: 2, background: "linear-gradient(90deg, var(--cyan), var(--accent))" }} />
+                <div style={{ width: 36, height: 2, background: "var(--accent)" }} />
                 <div style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginTop: 3 }}>→</div>
               </div>
             )}
@@ -328,7 +328,7 @@ function VideoPlayerModal({
           background: "var(--bg-card)", border: "1px solid var(--border)",
           borderRadius: "var(--radius-xl)", overflow: "hidden",
           maxWidth: 820, width: "100%",
-          boxShadow: "0 32px 80px rgba(0,0,0,0.85), 0 0 60px rgba(0,229,255,0.15)",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.85), 0 0 60px rgba(96,165,250,0.15)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -343,12 +343,12 @@ function VideoPlayerModal({
           <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text-primary)" }}>
             Evidence Detection Preview — {match.timestamp_str}
           </span>
-          <span className="badge badge-cyan" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
+          <span className="badge badge-blue" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
             <VideoIcon size={11} /> {match.camera_id}
           </span>
           <span className="badge" style={{
             background: "var(--accent-dim)", color: "var(--accent)",
-            border: "1px solid rgba(233,69,96,0.3)",
+            border: "1px solid rgba(59,130,246,0.3)",
           }}>
             {(match.confidence * 100).toFixed(1)}% Match
           </span>
@@ -368,9 +368,9 @@ function VideoPlayerModal({
             onClick={() => setActiveTab("frame")}
             style={{
               padding: "6px 14px", borderRadius: 6, fontSize: "0.75rem", fontWeight: 700,
-              background: activeTab === "frame" ? "var(--cyan-dim)" : "transparent",
-              border: `1px solid ${activeTab === "frame" ? "var(--cyan)" : "transparent"}`,
-              color: activeTab === "frame" ? "var(--cyan)" : "var(--text-muted)",
+              background: activeTab === "frame" ? "var(--accent-dim)" : "transparent",
+              border: `1px solid ${activeTab === "frame" ? "var(--accent)" : "transparent"}`,
+              color: activeTab === "frame" ? "var(--accent)" : "var(--text-muted)",
               cursor: "pointer", display: "flex", alignItems: "center", gap: 6
             }}
           >
@@ -679,11 +679,11 @@ export default function ResultsPage() {
                 <div style={{
                   display: "flex", alignItems: "center", gap: 10, marginBottom: 16,
                   padding: "10px 16px", borderRadius: "var(--radius-md)",
-                  background: "rgba(0,212,255,0.06)", border: "1px solid rgba(0,212,255,0.15)",
+                  background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.15)",
                   fontSize: "0.78rem", flexWrap: "wrap",
                 }}>
                   <span style={{ color: "var(--text-muted)" }}>Search type:</span>
-                  <span style={{ fontWeight: 700, color: "var(--cyan)", display: "flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ fontWeight: 700, color: "var(--accent)", display: "flex", alignItems: "center", gap: 5 }}>
                     {getSearchTypeIcon(job.type)} {getSearchTypeLabel(job.type)}
                   </span>
                   <span style={{ color: "var(--border)" }}>|</span>
@@ -766,8 +766,8 @@ export default function ResultsPage() {
             {job.status === "completed" && job.match_count > 0 && (
               <div className="card" style={{
                 marginBottom: 24,
-                background: "linear-gradient(135deg, rgba(15,52,96,0.4), rgba(10,10,15,0.5))",
-                borderColor: "rgba(0,212,255,0.2)",
+                background: "var(--bg-card)",
+                borderColor: "rgba(96,165,250,0.2)",
               }}>
                 <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <FileTextIcon size={16} style={{ color: "var(--accent)" }} /> Export Forensic Case Report
@@ -832,8 +832,8 @@ export default function ResultsPage() {
                     className="result-card"
                     onClick={() => { setVideoPlayer(match); setSelectedTimeline(match); }}
                     style={{
-                      borderColor: selectedTimeline === match ? "var(--cyan)" : "var(--border)",
-                      boxShadow: selectedTimeline === match ? "0 0 20px rgba(0,212,255,0.15)" : "",
+                      borderColor: selectedTimeline === match ? "var(--accent)" : "var(--border)",
+                      boxShadow: selectedTimeline === match ? "0 0 20px rgba(96,165,250,0.15)" : "",
                     }}
                   >
                     <div style={{ position: "relative" }}>
@@ -857,7 +857,7 @@ export default function ResultsPage() {
                       >
                         <div style={{
                           width: 44, height: 44, borderRadius: "50%",
-                          background: "rgba(233,69,96,0.9)",
+                          background: "rgba(59,130,246,0.9)",
                           display: "flex", alignItems: "center", justifyContent: "center",
                           opacity: 0, transition: "opacity 0.2s",
                         }}
@@ -888,7 +888,7 @@ export default function ResultsPage() {
                     <div className="result-card-body">
                       <div className="result-card-ts">{match.timestamp_str}</div>
                       <div className="result-card-meta">
-                        <span className="badge badge-cyan" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span className="badge badge-blue" style={{ display: "flex", alignItems: "center", gap: 4 }}>
                           <VideoIcon size={11} /> {match.camera_id}
                         </span>
                         {match.label && <span className="badge badge-accent">{match.label}</span>}
@@ -904,7 +904,7 @@ export default function ResultsPage() {
                                 e.stopPropagation();
                                 copyHash(match.frame_hash || "");
                               }}
-                              style={{ border: "none", background: "transparent", color: "var(--cyan)", cursor: "pointer", fontSize: "0.55rem" }}
+                              style={{ border: "none", background: "transparent", color: "var(--accent)", cursor: "pointer", fontSize: "0.55rem" }}
                             >Copy</button>
                           </div>
                           <div className="mono" style={{ fontSize: "0.6rem", wordBreak: "break-all", color: "var(--text-secondary)", marginTop: 2 }}>
@@ -927,8 +927,8 @@ export default function ResultsPage() {
                           }}
                           style={{
                             display: "flex", alignItems: "center", gap: 4,
-                            background: "rgba(0,212,255,0.12)", color: "var(--cyan)",
-                            border: "1px solid rgba(0,212,255,0.3)"
+                            background: "rgba(96,165,250,0.12)", color: "var(--accent)",
+                            border: "1px solid rgba(96,165,250,0.3)"
                           }}
                         ><SparklesIcon size={12} /> Enhance</button>
                         <button
@@ -939,8 +939,8 @@ export default function ResultsPage() {
                           }}
                           style={{
                             display: "flex", alignItems: "center", gap: 4,
-                            background: "rgba(233,69,96,0.12)", color: "var(--accent)",
-                            border: "1px solid rgba(233,69,96,0.3)"
+                            background: "rgba(59,130,246,0.12)", color: "var(--accent)",
+                            border: "1px solid rgba(59,130,246,0.3)"
                           }}
                         ><MaximizeIcon size={12} /> Upscale</button>
                         <button
@@ -981,7 +981,7 @@ export default function ResultsPage() {
                     style={{
                       display: "flex", alignItems: "center", gap: 14,
                       padding: "12px 16px",
-                      background: "var(--bg-card)", border: `1px solid ${selectedTimeline === match ? "var(--cyan)" : "var(--border)"}`,
+                      background: "var(--bg-card)", border: `1px solid ${selectedTimeline === match ? "var(--accent)" : "var(--border)"}`,
                       borderRadius: "var(--radius-md)", cursor: "pointer",
                       transition: "all 0.15s",
                     }}
@@ -995,7 +995,7 @@ export default function ResultsPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", fontWeight: 600, marginBottom: 4 }}>{match.timestamp_str}</div>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <span className="badge badge-cyan" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span className="badge badge-blue" style={{ display: "flex", alignItems: "center", gap: 4 }}>
                           <VideoIcon size={11} /> {match.camera_id}
                         </span>
                         <span className="badge badge-accent">{match.label}</span>
@@ -1021,8 +1021,8 @@ export default function ResultsPage() {
                       onClick={(e) => { e.stopPropagation(); setEnhanceMatch({ match, mode: "face", scale: 2.0 }); }}
                       style={{
                         display: "flex", alignItems: "center", gap: 4,
-                        background: "rgba(0,212,255,0.12)", color: "var(--cyan)",
-                        border: "1px solid rgba(0,212,255,0.3)"
+                        background: "rgba(96,165,250,0.12)", color: "var(--accent)",
+                        border: "1px solid rgba(96,165,250,0.3)"
                       }}
                     >
                       <SparklesIcon size={12} /> Enhance
@@ -1032,8 +1032,8 @@ export default function ResultsPage() {
                       onClick={(e) => { e.stopPropagation(); setEnhanceMatch({ match, mode: "super_res", scale: 4.0 }); }}
                       style={{
                         display: "flex", alignItems: "center", gap: 4,
-                        background: "rgba(233,69,96,0.12)", color: "var(--accent)",
-                        border: "1px solid rgba(233,69,96,0.3)"
+                        background: "rgba(59,130,246,0.12)", color: "var(--accent)",
+                        border: "1px solid rgba(59,130,246,0.3)"
                       }}
                     >
                       <MaximizeIcon size={12} /> Upscale

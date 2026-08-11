@@ -248,7 +248,7 @@ export default function UploadPage() {
                           </span>
                         )}
                         {item.localDuration && (
-                          <span style={{ color: "var(--cyan)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <span style={{ color: "var(--accent)", display: "inline-flex", alignItems: "center", gap: 4 }}>
                             <CameraIcon size={12} /> ~{Math.ceil(item.localDuration)} frames sampled at 1fps
                           </span>
                         )}
@@ -265,7 +265,7 @@ export default function UploadPage() {
                         <div style={{ fontSize: "0.75rem", color: "var(--green)", display: "flex", alignItems: "center", gap: 6 }}>
                           <CheckIcon size={14} /> Uploaded · ID: <span className="mono">{item.result?.id}</span>
                           {item.result?.duration_seconds && (
-                            <span style={{ marginLeft: 8, color: "var(--cyan)" }}>
+                            <span style={{ marginLeft: 8, color: "var(--accent)" }}>
                               · Duration: {formatDuration(item.result.duration_seconds)}
                             </span>
                           )}

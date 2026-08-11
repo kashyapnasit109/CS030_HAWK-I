@@ -132,7 +132,7 @@ export default function AnalyticsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             
             {/* Real-time Alert Ticker */}
-            <div className="card" style={{ borderColor: "rgba(59,130,246,0.25)", background: "linear-gradient(135deg, #070A0F 0%, #0E1526 100%)", boxShadow: "0 4px 20px rgba(0,0,0,0.5)" }}>
+            <div className="card" style={{ borderColor: "rgba(59,130,246,0.25)", background: "var(--bg-card)", boxShadow: "0 4px 20px rgba(0,0,0,0.5)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <span className="section-title" style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, color: "#60A5FA" }}>
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3B82F6", animation: "pulse 1.2s infinite" }} />
@@ -192,7 +192,7 @@ export default function AnalyticsPage() {
             <div className="grid-2" style={{ gridTemplateColumns: "1fr 1fr", gap: 24 }}>
               
               {/* Chart 1: Matches by Camera */}
-              <div className="card" style={{ background: "linear-gradient(135deg, #070A0F 0%, #0D1424 100%)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+              <div className="card" style={{ background: "var(--bg-card)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
                 <div className="section-title" style={{ color: "#F1F5F9" }}>Match Events by Camera Unit</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
                   {stats && Object.entries(stats.cameras).map(([cam, count]) => {
@@ -209,7 +209,7 @@ export default function AnalyticsPage() {
                             style={{
                               width: `${pct}%`,
                               height: "100%",
-                              background: "linear-gradient(90deg, #1D4ED8 0%, #2563EB 50%, #60A5FA 100%)",
+                              background: "var(--accent)",
                               boxShadow: "0 0 12px rgba(59, 130, 246, 0.35)",
                               borderRadius: 4,
                               transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)"
@@ -223,7 +223,7 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Chart 2: Matches by Detection Module */}
-              <div className="card" style={{ background: "linear-gradient(135deg, #070A0F 0%, #0D1424 100%)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+              <div className="card" style={{ background: "var(--bg-card)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
                 <div className="section-title" style={{ color: "#F1F5F9" }}>Sightings by Engine Analysis Module</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
                   {stats && Object.entries(stats.modules).map(([module, count]) => {
@@ -240,7 +240,7 @@ export default function AnalyticsPage() {
                             style={{
                               width: `${pct}%`,
                               height: "100%",
-                              background: "linear-gradient(90deg, #0F172A 0%, #1D4ED8 50%, #3B82F6 100%)",
+                              background: "var(--accent)",
                               boxShadow: "0 0 12px rgba(59, 130, 246, 0.35)",
                               borderRadius: 4,
                               transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)"
@@ -256,7 +256,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Tag Cloud & Attribute Heatmap */}
-            <div className="card" style={{ background: "linear-gradient(135deg, #070A0F 0%, #0D1424 100%)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+            <div className="card" style={{ background: "var(--bg-card)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
               <div className="section-title" style={{ color: "#F1F5F9" }}>Query Attribute Tag Cloud (Sighting Popularity)</div>
               <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 16 }}>
                 Common colors, postures, and tags seeded or extracted from historical video evidence. Larger tags indicate higher occurrence rate.
@@ -270,7 +270,7 @@ export default function AnalyticsPage() {
                   justifyContent: "center",
                   alignItems: "center",
                   padding: "24px 16px",
-                  background: "linear-gradient(135deg, #05070A 0%, #0F172A 100%)",
+                  background: "var(--bg-card)",
                   borderRadius: 12,
                   border: "1px solid rgba(59, 130, 246, 0.18)"
                 }}

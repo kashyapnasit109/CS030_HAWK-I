@@ -140,8 +140,8 @@ export default function CamerasPage() {
         const pts = JSON.parse(zone.points);
         if (pts.length > 0) {
           ctx.beginPath();
-          ctx.strokeStyle = zone.zone_type === "restricted" ? "#ff2a2a" : "#2dd4bf";
-          ctx.fillStyle = zone.zone_type === "restricted" ? "rgba(255, 42, 42, 0.15)" : "rgba(45, 212, 191, 0.15)";
+          ctx.strokeStyle = zone.zone_type === "restricted" ? "#ff2a2a" : "#3B82F6";
+          ctx.fillStyle = zone.zone_type === "restricted" ? "rgba(255, 42, 42, 0.15)" : "rgba(59,130,246,0.15)";
           ctx.lineWidth = 2;
           
           const startX = (pts[0][0] / 640) * canvas.width;
@@ -168,8 +168,8 @@ export default function CamerasPage() {
     // Draw active drawing zone
     if (newZonePoints.length > 0) {
       ctx.beginPath();
-      ctx.strokeStyle = newZoneType === "restricted" ? "#ff2a2a" : "#2dd4bf";
-      ctx.fillStyle = newZoneType === "restricted" ? "rgba(255, 42, 42, 0.25)" : "rgba(45, 212, 191, 0.25)";
+      ctx.strokeStyle = newZoneType === "restricted" ? "#ff2a2a" : "#3B82F6";
+      ctx.fillStyle = newZoneType === "restricted" ? "rgba(255, 42, 42, 0.25)" : "rgba(59,130,246,0.25)";
       ctx.lineWidth = 3;
 
       const startX = (newZonePoints[0][0] / 640) * canvas.width;
@@ -354,7 +354,7 @@ export default function CamerasPage() {
 
         {/* Discovery Drawer/Card */}
         {showDiscovery && (
-          <div className="card" style={{ marginBottom: 24, border: "1px solid rgba(0,212,255,0.3)", background: "linear-gradient(135deg, rgba(0,212,255,0.02) 0%, rgba(10,10,15,0.8) 100%)" }}>
+          <div className="card" style={{ marginBottom: 24, border: "1px solid var(--border-accent)", background: "var(--bg-card)" }}>
             <div className="section-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}><SearchIcon size={14} /> LAN IP Camera Discovery</span>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowDiscovery(false)}>✕</button>
@@ -392,7 +392,7 @@ export default function CamerasPage() {
                       <tr key={idx} style={{ borderBottom: "1px solid var(--border)" }}>
                         <td style={{ padding: "10px 14px", fontWeight: 700 }}>{item.ip}:{item.port}</td>
                         <td style={{ padding: "10px 14px" }} className="mono">{item.url}</td>
-                        <td style={{ padding: "10px 14px" }}><span className="badge badge-cyan">{item.brand}</span></td>
+                        <td style={{ padding: "10px 14px" }}><span className="badge badge-blue">{item.brand}</span></td>
                         <td style={{ padding: "10px 14px" }}>{item.width}×{item.height}</td>
                         <td style={{ padding: "10px 14px" }}>
                           <button
@@ -437,7 +437,7 @@ export default function CamerasPage() {
             {/* Live stream viewing frame */}
             {activeCamInfo ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div className="card" style={{ padding: 12, background: "#06060c", borderColor: activeCamInfo.is_connected ? "var(--cyan)" : "var(--accent)" }}>
+                <div className="card" style={{ padding: 12, background: "#06060c", borderColor: activeCamInfo.is_connected ? "var(--accent)" : "var(--accent)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 6px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: activeCamInfo.is_connected ? "var(--green)" : "var(--accent)", animation: activeCamInfo.is_connected ? "pulse 1.2s infinite" : "none" }} />
@@ -445,7 +445,7 @@ export default function CamerasPage() {
                       {activeCamInfo.is_connected && <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>({activeCamInfo.width}×{activeCamInfo.height} @ {activeCamInfo.fps.toFixed(0)}fps)</span>}
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => setShowZonesPanel(!showZonesPanel)} style={{ display: "flex", alignItems: "center", gap: 6, borderColor: "var(--cyan)" }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setShowZonesPanel(!showZonesPanel)} style={{ display: "flex", alignItems: "center", gap: 6, borderColor: "var(--accent)" }}>
                         <TargetIcon size={14} /> ROI Zones ({zones.length})
                       </button>
                       {activeCamInfo.detection_active ? (
@@ -516,7 +516,7 @@ export default function CamerasPage() {
 
                 {/* Zones config drawer */}
                 {showZonesPanel && (
-                  <div className="card" style={{ borderColor: "var(--cyan)", background: "rgba(0,212,255,0.02)" }}>
+                  <div className="card" style={{ borderColor: "var(--accent)", background: "rgba(59,130,246,0.02)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <span className="section-title" style={{ margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
                         <TargetIcon size={16} /> Configure Region of Interest (ROI) Zones
@@ -563,7 +563,7 @@ export default function CamerasPage() {
 
                         {isDrawing && (
                           <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: 12, background: "var(--bg-elevated)", borderRadius: 8, border: "1px solid var(--border)" }}>
-                            <div style={{ fontSize: "0.72rem", color: "var(--cyan)", fontWeight: "bold", display: "flex", alignItems: "center", gap: 6 }}>
+                            <div style={{ fontSize: "0.72rem", color: "var(--accent)", fontWeight: "bold", display: "flex", alignItems: "center", gap: 6 }}>
                               <TargetIcon size={14} /> Click on the video feed above to place at least 3 points, then click "Done Drawing".
                             </div>
                             <div className="input-group" style={{ marginBottom: 0 }}>
@@ -655,7 +655,7 @@ export default function CamerasPage() {
                         padding: 12,
                         borderRadius: 8,
                         background: "var(--bg-elevated)",
-                        border: `1.5px solid ${activeCam === c.id ? "var(--cyan)" : "var(--border)"}`,
+                        border: `1.5px solid ${activeCam === c.id ? "var(--accent)" : "var(--border)"}`,
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
@@ -704,7 +704,7 @@ export default function CamerasPage() {
                     padding: "8px 12px",
                     borderRadius: 6,
                     border: "none",
-                    background: !isNvr ? "var(--cyan)" : "transparent",
+                    background: !isNvr ? "var(--accent)" : "transparent",
                     color: !isNvr ? "#0B0F14" : "var(--text-secondary)",
                     fontWeight: "bold",
                     fontSize: "0.78rem",
@@ -722,7 +722,7 @@ export default function CamerasPage() {
                     padding: "8px 12px",
                     borderRadius: 6,
                     border: "none",
-                    background: isNvr ? "var(--cyan)" : "transparent",
+                    background: isNvr ? "var(--accent)" : "transparent",
                     color: isNvr ? "#0B0F14" : "var(--text-secondary)",
                     fontWeight: "bold",
                     fontSize: "0.78rem",
@@ -854,7 +854,7 @@ export default function CamerasPage() {
 
             {/* AI Live Detection Config Box */}
             {showDetConfig && (
-              <div className="card" style={{ borderColor: "var(--cyan)", background: "rgba(0,212,255,0.02)" }}>
+              <div className="card" style={{ borderColor: "var(--accent)", background: "rgba(59,130,246,0.02)" }}>
                 <div className="section-title">Configure Live AI Scanning</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <div className="input-group" style={{ marginBottom: 0 }}>

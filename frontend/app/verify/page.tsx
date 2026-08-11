@@ -105,10 +105,10 @@ export default function VerifyPage() {
             maxWidth: "600px",
             background: "rgba(18, 24, 33, 0.8)",
             backdropFilter: "blur(12px)",
-            border: "1.5px solid rgba(45, 212, 191, 0.2)",
+            border: "1.5px solid rgba(59,130,246,0.2)",
             borderRadius: "20px",
             padding: "40px",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.6), 0 0 25px rgba(45, 212, 191, 0.08)",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.6), 0 0 25px rgba(59,130,246,0.08)",
             display: "flex",
             flexDirection: "column",
             gap: "24px"
@@ -123,10 +123,10 @@ export default function VerifyPage() {
                 justifyContent: "center",
                 width: "60px",
                 height: "60px",
-                background: "linear-gradient(135deg, var(--cyan), #60A5FA)",
+                background: "var(--accent)",
                 borderRadius: "16px",
                 marginBottom: "16px",
-                boxShadow: "0 0 20px rgba(45, 212, 191, 0.3)"
+                boxShadow: "0 0 20px rgba(59,130,246,0.3)"
               }}
             >
               <ShieldIcon size={30} style={{ color: "#0B0F14" }} />
@@ -145,8 +145,8 @@ export default function VerifyPage() {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             style={{
-              border: isDragOver ? "2px dashed var(--cyan)" : "2px dashed rgba(255,255,255,0.15)",
-              background: isDragOver ? "rgba(45,212,191,0.04)" : "rgba(255,255,255,0.01)",
+              border: isDragOver ? "2px dashed var(--accent)" : "2px dashed rgba(255,255,255,0.15)",
+              background: isDragOver ? "rgba(59,130,246,0.04)" : "rgba(255,255,255,0.01)",
               borderRadius: "12px",
               padding: "30px 20px",
               textAlign: "center",
@@ -164,7 +164,7 @@ export default function VerifyPage() {
               onChange={handleFileChange}
             />
             <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
-              <FileTextIcon size={32} style={{ color: file ? "var(--cyan)" : "var(--text-muted)" }} />
+              <FileTextIcon size={32} style={{ color: file ? "var(--accent)" : "var(--text-muted)" }} />
             </div>
             <div style={{ fontSize: "0.9rem", fontWeight: 700, marginBottom: "4px" }}>
               {file ? file.name : "Select case report PDF file"}
@@ -181,7 +181,7 @@ export default function VerifyPage() {
               disabled={loading}
               style={{
                 width: "100%",
-                background: "linear-gradient(135deg, #3B82F6, #1D4ED8)",
+                background: "var(--accent)",
                 color: "#0B0F14",
                 border: "none",
                 borderRadius: "8px",
@@ -189,7 +189,7 @@ export default function VerifyPage() {
                 fontSize: "0.95rem",
                 fontWeight: 700,
                 cursor: "pointer",
-                boxShadow: "0 4px 16px rgba(45, 212, 191, 0.25)"
+                boxShadow: "0 4px 16px rgba(59,130,246,0.25)"
               }}
             >
               {loading ? "Calculating Document Signatures..." : "Verify Certificate Authenticity"}
@@ -257,7 +257,7 @@ export default function VerifyPage() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                     <span style={{ color: "var(--text-muted)" }}>Cryptographic SHA-256 Signature:</span>
-                    <span className="mono" style={{ fontSize: "0.75rem", wordBreak: "break-all", background: "rgba(0,0,0,0.2)", padding: "6px", borderRadius: "4px", color: "var(--cyan)", border: "1px solid rgba(59,130,246,0.1)" }}>
+                    <span className="mono" style={{ fontSize: "0.75rem", wordBreak: "break-all", background: "rgba(0,0,0,0.2)", padding: "6px", borderRadius: "4px", color: "var(--accent)", border: "1px solid rgba(59,130,246,0.1)" }}>
                       {result.hash}
                     </span>
                   </div>
@@ -280,7 +280,7 @@ export default function VerifyPage() {
 
           {/* Action links */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "18px" }}>
-            <Link href="/" style={{ fontSize: "0.85rem", color: "var(--cyan)", fontWeight: 600 }}>
+            <Link href="/" style={{ fontSize: "0.85rem", color: "var(--accent)", fontWeight: 600 }}>
               ← Return to Dashboard
             </Link>
             <button

@@ -813,7 +813,7 @@ export default function SearchPage() {
                     </div>
                     {framesProcessed > 0 && (
                       <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: 4, display: "flex", gap: 16 }}>
-                        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><ImageIcon size={12} /> <strong style={{ color: "var(--cyan)" }}>{framesProcessed}</strong> frames analyzed</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><ImageIcon size={12} /> <strong style={{ color: "var(--accent)" }}>{framesProcessed}</strong> frames analyzed</span>
                         <span style={{ display: "flex", alignItems: "center", gap: 4 }}><TargetIcon size={12} /> <strong style={{ color: "var(--green)" }}>{framesMatched}</strong> matches so far</span>
                       </div>
                     )}
@@ -884,7 +884,7 @@ export default function SearchPage() {
                           {h.timestamp} · {h.videosCount} Video(s)
                         </div>
                       </div>
-                      <div className="mono" style={{ fontSize: "0.65rem", padding: "2px 6px", background: "var(--bg-card)", borderRadius: 4, color: "var(--cyan)" }}>
+                      <div className="mono" style={{ fontSize: "0.65rem", padding: "2px 6px", background: "var(--bg-card)", borderRadius: 4, color: "var(--accent)" }}>
                         #{h.jobId}
                       </div>
                     </div>
@@ -970,7 +970,7 @@ export default function SearchPage() {
                   </button>
                   <button
                     className="btn btn-primary"
-                    style={{ flex: 1, justifyContent: "center", display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)" }}
+                    style={{ flex: 1, justifyContent: "center", display: "flex", alignItems: "center", gap: 6, background: "var(--accent)" }}
                     onClick={handleModalUpload}
                     disabled={!modalFile || modalUploading}
                   >

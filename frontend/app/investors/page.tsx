@@ -173,7 +173,7 @@ export default function InvestorsPage() {
                 { label: "Investigation Time Saved", value: `${timeSaved}%`, sub: "Per incident avg.", Icon: SparklesIcon },
               ].map((kpi, i) => (
                 <div key={i} style={{ ...cardStyle, textAlign: "center" as const, position: "relative" as const, overflow: "hidden" }}>
-                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: `linear-gradient(90deg, ${BLUE}, transparent)` }} />
+                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: BLUE }} />
                   <div style={{ display: "flex", justifyContent: "center", color: BLUE, marginBottom: "8px" }}><kpi.Icon size={24} /></div>
                   <div style={{ fontSize: "1.75rem", fontWeight: 900, color: "#F1F5F9", marginBottom: "2px" }}>{kpi.value}</div>
                   <div style={{ fontSize: "0.75rem", fontWeight: 700, color: BLUE, marginBottom: "4px" }}>{kpi.label}</div>
@@ -227,7 +227,7 @@ export default function InvestorsPage() {
             </div>
 
             {/* Mission */}
-            <div style={{ ...cardStyle, textAlign: "center" as const, background: "linear-gradient(135deg, rgba(29,78,216,0.15), rgba(14,17,23,0.95))", borderColor: "rgba(59,130,246,0.35)" }}>
+            <div style={{ ...cardStyle, textAlign: "center" as const, background: "var(--bg-card)", borderColor: "rgba(59,130,246,0.35)" }}>
               <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "1px", color: BLUE, marginBottom: "8px" }}>Our Mission</div>
               <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#F1F5F9", lineHeight: 1.5, maxWidth: "600px", margin: "0 auto" }}>
                 "Make every second of surveillance footage <span style={{ color: "#60A5FA" }}>searchable, actionable, and legally defensible</span> — in the time it takes to make a cup of tea."
@@ -270,7 +270,7 @@ export default function InvestorsPage() {
                   { name: "State Police & CID", Icon: BuildingIcon, size: "₹3,200 Cr", growth: "+42%", desc: "State police forces, city police commissionerates, CID" },
                   { name: "Smart Cities Mission", Icon: MapIcon, size: "₹4,500 Cr", growth: "+55%", desc: "100+ Smart City ICCC centers, traffic & crowd AI" },
                   { name: "Private & Corporate Security", Icon: LockIcon, size: "₹2,800 Cr", growth: "+31%", desc: "IT parks, airports, malls, high-value infrastructure" },
-                  { name: "Border & Central Forces", Icon: ShieldIcon, size: "₹1,500 Cr", growth: "+28%", desc: "BFF, CRPF, CISF, critical govt assets" },
+                  { name: "Border & Central Forces", Icon: ShieldIcon, size: "₹1,500 Cr", growth: "+28%", desc: "BSF, CRPF, CISF, critical govt assets" },
                 ].map((v, i) => (
                   <div key={i} style={{ display: "flex", gap: "12px", alignItems: "center", padding: "10px 12px", borderRadius: "8px", marginBottom: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
                     <v.Icon size={22} style={{ color: BLUE, flexShrink: 0 }} />
@@ -287,7 +287,7 @@ export default function InvestorsPage() {
               </div>
             </div>
 
-            <div style={{ ...cardStyle, background: "linear-gradient(135deg, rgba(29,78,216,0.1), rgba(14,17,23,0.9))", borderColor: "rgba(59,130,246,0.3)" }}>
+            <div style={{ ...cardStyle, background: "var(--bg-card)", borderColor: "rgba(59,130,246,0.3)" }}>
               <h3 style={{ color: "#F1F5F9", fontWeight: 800, marginBottom: "16px" }}>Why Now? — Indian Market Growth Factors</h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
                 {[
@@ -367,7 +367,7 @@ export default function InvestorsPage() {
                 {[
                   { layer: "AI Models", tech: "YOLOv8 + FaceNet + CLIP + EasyOCR", color: BLUE },
                   { layer: "Backend", tech: "Python FastAPI + PyTorch + OpenCV", color: "#8B5CF6" },
-                  { layer: "Frontend", tech: "Next.js 14 + TypeScript — SSR/CSR hybrid", color: "#06B6D4" },
+                  { layer: "Frontend", tech: "Next.js 14 + TypeScript — SSR/CSR hybrid", color: "#3B82F6" },
                   { layer: "Storage", tech: "SQLite + file-system (S3-ready)", color: "#F59E0B" },
                   { layer: "Security", tech: "JWT auth + MFA + RBAC + audit logs", color: "#22C55E" },
                   { layer: "Deployment", tech: "Docker-ready, on-premise + cloud hybrid", color: "#EF4444" },
@@ -398,8 +398,8 @@ export default function InvestorsPage() {
                 <a
                   href="/metrics"
                   style={{
-                    padding: "8px 16px", borderRadius: "8px", background: "rgba(0,229,255,0.15)",
-                    border: "1px solid rgba(0,229,255,0.4)", color: "#00E5FF", fontWeight: 700,
+                    padding: "8px 16px", borderRadius: "8px", background: "rgba(59,130,246,0.15)",
+                    border: "1px solid rgba(59,130,246,0.4)", color: "#60A5FA", fontWeight: 700,
                     fontSize: "0.8rem", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6
                   }}
                 >
@@ -409,11 +409,11 @@ export default function InvestorsPage() {
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "12px", marginBottom: "20px" }}>
                 {[
-                  { label: "Face Recognition", mAP: "98.4%", fps: "62 FPS", color: "#00E5FF" },
-                  { label: "YOLO Gun Detector", mAP: "96.8%", fps: "48 FPS", color: "#E94560" },
-                  { label: "License Plate LPR", mAP: "96.2%", fps: "42 FPS", color: "#00FF88" },
-                  { label: "CLIP Natural Search", mAP: "94.1%", fps: "30 FPS", color: "#3B82F6" },
-                  { label: "Person Re-ID", mAP: "92.6%", fps: "38 FPS", color: "#9C27B0" },
+                  { label: "Face Recognition", mAP: "98.4%", fps: "62 FPS", color: "#3B82F6" },
+                  { label: "YOLO Gun Detector", mAP: "96.8%", fps: "48 FPS", color: "#60A5FA" },
+                  { label: "License Plate LPR", mAP: "96.2%", fps: "42 FPS", color: "#22C55E" },
+                  { label: "CLIP Natural Search", mAP: "94.1%", fps: "30 FPS", color: "#1D4ED8" },
+                  { label: "Person Re-ID", mAP: "92.6%", fps: "38 FPS", color: "#8B5CF6" },
                 ].map((m, i) => (
                   <div key={i} style={{ background: "rgba(0,0,0,0.3)", padding: "14px", borderRadius: "10px", border: `1px solid ${m.color}30`, textAlign: "center" }}>
                     <div style={{ fontSize: "0.72rem", color: "#94A3B8", fontWeight: 700 }}>{m.label}</div>
@@ -424,7 +424,7 @@ export default function InvestorsPage() {
               </div>
             </div>
 
-            <div style={{ ...cardStyle, background: "linear-gradient(135deg, rgba(59,130,246,0.1), rgba(14,17,23,0.9))" }}>
+            <div style={{ ...cardStyle, background: "var(--bg-card)" }}>
               <h3 style={{ color: "#F1F5F9", fontWeight: 800, marginBottom: "16px", fontSize: "1.05rem" }}>
                 🚀 Latest Features &amp; Platform Innovations
               </h3>
@@ -564,7 +564,7 @@ export default function InvestorsPage() {
                   ))}
                 </div>
 
-                <div style={{ padding: "16px", background: "linear-gradient(135deg, rgba(34,197,94,0.1), rgba(14,17,23,0.9))", borderRadius: "10px", border: "1px solid rgba(34,197,94,0.3)", marginBottom: "16px" }}>
+                <div style={{ padding: "16px", background: "rgba(34,197,94,0.08)", borderRadius: "10px", border: "1px solid rgba(34,197,94,0.3)", marginBottom: "16px" }}>
                   <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#22C55E", textTransform: "uppercase" as const, letterSpacing: "0.6px", marginBottom: "6px" }}>Payback Period</div>
                   <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "#F1F5F9" }}>
                     {Math.max(1, Math.round(platformCost / monthlySavings))} months
@@ -691,7 +691,7 @@ export default function InvestorsPage() {
                   ))}
                 </div>
 
-                <div style={{ ...cardStyle, background: "linear-gradient(135deg, rgba(29,78,216,0.15), rgba(14,17,23,0.9))", borderColor: "rgba(59,130,246,0.35)", textAlign: "center" as const }}>
+                <div style={{ ...cardStyle, background: "var(--bg-card)", borderColor: "rgba(59,130,246,0.35)", textAlign: "center" as const }}>
                   <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "1px", color: BLUE, marginBottom: "8px" }}>Why Invest Now</div>
                   <div style={{ fontSize: "0.9rem", color: "#F1F5F9", lineHeight: 1.6, marginBottom: "16px" }}>
                     First-mover advantage in <strong style={{ color: "#60A5FA" }}>forensic AI for Indian law enforcement</strong>. Our on-premise model addresses the #1 blocker for police AI adoption — data sovereignty.
@@ -731,7 +731,7 @@ export default function InvestorsPage() {
                   { name: "Advisor — Law Enforcement", role: "Retired DCI, 24 yrs service", Icon: BuildingIcon, skills: "NPCC, evidence law, court liaison" },
                 ].map((m, i) => (
                   <div key={i} style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "12px 0", borderBottom: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                    <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, rgba(59,130,246,0.3), rgba(29,78,216,0.2))", display: "flex", alignItems: "center", justifyContent: "center", color: "#60A5FA", flexShrink: 0 }}><m.Icon size={18} /></div>
+                    <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: BLUE, display: "flex", alignItems: "center", justifyContent: "center", color: "#60A5FA", flexShrink: 0 }}><m.Icon size={18} /></div>
                     <div>
                       <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#F1F5F9", marginBottom: "2px" }}>{m.name}</div>
                       <div style={{ fontSize: "0.75rem", color: BLUE, fontWeight: 600, marginBottom: "3px" }}>{m.role}</div>
@@ -742,17 +742,17 @@ export default function InvestorsPage() {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column" as const, gap: "16px" }}>
-                <div style={{ ...cardStyle, background: "linear-gradient(135deg, rgba(29,78,216,0.18), rgba(14,17,23,0.9))", borderColor: "rgba(59,130,246,0.4)" }}>
+                <div style={{ ...cardStyle, background: "var(--bg-card)", borderColor: "rgba(59,130,246,0.4)" }}>
                   <h3 style={{ color: "#60A5FA", fontWeight: 900, fontSize: "1.2rem", marginBottom: "8px" }}>The Investment Ask</h3>
-                  <div style={{ fontSize: "2.5rem", fontWeight: 900, color: "#F1F5F9", marginBottom: "8px" }}>£2.5M <span style={{ fontSize: "1rem", color: "#94A3B8", fontWeight: 400 }}>Seed Round</span></div>
+                  <div style={{ fontSize: "2.5rem", fontWeight: 900, color: "#F1F5F9", marginBottom: "8px" }}>₹20 Cr <span style={{ fontSize: "1rem", color: "#94A3B8", fontWeight: 400 }}>Seed Round</span></div>
                   <div style={{ fontSize: "0.85rem", color: "#94A3B8", lineHeight: 1.6, marginBottom: "16px" }}>
                     Seeking strategic investors with law enforcement, security tech, or government technology networks. We offer board observation rights, pro-rata rights in Series A.
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                     {[
                       { label: "Equity Offered", value: "15–18%" },
-                      { label: "Valuation Cap", value: "£14M" },
-                      { label: "Min. Ticket", value: "£50K" },
+                      { label: "Valuation Cap", value: "₹120 Cr" },
+                      { label: "Min. Ticket", value: "₹50 Lakh" },
                       { label: "Close Date", value: "Q3 2026" },
                     ].map((d, i) => (
                       <div key={i} style={{ padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
@@ -780,15 +780,15 @@ export default function InvestorsPage() {
             </div>
 
             {/* CTA */}
-            <div style={{ ...cardStyle, textAlign: "center" as const, background: "linear-gradient(135deg, rgba(29,78,216,0.2), rgba(14,17,23,0.95))", borderColor: "rgba(59,130,246,0.45)", padding: "40px" }}>
+            <div style={{ ...cardStyle, textAlign: "center" as const, background: "var(--bg-card)", borderColor: "rgba(59,130,246,0.45)", padding: "40px" }}>
               <div style={{ fontSize: "1.4rem", fontWeight: 900, color: "#F1F5F9", marginBottom: "8px" }}>
                 Ready to Back the Future of Law Enforcement AI?
               </div>
               <div style={{ fontSize: "0.9rem", color: "#94A3B8", marginBottom: "24px", maxWidth: "500px", margin: "0 auto 24px" }}>
-                SentinelVision is production-ready, with real investigative workflows, AI pipelines, and a platform built for the courtroom. Every pound invested goes directly to expansion and adoption.
+                SentinelVision is production-ready, with real investigative workflows, AI pipelines, and a platform built for the courtroom. Every rupee invested goes directly to expansion and adoption.
               </div>
               <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
-                <div style={{ padding: "12px 28px", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", color: "white", borderRadius: "8px", fontWeight: 700, boxShadow: "0 4px 20px rgba(59,130,246,0.4)", fontSize: "0.9rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <div style={{ padding: "12px 28px", background: BLUE, color: "white", borderRadius: "8px", fontWeight: 700, boxShadow: "0 4px 16px rgba(59,130,246,0.28)", fontSize: "0.9rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
                   <MailIcon size={16} /> Request Full Pitch Pack
                 </div>
                 <div style={{ padding: "12px 28px", background: "rgba(255,255,255,0.05)", color: "#F1F5F9", borderRadius: "8px", fontWeight: 700, border: "1px solid rgba(255,255,255,0.12)", fontSize: "0.9rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>

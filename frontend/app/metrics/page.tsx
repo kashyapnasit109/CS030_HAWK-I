@@ -14,7 +14,7 @@ import {
   LockIcon
 } from "@/components/Icons";
 
-const CYAN = "#00E5FF";
+const CYAN = "#3B82F6";
 const GREEN = "#00FF88";
 const RED = "#E94560";
 const BLUE = "#3B82F6";
@@ -161,8 +161,8 @@ export default function MetricsPage() {
           <div>
             <div style={{
               display: "inline-flex", alignItems: "center", gap: "8px",
-              padding: "5px 14px", background: "rgba(0,229,255,0.1)",
-              border: "1px solid rgba(0,229,255,0.3)", borderRadius: "100px",
+              padding: "5px 14px", background: "rgba(59,130,246,0.1)",
+              border: "1px solid rgba(59,130,246,0.3)", borderRadius: "100px",
               fontSize: "0.7rem", fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: "0.8px",
               marginBottom: "12px"
             }}>
@@ -180,7 +180,7 @@ export default function MetricsPage() {
             className="btn btn-primary btn-lg"
             onClick={runLiveBenchmark}
             disabled={runningBenchmark}
-            style={{ display: "flex", alignItems: "center", gap: 8, boxShadow: "0 0 24px rgba(0,229,255,0.25)" }}
+            style={{ display: "flex", alignItems: "center", gap: 8, boxShadow: "0 0 24px rgba(59,130,246,0.25)" }}
           >
             <SparklesIcon size={18} />
             {runningBenchmark ? `Testing Models (${benchmarkProgress}%)` : "Run Live Accuracy Benchmark"}
@@ -189,14 +189,14 @@ export default function MetricsPage() {
 
         {/* Benchmark Execution Card */}
         {(runningBenchmark || benchmarkResult) && (
-          <div className="card" style={{ marginBottom: "32px", borderColor: CYAN, background: "rgba(0,229,255,0.04)" }}>
+          <div className="card" style={{ marginBottom: "32px", borderColor: CYAN, background: "rgba(59,130,246,0.04)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <ActivityIcon size={20} style={{ color: CYAN }} />
                 <span style={{ fontWeight: 800, fontSize: "1.1rem" }}>Live Model Accuracy Validation Suite</span>
               </div>
               {runningBenchmark && (
-                <span className="badge badge-cyan" style={{ animation: "pulse 1s infinite" }}>Running Inference Tests…</span>
+                <span className="badge badge-blue" style={{ animation: "pulse 1s infinite" }}>Running Inference Tests…</span>
               )}
               {benchmarkResult && (
                 <span className="badge badge-green" style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -243,7 +243,7 @@ export default function MetricsPage() {
         {/* Global Key Stats Bar */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "20px", marginBottom: "36px" }}>
           <div className="card" style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(0,229,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: CYAN }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(59,130,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: CYAN }}>
               <TargetIcon size={24} />
             </div>
             <div>

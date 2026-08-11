@@ -348,16 +348,16 @@ export default function SettingsPage() {
                   padding: "10px 16px",
                   borderRadius: "8px 8px 0 0",
                   border: "none",
-                  borderBottom: isActive ? "2px solid var(--cyan)" : "2px solid transparent",
+                  borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
                   background: isActive ? "var(--bg-card)" : "transparent",
-                  color: isActive ? "var(--cyan)" : "var(--text-secondary)",
+                  color: isActive ? "var(--accent)" : "var(--text-secondary)",
                   cursor: "pointer",
                   fontSize: "0.85rem",
                   fontWeight: 600,
                   transition: "var(--transition)",
                 }}
               >
-                <tab.Icon size={14} style={{ color: isActive ? "var(--cyan)" : "var(--text-muted)" }} />
+                <tab.Icon size={14} style={{ color: isActive ? "var(--accent)" : "var(--text-muted)" }} />
                 {tab.label}
               </button>
             );
@@ -490,20 +490,20 @@ export default function SettingsPage() {
                                   padding: "14px 18px",
                                   borderRadius: "10px",
                                   border: isSelected
-                                    ? isCudaDevice ? "2px solid var(--cyan)" : "2px solid var(--accent)"
+                                    ? isCudaDevice ? "2px solid var(--accent)" : "2px solid var(--accent)"
                                     : "1px solid var(--border)",
                                   background: isSelected
-                                    ? isCudaDevice ? "rgba(0,212,255,0.07)" : "rgba(0,255,136,0.05)"
+                                    ? isCudaDevice ? "rgba(59,130,246,0.07)" : "rgba(34,197,94,0.05)"
                                     : "var(--bg-elevated)",
                                   cursor: "pointer",
                                   transition: "all 0.18s ease",
-                                  boxShadow: isSelected ? (isCudaDevice ? "0 0 18px rgba(0,212,255,0.12)" : "0 0 14px rgba(0,255,136,0.08)") : "none",
+                                  boxShadow: isSelected ? (isCudaDevice ? "0 0 18px rgba(59,130,246,0.12)" : "0 0 14px rgba(34,197,94,0.08)") : "none",
                                 }}
                               >
                                 {/* Device Icon */}
                                 <div style={{
                                   width: "44px", height: "44px", borderRadius: "10px",
-                                  background: isCudaDevice ? "rgba(0,212,255,0.12)" : "rgba(160,160,160,0.1)",
+                                  background: isCudaDevice ? "rgba(59,130,246,0.12)" : "rgba(160,160,160,0.1)",
                                   display: "flex", alignItems: "center", justifyContent: "center",
                                   fontSize: "1.4rem", flexShrink: 0
                                 }}>
@@ -517,10 +517,10 @@ export default function SettingsPage() {
                                       {dev.name}
                                     </span>
                                     {isCudaDevice && (
-                                      <span style={{ fontSize: "0.65rem", background: "rgba(0,212,255,0.15)", color: "var(--cyan)", border: "1px solid rgba(0,212,255,0.3)", borderRadius: "4px", padding: "1px 6px", fontWeight: 700, flexShrink: 0 }}>CUDA</span>
+                                      <span style={{ fontSize: "0.65rem", background: "rgba(59,130,246,0.15)", color: "var(--accent)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: "4px", padding: "1px 6px", fontWeight: 700, flexShrink: 0 }}>CUDA</span>
                                     )}
                                     {isSelected && (
-                                      <span style={{ fontSize: "0.65rem", background: isCudaDevice ? "rgba(0,212,255,0.2)" : "rgba(0,255,136,0.15)", color: isCudaDevice ? "var(--cyan)" : "var(--green)", border: `1px solid ${isCudaDevice ? "rgba(0,212,255,0.4)" : "rgba(0,255,136,0.3)"}`, borderRadius: "4px", padding: "1px 8px", fontWeight: 700, flexShrink: 0 }}>🟢 Active</span>
+                                      <span style={{ fontSize: "0.65rem", background: isCudaDevice ? "rgba(59,130,246,0.2)" : "rgba(34,197,94,0.15)", color: isCudaDevice ? "var(--accent)" : "var(--green)", border: `1px solid ${isCudaDevice ? "rgba(59,130,246,0.4)" : "rgba(34,197,94,0.3)"}`, borderRadius: "4px", padding: "1px 8px", fontWeight: 700, flexShrink: 0 }}>🟢 Active</span>
                                     )}
                                   </div>
 
@@ -544,8 +544,8 @@ export default function SettingsPage() {
                                 {/* Radio dot */}
                                 <div style={{
                                   width: "18px", height: "18px", borderRadius: "50%",
-                                  border: `2px solid ${isSelected ? (isCudaDevice ? "var(--cyan)" : "var(--accent)") : "var(--border)"}`,
-                                  background: isSelected ? (isCudaDevice ? "var(--cyan)" : "var(--accent)") : "transparent",
+                                  border: `2px solid ${isSelected ? (isCudaDevice ? "var(--accent)" : "var(--accent)") : "var(--border)"}`,
+                                  background: isSelected ? (isCudaDevice ? "var(--accent)" : "var(--accent)") : "transparent",
                                   flexShrink: 0, transition: "all 0.18s ease"
                                 }} />
                               </div>
@@ -554,9 +554,9 @@ export default function SettingsPage() {
 
                           {/* RTX performance tip */}
                           {settings.ai.device_provider === "CUDA" && (
-                            <div style={{ padding: "10px 14px", background: "rgba(0,212,255,0.05)", border: "1px solid rgba(0,212,255,0.15)", borderRadius: "8px", fontSize: "0.78rem", color: "var(--text-secondary)", display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                            <div style={{ padding: "10px 14px", background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.15)", borderRadius: "8px", fontSize: "0.78rem", color: "var(--text-secondary)", display: "flex", alignItems: "flex-start", gap: "8px" }}>
                               <span style={{ fontSize: "1rem", flexShrink: 0 }}>⚡</span>
-                              <span><strong style={{ color: "var(--cyan)" }}>GPU acceleration active.</strong> YOLO, FaceNet, and LPR inference will run on your dedicated GPU — expect 5–15× faster analysis compared to CPU mode. Make sure your PyTorch installation includes CUDA support.</span>
+                              <span><strong style={{ color: "var(--accent)" }}>GPU acceleration active.</strong> YOLO, FaceNet, and LPR inference will run on your dedicated GPU — expect 5–15× faster analysis compared to CPU mode. Make sure your PyTorch installation includes CUDA support.</span>
                             </div>
                           )}
                         </div>
@@ -849,7 +849,7 @@ export default function SettingsPage() {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                     <div style={{ padding: "16px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "8px" }}>
                       <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: "bold" }}>Active Object Detection Model</span>
-                      <h3 style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--cyan)", margin: "4px 0 8px 0" }}>
+                      <h3 style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--accent)", margin: "4px 0 8px 0" }}>
                         {settings.ai_models?.models?.find((m: any) => m.id === settings.ai_models?.active_object_model)?.name || "YOLOv8 Nano (Default)"}
                       </h3>
                       <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
@@ -859,7 +859,7 @@ export default function SettingsPage() {
 
                     <div style={{ padding: "16px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "8px" }}>
                       <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: "bold" }}>Active Face Recognition Model</span>
-                      <h3 style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--cyan)", margin: "4px 0 8px 0" }}>
+                      <h3 style={{ fontSize: "1.1rem", fontWeight: "bold", color: "var(--accent)", margin: "4px 0 8px 0" }}>
                         {settings.ai_models?.models?.find((m: any) => m.id === settings.ai_models?.active_face_model)?.name || "FaceNet ONNX (Default)"}
                       </h3>
                       <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
@@ -895,7 +895,7 @@ export default function SettingsPage() {
                                   </span>
                                 </td>
                                 <td style={{ padding: "12px 10px" }}>
-                                  <span style={{ color: model.is_custom ? "var(--cyan)" : "var(--text-muted)" }}>
+                                  <span style={{ color: model.is_custom ? "var(--accent)" : "var(--text-muted)" }}>
                                     {model.is_custom ? (model.download_url === "uploaded" ? "Local Upload" : "Downloaded URL") : "Built-in"}
                                   </span>
                                 </td>
@@ -915,7 +915,7 @@ export default function SettingsPage() {
                                       <button
                                         type="button"
                                         onClick={() => handleActivateModel(model.id)}
-                                        style={{ background: "transparent", color: "var(--cyan)", border: "1px solid var(--cyan)", borderRadius: "4px", padding: "4px 10px", fontSize: "0.75rem", cursor: "pointer", fontWeight: "bold" }}
+                                        style={{ background: "transparent", color: "var(--accent)", border: "1px solid var(--accent)", borderRadius: "4px", padding: "4px 10px", fontSize: "0.75rem", cursor: "pointer", fontWeight: "bold" }}
                                       >
                                         Activate
                                       </button>
@@ -948,7 +948,7 @@ export default function SettingsPage() {
                     {/* URL Download Form */}
                     <div style={{ padding: "20px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "8px" }}>
                       <h3 style={{ color: "var(--text-primary)", fontSize: "1rem", fontWeight: 700, margin: "0 0 16px 0", display: "flex", alignItems: "center", gap: "8px" }}>
-                        <DownloadIcon size={16} style={{ color: "var(--cyan)" }} /> Download Model from Internet
+                        <DownloadIcon size={16} style={{ color: "var(--accent)" }} /> Download Model from Internet
                       </h3>
                       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         <div className="input-group" style={{ marginBottom: 0 }}>
@@ -977,7 +977,7 @@ export default function SettingsPage() {
                           onClick={handleDownloadModel}
                           disabled={downloading}
                           style={{
-                            background: "var(--cyan)",
+                            background: "var(--accent)",
                             color: "#05080C",
                             border: "none",
                             borderRadius: "8px",
@@ -998,7 +998,7 @@ export default function SettingsPage() {
                     {/* Local File Upload Form */}
                     <div style={{ padding: "20px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "8px" }}>
                       <h3 style={{ color: "var(--text-primary)", fontSize: "1rem", fontWeight: 700, margin: "0 0 16px 0", display: "flex", alignItems: "center", gap: "8px" }}>
-                        <PackageIcon size={16} style={{ color: "var(--cyan)" }} /> Upload Local Weights File
+                        <PackageIcon size={16} style={{ color: "var(--accent)" }} /> Upload Local Weights File
                       </h3>
                       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         <div className="input-group" style={{ marginBottom: 0 }}>
@@ -1034,7 +1034,7 @@ export default function SettingsPage() {
                           onClick={handleUploadModel}
                           disabled={uploading}
                           style={{
-                            background: "var(--cyan)",
+                            background: "var(--accent)",
                             color: "#05080C",
                             border: "none",
                             borderRadius: "8px",
@@ -1064,7 +1064,7 @@ export default function SettingsPage() {
                 type="submit"
                 disabled={saving}
                 style={{
-                  background: "var(--cyan)",
+                  background: "var(--accent)",
                   color: "#05080C",
                   border: "none",
                   borderRadius: "8px",
@@ -1072,7 +1072,7 @@ export default function SettingsPage() {
                   fontWeight: "bold",
                   fontSize: "0.9rem",
                   cursor: "pointer",
-                  boxShadow: "0 4px 20px rgba(0,212,255,0.2)",
+                  boxShadow: "0 4px 20px rgba(59,130,246,0.2)",
                   transition: "var(--transition)"
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.filter = "brightness(1.1)"}

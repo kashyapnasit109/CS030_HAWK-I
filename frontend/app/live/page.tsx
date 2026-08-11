@@ -294,7 +294,7 @@ export default function LivePage() {
             onClick={toggleScan}
             className={`btn ${isScanning ? "btn-secondary" : "btn-primary"}`}
             style={{
-              background: isScanning ? "rgba(233, 94, 69, 0.2)" : "linear-gradient(135deg, var(--accent) 0%, #342650ff 100%)",
+              background: isScanning ? "rgba(233, 94, 69, 0.2)" : "var(--accent)",
               borderColor: isScanning ? "var(--accent)" : "none",
               color: "white",
               fontWeight: 800,
@@ -349,7 +349,7 @@ export default function LivePage() {
               style={{
                 padding: 10,
                 background: "#08080f",
-                borderColor: activeCam === "CAM-02" ? "var(--cyan)" : "var(--border)",
+                borderColor: activeCam === "CAM-02" ? "var(--accent)" : "var(--border)",
                 cursor: "pointer",
                 position: "relative"
               }}
@@ -422,7 +422,7 @@ export default function LivePage() {
               style={{
                 padding: 10,
                 background: "#08080f",
-                borderColor: activeCam === "CAM-03" ? "var(--cyan)" : "var(--border)",
+                borderColor: activeCam === "CAM-03" ? "var(--accent)" : "var(--border)",
                 cursor: "pointer"
               }}
               onClick={() => setActiveCam("CAM-03")}
@@ -454,7 +454,7 @@ export default function LivePage() {
               style={{
                 padding: 10,
                 background: "#08080f",
-                borderColor: activeCam === "CAM-04" ? "var(--cyan)" : "var(--border)",
+                borderColor: activeCam === "CAM-04" ? "var(--accent)" : "var(--border)",
                 cursor: "pointer"
               }}
               onClick={() => setActiveCam("CAM-04")}

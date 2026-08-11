@@ -507,7 +507,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#050709", fontFamily: "sans-serif", padding: "20px" }}>
         <div style={{ width: "100%", maxWidth: "420px", background: "#0A0D12", border: "1px solid rgba(59,130,246,0.18)", borderRadius: "20px", padding: "32px", boxShadow: "0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(59,130,246,0.08)" }}>
           <div style={{ textAlign: "center", marginBottom: "24px" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "52px", height: "52px", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", borderRadius: "14px", marginBottom: "12px", boxShadow: "0 0 24px rgba(59,130,246,0.45)" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "52px", height: "52px", background: "var(--accent)", borderRadius: "14px", marginBottom: "12px", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}>
               <EyeIcon size={26} style={{ color: "white" }} />
             </div>
             <h1 style={{ color: "#F1F5F9", fontSize: "1.6rem", fontWeight: 700, margin: 0, letterSpacing: "-0.5px" }}>Sentinel<span style={{ color: "#60A5FA" }}>Vision</span></h1>
@@ -526,7 +526,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   padding: "8px 16px",
                   borderRadius: "7px",
                   border: "none",
-                  background: authMode === "login" ? "linear-gradient(135deg, #2563EB, #1D4ED8)" : "transparent",
+                  background: authMode === "login" ? "var(--accent)" : "transparent",
                   color: authMode === "login" ? "white" : "#94a3b8",
                   fontWeight: 700,
                   fontSize: "0.85rem",
@@ -546,7 +546,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   padding: "8px 16px",
                   borderRadius: "7px",
                   border: "none",
-                  background: authMode === "signup" ? "linear-gradient(135deg, #2563EB, #1D4ED8)" : "transparent",
+                  background: authMode === "signup" ? "var(--accent)" : "transparent",
                   color: authMode === "signup" ? "white" : "#94a3b8",
                   fontWeight: 700,
                   fontSize: "0.85rem",
@@ -585,7 +585,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <button 
                 type="submit" 
                 disabled={loading}
-                style={{ width: "100%", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px rgba(59,130,246,0.4)" }}
+                style={{ width: "100%", background: "var(--accent)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}
               >
                 {loading ? "Verifying..." : "Verify Code"}
               </button>
@@ -630,7 +630,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 type="submit" 
                 suppressHydrationWarning
                 disabled={loading}
-                style={{ width: "100%", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s all", boxShadow: "0 4px 16px rgba(59,130,246,0.4)" }}
+                style={{ width: "100%", background: "var(--accent)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s all", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}
               >
                 {loading ? "Authenticating..." : "Sign In"}
               </button>
@@ -709,7 +709,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <button 
                 type="submit" 
                 disabled={loading}
-                style={{ width: "100%", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s all", boxShadow: "0 4px 16px rgba(59,130,246,0.4)" }}
+                style={{ width: "100%", background: "var(--accent)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s all", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}
               >
                 {loading ? "Creating Account..." : "Create Account"}
               </button>
@@ -726,7 +726,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <header className="topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
           <div className="topbar-logo" style={{ cursor: "pointer" }} onClick={() => router.push("/")}>
-            <div className="icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "30px", height: "30px", background: "linear-gradient(135deg, #2563EB, #1D4ED8)", borderRadius: "7px", boxShadow: "0 0 12px rgba(59,130,246,0.4)" }}>
+            <div className="icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "30px", height: "30px", background: "var(--accent)", borderRadius: "7px", boxShadow: "0 2px 8px rgba(59,130,246,0.25)" }}>
               <EyeIcon size={16} style={{ color: "white" }} />
             </div>
             <span>Sentinel<span className="accent">Vision</span></span>

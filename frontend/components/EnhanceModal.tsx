@@ -110,7 +110,7 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
           maxHeight: "92vh",
           display: "flex", flexDirection: "column",
           overflow: "hidden",
-          boxShadow: "0 32px 80px rgba(0,0,0,0.9), 0 0 60px rgba(0,212,255,0.15)",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.9), 0 0 60px rgba(59,130,246,0.15)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -124,7 +124,7 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
               width: 32, height: 32, borderRadius: "50%",
-              background: "linear-gradient(135deg, var(--cyan), var(--accent))",
+              background: "var(--accent)",
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "white"
             }}>
@@ -198,7 +198,7 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                   onMouseMove={handleMouseMove}
                   style={{
                     position: "relative", width: "100%", height: 360,
-                    borderRadius: 10, overflow: "hidden", border: "1.5px solid var(--cyan)",
+                    borderRadius: 10, overflow: "hidden", border: "1.5px solid var(--accent)",
                     cursor: "ew-resize", userSelect: "none", background: "#000"
                   }}
                 >
@@ -217,8 +217,8 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                   <div style={{
                     position: "absolute", top: 0, bottom: 0, left: 0,
                     width: `${sliderPos}%`, overflow: "hidden",
-                    borderRight: "2px solid var(--cyan)",
-                    boxShadow: "2px 0 10px rgba(0,212,255,0.6)"
+                    borderRight: "2px solid var(--accent)",
+                    boxShadow: "2px 0 10px rgba(59,130,246,0.6)"
                   }}>
                     <img
                       src={originalUrl}
@@ -240,10 +240,10 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                   }}>
                     <div style={{
                       width: 26, height: 26, borderRadius: "50%",
-                      background: "var(--cyan)", color: "#000",
+                      background: "var(--accent)", color: "#fff",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontWeight: 900, fontSize: "0.7rem",
-                      boxShadow: "0 0 12px rgba(0,212,255,0.8)"
+                      boxShadow: "0 0 12px rgba(59,130,246,0.8)"
                     }}>
                       <ArrowRightLeftIcon size={12} />
                     </div>
@@ -260,9 +260,9 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                   </div>
                   <div style={{
                     position: "absolute", top: 10, right: 10,
-                    background: "rgba(0,212,255,0.2)", border: "1px solid var(--cyan)",
+                    background: "rgba(59,130,246,0.2)", border: "1px solid var(--accent)",
                     backdropFilter: "blur(4px)", padding: "4px 10px", borderRadius: 4,
-                    fontSize: "0.65rem", fontWeight: 800, color: "var(--cyan)",
+                    fontSize: "0.65rem", fontWeight: 800, color: "var(--accent)",
                     display: "flex", alignItems: "center", gap: 5
                   }}>
                     <SparklesIcon size={12} /> AI ENHANCED ({enhancedResult.metadata.scale_factor}x)
@@ -284,7 +284,7 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                   </div>
                   <div>
                     <div style={{ fontSize: "0.6rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Enhanced Res</div>
-                    <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "var(--cyan)", fontFamily: "JetBrains Mono, monospace" }}>
+                    <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "var(--accent)", fontFamily: "JetBrains Mono, monospace" }}>
                       {enhancedResult.metadata.enhanced_width} × {enhancedResult.metadata.enhanced_height}
                     </div>
                   </div>
@@ -321,14 +321,14 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                     style={{
                       display: "flex", flexDirection: "column", alignItems: "flex-start",
                       padding: "10px 12px", borderRadius: 8, cursor: "pointer",
-                      background: mode === p.id ? "rgba(0,212,255,0.12)" : "var(--bg-elevated)",
-                      border: `1px solid ${mode === p.id ? "var(--cyan)" : "var(--border)"}`,
+                      background: mode === p.id ? "rgba(59,130,246,0.12)" : "var(--bg-elevated)",
+                      border: `1px solid ${mode === p.id ? "var(--accent)" : "var(--border)"}`,
                       transition: "all 0.15s ease", textAlign: "left"
                     }}
                   >
                     <span style={{
                       fontWeight: 700, fontSize: "0.78rem",
-                      color: mode === p.id ? "var(--cyan)" : "var(--text-primary)",
+                      color: mode === p.id ? "var(--accent)" : "var(--text-primary)",
                       display: "flex", alignItems: "center", gap: 6
                     }}>
                       {p.icon} {p.label}
@@ -351,7 +351,7 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginBottom: 4 }}>
                   <span style={{ color: "var(--text-secondary)" }}>Upscale Resolution:</span>
-                  <span style={{ fontWeight: 800, color: "var(--cyan)" }}>{scaleFactor}x</span>
+                  <span style={{ fontWeight: 800, color: "var(--accent)" }}>{scaleFactor}x</span>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   {[1.5, 2.0, 4.0, 8.0].map((s) => (
@@ -361,9 +361,9 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                       className="btn btn-sm"
                       style={{
                         flex: 1, padding: "4px 0", fontSize: "0.7rem",
-                        background: scaleFactor === s ? "var(--cyan-dim)" : "var(--bg-elevated)",
-                        color: scaleFactor === s ? "var(--cyan)" : "var(--text-secondary)",
-                        border: `1px solid ${scaleFactor === s ? "var(--cyan)" : "var(--border)"}`
+                        background: scaleFactor === s ? "var(--accent-dim)" : "var(--bg-elevated)",
+                        color: scaleFactor === s ? "var(--accent)" : "var(--text-secondary)",
+                        border: `1px solid ${scaleFactor === s ? "var(--accent)" : "var(--border)"}`
                       }}
                     >
                       {s}x
@@ -382,7 +382,7 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                   type="range" min="0.5" max="3.0" step="0.1"
                   value={sharpness}
                   onChange={(e) => setSharpness(parseFloat(e.target.value))}
-                  style={{ width: "100%", accentColor: "var(--cyan)" }}
+                  style={{ width: "100%", accentColor: "var(--accent)" }}
                 />
               </div>
 
@@ -411,10 +411,10 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                   onClick={() => setEngine("local_ai")}
                   style={{
                     flex: 1, padding: "8px 10px", borderRadius: 6, cursor: "pointer",
-                    background: engine === "local_ai" ? "rgba(0,212,255,0.1)" : "var(--bg-elevated)",
-                    border: `1px solid ${engine === "local_ai" ? "var(--cyan)" : "var(--border)"}`,
+                    background: engine === "local_ai" ? "rgba(59,130,246,0.1)" : "var(--bg-elevated)",
+                    border: `1px solid ${engine === "local_ai" ? "var(--accent)" : "var(--border)"}`,
                     fontSize: "0.72rem", fontWeight: 700,
-                    color: engine === "local_ai" ? "var(--cyan)" : "var(--text-secondary)"
+                    color: engine === "local_ai" ? "var(--accent)" : "var(--text-secondary)"
                   }}
                 >
                   Local AI (Free / Instant)

@@ -263,12 +263,15 @@ def _demo_keyword_search(
 
     try:
         while cap.isOpened():
+            # Only fully decode sampled frames; grab() skips the rest cheaply.
+            if frame_idx % frame_interval != 0:
+                if not cap.grab():
+                    break
+                frame_idx += 1
+                continue
             success, frame = cap.read()
             if not success:
                 break
-            if frame_idx % frame_interval != 0:
-                frame_idx += 1
-                continue
 
             timestamp = frame_idx / video_fps
             if start_time is not None and timestamp < start_time:
@@ -459,12 +462,15 @@ def run_keyword_search(
 
         try:
             while cap.isOpened():
+                # Only fully decode sampled frames; grab() skips the rest cheaply.
+                if frame_idx % frame_interval != 0:
+                    if not cap.grab():
+                        break
+                    frame_idx += 1
+                    continue
                 success, frame = cap.read()
                 if not success:
                     break
-                if frame_idx % frame_interval != 0:
-                    frame_idx += 1
-                    continue
 
                 timestamp = frame_idx / video_fps
                 if start_time is not None and timestamp < start_time:

@@ -284,11 +284,11 @@ export default function PlaybackPage() {
               >
                 {/* Highlighted recorded zones */}
                 {/* seg1: 0 - 16.6% */}
-                <div style={{ position: "absolute", left: "0%", width: "16.6%", height: "100%", background: "rgba(45,212,191,0.15)", borderRight: "1px solid var(--accent)" }} />
+                <div style={{ position: "absolute", left: "0%", width: "16.6%", height: "100%", background: "rgba(59,130,246,0.15)", borderRight: "1px solid var(--accent)" }} />
                 {/* seg2: 35.4% - 41.6% */}
-                <div style={{ position: "absolute", left: "35.4%", width: "6.2%", height: "100%", background: "rgba(45,212,191,0.15)", borderLeft: "1px solid var(--accent)", borderRight: "1px solid var(--accent)" }} />
+                <div style={{ position: "absolute", left: "35.4%", width: "6.2%", height: "100%", background: "rgba(59,130,246,0.15)", borderLeft: "1px solid var(--accent)", borderRight: "1px solid var(--accent)" }} />
                 {/* seg3: 54.1% - 64.5% */}
-                <div style={{ position: "absolute", left: "54.1%", width: "10.4%", height: "100%", background: "rgba(45,212,191,0.15)", borderLeft: "1px solid var(--accent)", borderRight: "1px solid var(--accent)" }} />
+                <div style={{ position: "absolute", left: "54.1%", width: "10.4%", height: "100%", background: "rgba(59,130,246,0.15)", borderLeft: "1px solid var(--accent)", borderRight: "1px solid var(--accent)" }} />
 
                 {/* Vertical Hours grids */}
                 {Array.from({ length: 24 }).map((_, i) => (
@@ -343,7 +343,7 @@ export default function PlaybackPage() {
                     style={{
                       aspectRatio: "1/1",
                       borderRadius: "4px",
-                      background: val > 75 ? "#14B8A6" : val > 50 ? "#0D9488" : val > 25 ? "#0F766E" : "#115E59",
+                      background: val > 75 ? "var(--accent)" : val > 50 ? "#2563EB" : val > 25 ? "#1D4ED8" : "#1E3A8A",
                       opacity: val > 15 ? 1 : 0.2
                     }}
                     title={`Hour ${idx.toString().padStart(2, "0")}:00 -> Peak activity: ${val}%`}

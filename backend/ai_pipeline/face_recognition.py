@@ -180,9 +180,16 @@ def _get_face_recognizer(model_path: str):
     return _face_recognizer
 
 
-def _embed_face_crop(face_bgr: np.ndarray) -> np.ndarray:
-    """Convert a BGR face crop to a normalized embedding."""
-    model_path, is_custom = load_active_face_model_path()
+def _embed_face_crop(face_bgr: np.ndarray, model_info: tuple | None = None) -> np.ndarray:
+    """Convert a BGR face crop to a normalized embedding.
+
+    Pass a pre-resolved (model_path, is_custom) tuple to avoid re-reading
+    settings.json on every crop during a search.
+    """
+    if model_info is None:
+        model_path, is_custom = load_active_face_model_path()
+    else:
+        model_path, is_custom = model_info
     
     # Check if the active model should run in ONNX mode
     # It must be ONNX if the file is custom and ends with .onnx, or if it's the default facenet.onnx and ONNX is available
@@ -240,9 +247,10 @@ def build_reference_embeddings(reference_image_paths: list) -> tuple:
     FIXED: Now detects face in reference image first, then embeds only the face crop.
     """
     detector = _get_face_detector()
+    model_info = load_active_face_model_path()
     embeddings = []
     labels = []
-    
+
     use_onnx = _ONNX_AVAILABLE
     
     for img_path in reference_image_paths:
@@ -272,7 +280,7 @@ def build_reference_embeddings(reference_image_paths: list) -> tuple:
         # Embed either the face crop or the full image
         target = face_crop if face_crop is not None else img_bgr
         try:
-            emb = _embed_face_crop(target)
+            emb = _embed_face_crop(target, model_info)
             embeddings.append(emb)
         except Exception as e:
             print(f"[face_recognition] Failed to embed reference image {img_path.name}: {e}")
@@ -459,12 +467,15 @@ def _demo_face_search(
 
     try:
         while cap.isOpened():
+            # Only fully decode sampled frames; grab() skips the rest cheaply.
+            if frame_idx % frame_interval != 0:
+                if not cap.grab():
+                    break
+                frame_idx += 1
+                continue
             success, frame = cap.read()
             if not success:
                 break
-            if frame_idx % frame_interval != 0:
-                frame_idx += 1
-                continue
 
             timestamp = frame_idx / video_fps
             if start_time is not None and timestamp < start_time:
@@ -637,6 +648,7 @@ def run_face_recognition_search(
                 raise RuntimeError("YOLO face detector unavailable")
 
             db_tensor, db_labels = build_reference_embeddings(reference_image_paths)
+            model_info = load_active_face_model_path()
             device = _get_device()
             matches = []
 
@@ -647,12 +659,15 @@ def run_face_recognition_search(
 
             try:
                 while cap.isOpened():
+                    # Only fully decode sampled frames; grab() skips the rest cheaply.
+                    if frame_idx % frame_interval != 0:
+                        if not cap.grab():
+                            break
+                        frame_idx += 1
+                        continue
                     success, frame = cap.read()
                     if not success:
                         break
-                    if frame_idx % frame_interval != 0:
-                        frame_idx += 1
-                        continue
 
                     timestamp = frame_idx / video_fps
                     if start_time is not None and timestamp < start_time:
@@ -687,7 +702,7 @@ def run_face_recognition_search(
                             continue
 
                         try:
-                            face_emb = _embed_face_crop(face_crop)
+                            face_emb = _embed_face_crop(face_crop, model_info)
                         except Exception:
                             continue
 

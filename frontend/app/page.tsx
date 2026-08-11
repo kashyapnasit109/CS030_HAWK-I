@@ -292,7 +292,7 @@ export default function DashboardPage() {
           borderRadius: "16px",
           overflow: "hidden",
           marginBottom: "24px",
-          background: "linear-gradient(135deg, #090e16 0%, #0c182b 50%, #112440 100%)",
+          background: "var(--bg-card)",
           border: "1px solid var(--border)",
           padding: "36px 40px",
           display: "flex",
@@ -324,7 +324,7 @@ export default function DashboardPage() {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "8px",
-                  background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
+                  background: "var(--accent)",
                   color: "white",
                   border: "none",
                   borderRadius: "8px",
@@ -332,7 +332,7 @@ export default function DashboardPage() {
                   fontWeight: "bold",
                   fontSize: "0.88rem",
                   cursor: demoRunning ? "not-allowed" : "pointer",
-                  boxShadow: "0 4px 20px rgba(59,130,246,0.4)",
+                  boxShadow: "0 4px 16px rgba(59,130,246,0.28)",
                   transition: "var(--transition)",
                 }}
               >
@@ -556,7 +556,7 @@ export default function DashboardPage() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", fontWeight: "bold", color: "var(--accent)", marginBottom: "1px" }}>
-                          <span>TARGET EXTRACED</span>
+                          <span>TARGET EXTRACTED</span>
                           <span style={{ color: "var(--text-muted)" }}>{alt.timestamp_str}</span>
                         </div>
                         <div style={{ color: "var(--text-primary)", fontSize: "0.75rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
