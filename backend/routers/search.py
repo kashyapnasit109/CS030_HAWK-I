@@ -121,12 +121,13 @@ def _save_matches_to_db(job_id: str, matches: list[dict], search_type: str):
     """Save matches of a search job to detection_events, chain_of_custody, and reid_matches/person_attributes."""
     from database import DB_PATH
     import sqlite3
-    
+
+    conn = None
     try:
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        
+
         # Determine the active open case_id (or default to 1)
         cursor.execute("SELECT case_id FROM cases WHERE status = 'open' LIMIT 1;")
         case_row = cursor.fetchone()
@@ -170,28 +171,27 @@ def _save_matches_to_db(job_id: str, matches: list[dict], search_type: str):
                 (None, event_id, "ingested", 1, m.get("frame_hash", ""), f"Search match found: {m.get('label', '')}", time.time())
             )
             
-            # If face_recognition, write to reid_matches
+            # If face_recognition, write to reid_matches (links a reference image to this event)
             if search_type == "face_recognition":
                 cursor.execute(
-                    "SELECT ref_id FROM reference_images WHERE label = ? OR filename LIKE ? LIMIT 1;",
+                    "SELECT ref_id FROM reference_images WHERE label = ? OR image_path LIKE ? LIMIT 1;",
                     (m.get("label"), f"%{m.get('label')}%")
                 )
                 ref_row = cursor.fetchone()
                 ref_id = ref_row["ref_id"] if ref_row else None
-                
-                cursor.execute(
-                    """INSERT INTO reid_matches (case_id, reference_image_id, camera_id, confidence, matched_at, frame_hash, frame_path)
-                       VALUES (?, ?, ?, ?, ?, ?, ?);""",
-                    (
-                        case_id,
-                        ref_id,
-                        m.get("camera_id", "CAM-01"),
-                        m.get("confidence", 0.0),
-                        m.get("timestamp", time.time()),
-                        m.get("frame_hash", ""),
-                        m.get("frame_url", "")
+
+                # ref_id is NOT NULL in reid_matches; only record the link when we resolved a reference
+                if ref_id is not None:
+                    cursor.execute(
+                        """INSERT INTO reid_matches (ref_id, event_id, similarity_score, matched_at)
+                           VALUES (?, ?, ?, ?);""",
+                        (
+                            ref_id,
+                            event_id,
+                            m.get("confidence", 0.0),
+                            m.get("timestamp", time.time()),
+                        )
                     )
-                )
                 
             # If attributes, write to person_attributes
             if "attributes" in m:
@@ -213,6 +213,12 @@ def _save_matches_to_db(job_id: str, matches: list[dict], search_type: str):
         conn.close()
     except Exception as db_err:
         print(f"[search] Failed to save search matches to DB: {db_err}")
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def _update_progress(job_id: str, frames_processed: int, frames_matched: int):

@@ -5,6 +5,8 @@
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export type ApiError = Error & { status: number; isNetworkError?: boolean };
+
 export async function apiFetch<T>(
   path: string,
   options?: RequestInit
@@ -16,24 +18,36 @@ export async function apiFetch<T>(
       headers.set("Authorization", `Bearer ${token}`);
     }
   }
+  let res: Response;
   try {
-    const res = await fetch(`${BASE_URL}${path}`, {
-      ...options,
-      headers,
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      const err = new Error(body || `HTTP ${res.status}`) as Error & { status: number };
-      err.status = res.status;
-      throw err;
+    res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  } catch (err: unknown) {
+    // Network-level failure (backend down, DNS, CORS, offline). Surface a typed
+    // error instead of a fake empty object so callers don't cascade into
+    // `undefined`/`NaN`. Callers that catch will keep their safe initial state.
+    const e = new Error(
+      `Cannot reach VisionCCTV backend at ${BASE_URL}. Is the server running?`
+    ) as ApiError;
+    e.status = 0;
+    e.isNetworkError = true;
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`[apiFetch] network error for ${path}:`, (err as Error)?.message);
     }
-    return res.json() as Promise<T>;
-  } catch (err: any) {
-    if (err.name === "TypeError" && (err.message === "Failed to fetch" || err.message?.includes("fetch"))) {
-      console.warn(`[apiFetch] Server reconnecting for ${path}`);
-      return {} as T;
-    }
+    throw e;
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    const err = new Error(body || `HTTP ${res.status}`) as ApiError;
+    err.status = res.status;
     throw err;
+  }
+  // Tolerate empty / non-JSON bodies (e.g. 204 responses) without throwing.
+  const text = await res.text();
+  if (!text) return {} as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return {} as T;
   }
 }
 

@@ -282,10 +282,10 @@ def run_object_detection(
     }
 
     # Normalize target classes
+    is_weapon_search = False
     if target_classes:
         raw_targets = set(c.lower().strip() for c in target_classes)
         target_set = set()
-        is_weapon_search = False
         for c in raw_targets:
             target_set.add(c)
             mapped = SYNONYM_MAP.get(c, c)

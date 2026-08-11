@@ -299,7 +299,7 @@ def export_report(
         placeholders = ",".join(["?"] * len(hashes))
         try:
             cursor.execute(
-                f"""SELECT c.coc_id, c.action, c.hash_value, c.notes, c.created_at, u.name as username 
+                f"""SELECT c.custody_id, c.action, c.hash_value, c.notes, c.created_at, u.name as username
                    FROM chain_of_custody c
                    LEFT JOIN users u ON c.user_id = u.user_id
                    WHERE c.hash_value IN ({placeholders}) 

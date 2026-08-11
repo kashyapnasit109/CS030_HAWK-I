@@ -157,7 +157,7 @@ export default function LivePage() {
         ctx.putImageData(imgData, 0, 0);
 
         // Scanning Target Box
-        ctx.strokeStyle = isScanning ? "rgba(0, 212, 255, 0.4)" : "rgba(255, 255, 255, 0.15)";
+        ctx.strokeStyle = isScanning ? "rgba(59, 130, 246, 0.5)" : "rgba(255, 255, 255, 0.15)";
         ctx.lineWidth = 2;
         ctx.strokeRect(100, 60, 120, 80);
 
@@ -168,7 +168,7 @@ export default function LivePage() {
           [100, 140, 15, -15],
           [220, 140, -15, -15]
         ];
-        ctx.strokeStyle = isScanning ? "var(--cyan)" : "var(--text-muted)";
+        ctx.strokeStyle = isScanning ? "#3B82F6" : "#475569";
         ctx.lineWidth = 2;
         corners.forEach(([x, y, w, h]) => {
           ctx.beginPath();
@@ -180,18 +180,18 @@ export default function LivePage() {
         });
 
         // Camera Info Overlays
-        ctx.fillStyle = "rgba(0, 255, 136, 0.8)";
+        ctx.fillStyle = "rgba(239, 68, 68, 0.9)";
         ctx.font = "bold 10px monospace";
         ctx.fillText(`REC · ${label}`, 12, 22);
         ctx.fillText(new Date().toLocaleTimeString(), canvas.width - 80, 22);
 
         // Scanning animation text
         if (isScanning) {
-          ctx.fillStyle = "var(--cyan)";
+          ctx.fillStyle = "#3B82F6";
           ctx.font = "bold 9px monospace";
           ctx.fillText("SCANNING FOR TARGET...", 102, 54);
           scanY = (scanY + 2) % canvas.height;
-          ctx.fillStyle = "rgba(0, 212, 255, 0.08)";
+          ctx.fillStyle = "rgba(59, 130, 246, 0.08)";
           ctx.fillRect(0, scanY - 5, canvas.width, 10);
         }
 
@@ -316,7 +316,7 @@ export default function LivePage() {
               style={{
                 padding: 10,
                 background: "#08080f",
-                borderColor: activeCam === "CAM-01" ? "var(--cyan)" : "var(--border)",
+                borderColor: activeCam === "CAM-01" ? "var(--accent)" : "var(--border)",
                 cursor: "pointer"
               }}
               onClick={() => setActiveCam("CAM-01")}
@@ -327,7 +327,7 @@ export default function LivePage() {
                     src={getCameraStreamUrl(cameras[0].id)}
                     alt={cameras[0].name}
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    onError={(e) => { (e.target as HTMLElement).src = getCameraSnapshotUrl(cameras[0].id); }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = getCameraSnapshotUrl(cameras[0].id); }}
                   />
                 </div>
               ) : (

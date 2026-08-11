@@ -223,7 +223,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       let changed = false;
       const updatedJobs = await Promise.all(
-        savedJobs.map(async (job) => {
+        savedJobs.map(async (job): Promise<BgJob> => {
           if (job.status === "completed" || job.status === "failed") {
             return job;
           }
@@ -257,12 +257,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
             return {
               ...job,
-              status: status.status,
+              status: status.status as BgJob["status"],
               match_count: status.match_count,
               frames_processed: status.frames_processed,
               frames_matched: status.frames_matched,
               error: status.error
-            };
+            } as BgJob;
           } catch (err: any) {
             // If the server returns 404 the job no longer exists (e.g. after a
             // server restart which clears the in-memory job store).
@@ -274,7 +274,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               changed = true;
               return {
                 ...job,
-                status: "failed",
+                status: "failed" as const,
                 error: "Job not found (server was restarted — please run a new search)",
               };
             }
