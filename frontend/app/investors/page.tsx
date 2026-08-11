@@ -389,10 +389,10 @@ export default function InvestorsPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
                 <div>
                   <h3 style={{ color: "#F1F5F9", fontWeight: 800, fontSize: "1.15rem", margin: 0 }}>
-                    Judicial &amp; Benchmark Validated AI Model Metrics
+                    Target AI Model Performance
                   </h3>
                   <p style={{ color: "#94A3B8", fontSize: "0.85rem", margin: 0, marginTop: "4px" }}>
-                    Empirical performance metrics validated across 10,000+ real-world surveillance video test frames.
+                    Reference figures from published model benchmarks and system design goals — not measured from customer footage.
                   </p>
                 </div>
                 <a

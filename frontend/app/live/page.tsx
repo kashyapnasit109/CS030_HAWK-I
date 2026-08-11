@@ -218,7 +218,7 @@ export default function LivePage() {
     const newAlert: AlertItem = {
       id: Math.random().toString(36).slice(2, 6).toUpperCase(),
       cameraId: ["CAM-01", "CAM-02", "CAM-03", "CAM-04"][Math.floor(Math.random() * 4)],
-      cameraName: "Mock Feed Sighting",
+      cameraName: "Simulated Feed (demo)",
       time: new Date().toLocaleTimeString(),
       label: selectedRef.label,
       confidence: 0.82 + Math.random() * 0.16,
@@ -226,7 +226,7 @@ export default function LivePage() {
     };
 
     setAlerts((prev) => [newAlert, ...prev].slice(0, 15));
-    showToast(`TARGET SPOTTED on ${newAlert.cameraId}!`, "error");
+    showToast(`Simulated sighting on ${newAlert.cameraId} (demo mode)`, "info");
   }, [selectedRef]);
 
   // Simulated Alert timer (only runs when scanning and no real cameras exist)
@@ -280,6 +280,9 @@ export default function LivePage() {
     return "http://localhost:8000/storage/uploads/subway.mp4";
   };
 
+  // Demo mode: no real cameras registered, so feeds and alerts are simulated.
+  const isDemoMode = !loadingCams && cameras.length === 0;
+
   return (
     <ToastProvider>
       <AppLayout>
@@ -287,8 +290,17 @@ export default function LivePage() {
           <div>
             <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <SignalIcon size={24} style={{ color: "var(--accent)" }} /> Live Feed Alert Monitor
+              {isDemoMode && (
+                <span className="badge badge-yellow" style={{ fontSize: "0.65rem", letterSpacing: "0.05em" }}>
+                  SIMULATION MODE
+                </span>
+              )}
             </h1>
-            <p className="page-subtitle">Real-time surveillance footage processing with instant AI alert triggers.</p>
+            <p className="page-subtitle">
+              {isDemoMode
+                ? "No cameras registered — showing simulated feeds and sample alerts. Add a camera to monitor real footage."
+                : "Real-time surveillance footage processing with instant AI alert triggers."}
+            </p>
           </div>
           <button
             onClick={toggleScan}
@@ -298,7 +310,7 @@ export default function LivePage() {
               borderColor: isScanning ? "var(--accent)" : "none",
               color: "white",
               fontWeight: 800,
-              boxShadow: isScanning ? "none" : "0 4px 20px rgba(148, 69, 233, 0.3)",
+              boxShadow: isScanning ? "none" : "0 4px 20px rgba(59, 130, 246, 0.3)",
             }}
           >
             {isScanning

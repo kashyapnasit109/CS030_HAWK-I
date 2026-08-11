@@ -15,8 +15,8 @@ import {
 } from "@/components/Icons";
 
 const CYAN = "#3B82F6";
-const GREEN = "#00FF88";
-const RED = "#E94560";
+const GREEN = "#22C55E";
+const RED = "#EF4444";
 const BLUE = "#3B82F6";
 
 interface MetricCardProps {
@@ -166,13 +166,13 @@ export default function MetricsPage() {
               fontSize: "0.7rem", fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: "0.8px",
               marginBottom: "12px"
             }}>
-              <ScienceIcon size={12} /> Judicial &amp; Investor Verification Benchmark
+              <ScienceIcon size={12} /> Model Performance Reference
             </div>
             <h1 style={{ fontSize: "2.2rem", fontWeight: 900, letterSpacing: "-1px", color: "var(--text-primary)" }}>
-              AI Model Testing &amp; <span style={{ color: CYAN }}>Accuracy Metrics</span>
+              AI Model <span style={{ color: CYAN }}>Reference Specs</span>
             </h1>
             <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", maxWidth: "680px", marginTop: "6px" }}>
-              Empirical performance benchmarks, mAP scores, and inference speed metrics validated across real-world surveillance video footage datasets.
+              Target performance specifications and published benchmarks for the detection models used in this system. Figures are reference values, not live measurements from your footage.
             </p>
           </div>
 
@@ -183,7 +183,7 @@ export default function MetricsPage() {
             style={{ display: "flex", alignItems: "center", gap: 8, boxShadow: "0 0 24px rgba(59,130,246,0.25)" }}
           >
             <SparklesIcon size={18} />
-            {runningBenchmark ? `Testing Models (${benchmarkProgress}%)` : "Run Live Accuracy Benchmark"}
+            {runningBenchmark ? `Running Demo (${benchmarkProgress}%)` : "Run Sample Benchmark (Demo)"}
           </button>
         </div>
 
@@ -193,14 +193,14 @@ export default function MetricsPage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <ActivityIcon size={20} style={{ color: CYAN }} />
-                <span style={{ fontWeight: 800, fontSize: "1.1rem" }}>Live Model Accuracy Validation Suite</span>
+                <span style={{ fontWeight: 800, fontSize: "1.1rem" }}>Sample Benchmark Walkthrough (Demo)</span>
               </div>
               {runningBenchmark && (
-                <span className="badge badge-blue" style={{ animation: "pulse 1s infinite" }}>Running Inference Tests…</span>
+                <span className="badge badge-blue" style={{ animation: "pulse 1s infinite" }}>Simulating…</span>
               )}
               {benchmarkResult && (
-                <span className="badge badge-green" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <CheckIcon size={12} /> Test Complete (100% Passed)
+                <span className="badge badge-blue" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <CheckIcon size={12} /> Demo Complete (illustrative)
                 </span>
               )}
             </div>
@@ -211,7 +211,7 @@ export default function MetricsPage() {
                   <div className="progress-bar-fill" style={{ width: `${benchmarkProgress}%`, background: CYAN }} />
                 </div>
                 <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
-                  <span>Evaluating YOLOv8 Object Detection &amp; Face Matching Precision…</span>
+                  <span>Simulated walkthrough — no footage is being processed in this demo.</span>
                   <span>{benchmarkProgress}%</span>
                 </div>
               </div>
@@ -220,19 +220,19 @@ export default function MetricsPage() {
             {benchmarkResult && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginTop: "12px" }}>
                 <div style={{ background: "rgba(0,0,0,0.3)", padding: "16px", borderRadius: "10px", border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Test Frames Evaluated</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Sample Frame Count</div>
                   <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "var(--text-primary)", marginTop: "4px" }}>{benchmarkResult.totalFrames.toLocaleString()}</div>
                 </div>
                 <div style={{ background: "rgba(0,0,0,0.3)", padding: "16px", borderRadius: "10px", border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Objects &amp; Faces Tracked</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Sample Detections</div>
                   <div style={{ fontSize: "1.6rem", fontWeight: 900, color: CYAN, marginTop: "4px" }}>{benchmarkResult.detectedObjects}</div>
                 </div>
                 <div style={{ background: "rgba(0,0,0,0.3)", padding: "16px", borderRadius: "10px", border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Avg Inference Latency</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Target Inference Latency</div>
                   <div style={{ fontSize: "1.6rem", fontWeight: 900, color: GREEN, marginTop: "4px" }}>{benchmarkResult.avgLatencyMs} ms</div>
                 </div>
                 <div style={{ background: "rgba(0,0,0,0.3)", padding: "16px", borderRadius: "10px", border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Validated Accuracy Score</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Reference Accuracy</div>
                   <div style={{ fontSize: "1.6rem", fontWeight: 900, color: GREEN, marginTop: "4px" }}>{benchmarkResult.accuracyPercent}%</div>
                 </div>
               </div>
@@ -247,9 +247,9 @@ export default function MetricsPage() {
               <TargetIcon size={24} />
             </div>
             <div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Overall System mAP</div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Target System mAP</div>
               <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "var(--text-primary)" }}>96.8%</div>
-              <div style={{ fontSize: "0.7rem", color: GREEN, fontWeight: 700 }}>+4.2% vs Baseline YOLO</div>
+              <div style={{ fontSize: "0.7rem", color: GREEN, fontWeight: 700 }}>Published YOLOv8 reference</div>
             </div>
           </div>
 
@@ -258,9 +258,9 @@ export default function MetricsPage() {
               <CpuIcon size={24} />
             </div>
             <div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Avg Processing Speed</div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Target Processing Speed</div>
               <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "var(--text-primary)" }}>48 FPS</div>
-              <div style={{ fontSize: "0.7rem", color: CYAN, fontWeight: 700 }}>Real-time 4K Multistream</div>
+              <div style={{ fontSize: "0.7rem", color: CYAN, fontWeight: 700 }}>On GPU, single stream</div>
             </div>
           </div>
 
@@ -269,9 +269,9 @@ export default function MetricsPage() {
               <ShieldIcon size={24} />
             </div>
             <div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>False Positive Rate</div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Target False Positive Rate</div>
               <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "var(--text-primary)" }}>&lt; 1.2%</div>
-              <div style={{ fontSize: "0.7rem", color: GREEN, fontWeight: 700 }}>Courtroom Grade Precision</div>
+              <div style={{ fontSize: "0.7rem", color: GREEN, fontWeight: 700 }}>At default thresholds</div>
             </div>
           </div>
 
@@ -281,8 +281,8 @@ export default function MetricsPage() {
             </div>
             <div>
               <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Investigation Time Saved</div>
-              <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "var(--text-primary)" }}>35x Faster</div>
-              <div style={{ fontSize: "0.7rem", color: CYAN, fontWeight: 700 }}>From Hours to Seconds</div>
+              <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "var(--text-primary)" }}>Hours → Seconds</div>
+              <div style={{ fontSize: "0.7rem", color: CYAN, fontWeight: 700 }}>vs manual footage review</div>
             </div>
           </div>
         </div>
@@ -355,20 +355,23 @@ export default function MetricsPage() {
         {/* Benchmark Methodology Card */}
         <div className="card" style={{ background: "rgba(0,0,0,0.4)" }}>
           <h3 style={{ fontSize: "1.1rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "12px" }}>
-            ⚖️ Courtroom &amp; Judicial Standard Validation Framework
+            About These Figures
           </h3>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "16px" }}>
-            All accuracy metrics are validated using double-blind CCTV test splits containing over 10,000 annotated surveillance video clips across varying weather, low-light night infrared streams, camera motion blur, and extreme aspect ratios.
+            The numbers on this page are reference targets drawn from the published benchmarks of the underlying models
+            (YOLOv8, FaceNet, CLIP, EasyOCR) and the system&apos;s design goals. They are not measured from your footage.
+            Real accuracy depends on camera quality, lighting, angle, and the specific weights loaded — run a search on your
+            own video to see actual results and per-detection confidence scores.
           </p>
-          <div style={{ display: "flex", gap: "24px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+          <div style={{ display: "flex", gap: "24px", fontSize: "0.8rem", color: "var(--text-secondary)", flexWrap: "wrap" }}>
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <LockIcon size={14} style={{ color: GREEN }} /> SHA-256 Chain of Custody Integrity Verified
+              <LockIcon size={14} style={{ color: GREEN }} /> SHA-256 hashing applied to exported evidence
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <CheckIcon size={14} style={{ color: CYAN }} /> Zero Synthetic Data Inflation
+              <CheckIcon size={14} style={{ color: CYAN }} /> Confidence scores shown per detection
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <ShieldIcon size={14} style={{ color: BLUE }} /> HIPAA &amp; CJIS Security Compliant
+              <ShieldIcon size={14} style={{ color: BLUE }} /> Designed for on-premise / air-gapped deployment
             </span>
           </div>
         </div>

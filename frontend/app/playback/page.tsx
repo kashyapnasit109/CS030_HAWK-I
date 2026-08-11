@@ -102,8 +102,11 @@ export default function PlaybackPage() {
       <AppLayout>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
           <div>
-            <h1 style={{ color: "var(--text-primary)", fontSize: "1.75rem", fontWeight: 700, margin: 0 }}>VMS Continuous Playback</h1>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginTop: "4px" }}>Scrub recorded streams and check motion heatmaps offline.</p>
+            <h1 style={{ color: "var(--text-primary)", fontSize: "1.75rem", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
+              VMS Continuous Playback
+              <span className="badge badge-yellow" style={{ fontSize: "0.65rem", letterSpacing: "0.05em" }}>SAMPLE DATA</span>
+            </h1>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginTop: "4px" }}>Timeline preview with illustrative motion activity — connect a VMS archive for real recorded streams.</p>
           </div>
         </div>
 
