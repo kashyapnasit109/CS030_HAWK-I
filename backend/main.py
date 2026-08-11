@@ -111,6 +111,36 @@ app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
 app.include_router(enhance.router, prefix="/api/enhance", tags=["Enhance"])
 
 
+@app.on_event("startup")
+def _warmup_models_on_startup():
+    """Pre-load the heavy AI models in a background thread so the first search
+    is fast. Disable with VISIONCCTV_WARMUP=0 on low-memory machines."""
+    if os.environ.get("VISIONCCTV_WARMUP", "1").lower() not in ("1", "true", "yes", "on"):
+        print("[warmup] disabled via VISIONCCTV_WARMUP")
+        return
+    import threading
+
+    def _run():
+        try:
+            from ai_pipeline.warmup import warm_models
+            warm_models()
+        except Exception as e:  # never let warmup crash the server
+            print(f"[warmup] background warmup aborted: {e}")
+
+    threading.Thread(target=_run, name="model-warmup", daemon=True).start()
+    print("[warmup] background model warmup thread started")
+
+
+@app.get("/api/warmup", tags=["Health"])
+def warmup_status():
+    """Report AI-model warmup progress so the UI can show a 'models ready' state."""
+    try:
+        from ai_pipeline.warmup import WARMUP_STATE
+        return WARMUP_STATE
+    except Exception as e:
+        return {"started": False, "done": False, "models": {}, "detail": str(e)}
+
+
 @app.get("/health", tags=["Health"])
 def health():
     """Health check endpoint."""
