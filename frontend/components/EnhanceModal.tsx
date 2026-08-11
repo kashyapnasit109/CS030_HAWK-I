@@ -94,7 +94,6 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
       style={{
         position: "fixed", inset: 0,
         background: "rgba(0,0,0,0.85)",
-        backdropFilter: "blur(12px)",
         zIndex: 400,
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: 20,
@@ -155,7 +154,7 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
         }}>
           {/* Left Column: Image Display / Comparison */}
           <div style={{
-            background: "#08080c", padding: 24,
+            background: "#080808", padding: 24,
             display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
             borderRight: "1px solid var(--border)",
@@ -176,7 +175,7 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                   />
                   <div style={{
                     position: "absolute", bottom: 8, left: 8,
-                    background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
+                    background: "rgba(0,0,0,0.75)",
                     padding: "3px 10px", borderRadius: 100,
                     fontSize: "0.68rem", fontWeight: 700, color: "var(--text-secondary)"
                   }}>
@@ -252,7 +251,7 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                   {/* Labels */}
                   <div style={{
                     position: "absolute", top: 10, left: 10,
-                    background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)",
+                    background: "rgba(0,0,0,0.8)",
                     padding: "3px 8px", borderRadius: 4,
                     fontSize: "0.65rem", fontWeight: 800, color: "var(--text-muted)"
                   }}>
@@ -260,8 +259,7 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                   </div>
                   <div style={{
                     position: "absolute", top: 10, right: 10,
-                    background: "rgba(59,130,246,0.2)", border: "1px solid var(--accent)",
-                    backdropFilter: "blur(4px)", padding: "4px 10px", borderRadius: 4,
+                    background: "rgba(59,130,246,0.2)", border: "1px solid var(--accent)", padding: "4px 10px", borderRadius: 4,
                     fontSize: "0.65rem", fontWeight: 800, color: "var(--accent)",
                     display: "flex", alignItems: "center", gap: 5
                   }}>

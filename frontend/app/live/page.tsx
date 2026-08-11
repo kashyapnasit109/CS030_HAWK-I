@@ -131,7 +131,7 @@ export default function LivePage() {
 
       function render() {
         if (!ctx || !canvas) return;
-        ctx.fillStyle = "#0c0c14";
+        ctx.fillStyle = "#0C0C0C";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Simulated CCTV grid lines
@@ -327,7 +327,7 @@ export default function LivePage() {
               className="card"
               style={{
                 padding: 10,
-                background: "#08080f",
+                background: "#080808",
                 borderColor: activeCam === "CAM-01" ? "var(--accent)" : "var(--border)",
                 cursor: "pointer"
               }}
@@ -360,7 +360,7 @@ export default function LivePage() {
               className="card"
               style={{
                 padding: 10,
-                background: "#08080f",
+                background: "#080808",
                 borderColor: activeCam === "CAM-02" ? "var(--accent)" : "var(--border)",
                 cursor: "pointer",
                 position: "relative"
@@ -433,7 +433,7 @@ export default function LivePage() {
               className="card"
               style={{
                 padding: 10,
-                background: "#08080f",
+                background: "#080808",
                 borderColor: activeCam === "CAM-03" ? "var(--accent)" : "var(--border)",
                 cursor: "pointer"
               }}
@@ -465,7 +465,7 @@ export default function LivePage() {
               className="card"
               style={{
                 padding: 10,
-                background: "#08080f",
+                background: "#080808",
                 borderColor: activeCam === "CAM-04" ? "var(--accent)" : "var(--border)",
                 cursor: "pointer"
               }}

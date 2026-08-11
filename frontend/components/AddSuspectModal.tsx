@@ -99,7 +99,6 @@ export default function AddSuspectModal({
       style={{
         position: "fixed", inset: 0,
         background: "rgba(0,0,0,0.85)",
-        backdropFilter: "blur(12px)",
         zIndex: 500,
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: 20,

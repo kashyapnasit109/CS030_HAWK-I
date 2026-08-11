@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ReactNode, useState, useEffect, useMemo, useCallback } from "react";
+import { ReactNode, useState, useEffect, useMemo, useCallback, createContext, useContext } from "react";
 import { apiFetch } from "@/lib/api";
 import {
   DashboardIcon,
@@ -56,9 +56,17 @@ const systemItems: NavItem[] = [
   { href: "/investors", icon: TrendingUpIcon, label: "Investor Deck",    roles: ["admin", "supervisor"] },
 ];
 
+// True when an AppLayout is already mounted higher in the tree (the persistent
+// shell in the root layout). Nested per-page AppLayout instances read this and
+// become pure passthroughs — no duplicate chrome, no duplicate polling. Because
+// the root shell never unmounts on navigation, auth state survives route changes
+// (this is what eliminates the login-screen flash on every page switch/reload).
+const ShellContext = createContext(false);
+
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const insideShell = useContext(ShellContext);
   interface CaseInfo {
     case_id: number;
     case_number: string;
@@ -106,6 +114,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   
   // Auth state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<{ username: string; name: string; role: string } | null>(null);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [usernameInput, setUsernameInput] = useState("");
@@ -119,16 +128,21 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   // Check auth on mount
   useEffect(() => {
-    const savedToken = localStorage.getItem("visioncctv_token");
-    const savedUser = localStorage.getItem("visioncctv_user");
-    if (savedToken && savedUser) {
-      setIsAuthenticated(true);
-      setUser(JSON.parse(savedUser));
-    }
-  }, []);
+    if (insideShell) return;
+    try {
+      const savedToken = localStorage.getItem("visioncctv_token");
+      const savedUser = localStorage.getItem("visioncctv_user");
+      if (savedToken && savedUser) {
+        setIsAuthenticated(true);
+        setUser(JSON.parse(savedUser));
+      }
+    } catch {}
+    setAuthChecked(true);
+  }, [insideShell]);
 
   // Shortcut listener for Cmd/Ctrl+K
   useEffect(() => {
+    if (insideShell) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -140,11 +154,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [insideShell]);
 
   // Load dynamic cases
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (insideShell || !isAuthenticated) return;
     async function load() {
       try {
         const data = await apiFetch<{ cases: CaseInfo[]; count: number }>("/api/cases/list");
@@ -169,10 +183,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       }
     }
     load();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, insideShell]);
 
   // Listen to activeCaseChanged custom event
   useEffect(() => {
+    if (insideShell) return;
     const handleCaseChange = () => {
       const savedId = localStorage.getItem("visioncctv_active_case_id") || "";
       setActiveCaseId(savedId);
@@ -183,7 +198,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     };
     window.addEventListener("activeCaseChanged", handleCaseChange);
     return () => window.removeEventListener("activeCaseChanged", handleCaseChange);
-  }, []);
+  }, [insideShell]);
 
   const handleCaseSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = e.target.value;
@@ -206,7 +221,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   // Background Search Jobs Polling
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (insideShell || !isAuthenticated) return;
 
     const pollBackgroundJobs = async () => {
       const savedJobsRaw = localStorage.getItem("visioncctv_background_jobs");
@@ -312,10 +327,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       pollBackgroundJobs();
     }, 4000);
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, insideShell]);
 
   // Listen to bgJobsChanged custom event
   useEffect(() => {
+    if (insideShell) return;
     const handleBgJobsChange = () => {
       const savedJobsRaw = localStorage.getItem("visioncctv_background_jobs");
       if (savedJobsRaw) {
@@ -326,11 +342,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     };
     window.addEventListener("bgJobsChanged", handleBgJobsChange);
     return () => window.removeEventListener("bgJobsChanged", handleBgJobsChange);
-  }, []);
+  }, [insideShell]);
 
   // Poll alerts
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (insideShell || !isAuthenticated) return;
 
     const pollAlerts = async () => {
       try {
@@ -352,7 +368,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       pollAlerts();
     }, 8000);
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, insideShell]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -498,14 +514,26 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     return currentItem.roles.includes(user.role);
   }, [user, pathname]);
 
+  // Nested per-page AppLayout: the persistent root shell already drew the chrome,
+  // so just render the page content through.
+  if (insideShell) {
+    return <>{children}</>;
+  }
+
   if (pathname === "/verify") {
-    return <div style={{ background: "#0B0F14", minHeight: "100vh" }}>{children}</div>;
+    return <div style={{ background: "#000000", minHeight: "100vh" }}>{children}</div>;
+  }
+
+  // Before localStorage has been read, render a plain black screen instead of the
+  // login form. This is what stops the ~1s login flash on reload for signed-in users.
+  if (!authChecked) {
+    return <div style={{ background: "#000000", minHeight: "100vh" }} aria-hidden />;
   }
 
   if (!isAuthenticated) {
     return (
-      <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#050709", fontFamily: "sans-serif", padding: "20px" }}>
-        <div style={{ width: "100%", maxWidth: "420px", background: "#0A0D12", border: "1px solid rgba(59,130,246,0.18)", borderRadius: "20px", padding: "32px", boxShadow: "0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(59,130,246,0.08)" }}>
+      <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#000000", fontFamily: "sans-serif", padding: "20px" }}>
+        <div style={{ width: "100%", maxWidth: "420px", background: "#080808", border: "1px solid rgba(59,130,246,0.18)", borderRadius: "20px", padding: "32px", boxShadow: "0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(59,130,246,0.08)" }}>
           <div style={{ textAlign: "center", marginBottom: "24px" }}>
             <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "52px", height: "52px", background: "var(--accent)", borderRadius: "14px", marginBottom: "12px", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}>
               <EyeIcon size={26} style={{ color: "white" }} />
@@ -516,7 +544,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
           {/* Mode Switcher Tabs */}
           {!mfaRequired && (
-            <div style={{ display: "flex", background: "#0E1117", padding: "4px", borderRadius: "10px", marginBottom: "24px", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", background: "#0C0C0C", padding: "4px", borderRadius: "10px", marginBottom: "24px", border: "1px solid rgba(255,255,255,0.06)" }}>
               <button
                 type="button"
                 suppressHydrationWarning
@@ -577,7 +605,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   placeholder="Enter 6-digit code"
                   value={mfaCode}
                   onChange={(e) => setMfaCode(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "1.2rem", letterSpacing: "8px", textAlign: "center", outline: "none" }}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "1.2rem", letterSpacing: "8px", textAlign: "center", outline: "none" }}
                 />
                 <p style={{ color: "#64748b", fontSize: "0.75rem", marginTop: "8px", textAlign: "center" }}>Enter code from Google Authenticator</p>
               </div>
@@ -609,7 +637,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   placeholder="e.g. investigator"
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "0.95rem", outline: "none" }}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "0.95rem", outline: "none" }}
                 />
               </div>
 
@@ -622,7 +650,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   placeholder="••••••••"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "0.95rem", outline: "none" }}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "0.95rem", outline: "none" }}
                 />
               </div>
 
@@ -645,7 +673,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                       type="button"
                       suppressHydrationWarning
                       onClick={() => { setUsernameInput(u); setPasswordInput("hawki"); }}
-                      style={{ background: "#0E1117", border: "1px solid rgba(59,130,246,0.2)", borderRadius: "6px", padding: "4px 10px", color: "#94a3b8", fontSize: "0.75rem", cursor: "pointer" }}
+                      style={{ background: "#0C0C0C", border: "1px solid rgba(59,130,246,0.2)", borderRadius: "6px", padding: "4px 10px", color: "#94a3b8", fontSize: "0.75rem", cursor: "pointer" }}
                     >
                       {u}
                     </button>
@@ -663,7 +691,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   placeholder="e.g. Inspector Rajan"
                   value={signupName}
                   onChange={(e) => setSignupName(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
                 />
               </div>
 
@@ -675,7 +703,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   placeholder="e.g. rajan_officer"
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
                 />
               </div>
 
@@ -687,7 +715,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   placeholder="At least 4 characters"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
                 />
               </div>
 
@@ -696,7 +724,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 <select
                   value={signupRole}
                   onChange={(e) => setSignupRole(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161e27", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
                 >
                   <option value="operator">Control Room Operator</option>
                   <option value="investigator">Cyber Cell Investigator</option>
@@ -721,6 +749,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
+    <ShellContext.Provider value={true}>
     <div className="layout">
       {/* Topbar */}
       <header className="topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -785,8 +814,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <div 
                 style={{
                   position: "absolute", top: "50px", right: "-20px", width: "400px",
-                  maxHeight: "500px", overflowY: "auto", background: "rgba(10, 13, 18, 0.97)",
-                  backdropFilter: "blur(20px)", border: "1px solid rgba(59,130,246,0.25)",
+                  maxHeight: "500px", overflowY: "auto", background: "var(--bg-elevated)", border: "1px solid rgba(59,130,246,0.25)",
                   boxShadow: "0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(59,130,246,0.12)",
                   borderRadius: "12px", padding: "18px", zIndex: 500, display: "flex", flexDirection: "column", gap: "12px"
                 }}
@@ -921,8 +949,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <div 
                 style={{
                   position: "absolute", top: "50px", right: "-20px", width: "360px",
-                  maxHeight: "400px", overflowY: "auto", background: "rgba(10, 13, 18, 0.97)",
-                  backdropFilter: "blur(20px)", border: "1px solid rgba(59,130,246,0.25)",
+                  maxHeight: "400px", overflowY: "auto", background: "var(--bg-elevated)", border: "1px solid rgba(59,130,246,0.25)",
                   boxShadow: "0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(59,130,246,0.1)",
                   borderRadius: "12px", padding: "16px", zIndex: 500, display: "flex", flexDirection: "column", gap: "12px"
                 }}
@@ -1063,6 +1090,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content */}
       <main className="main-content">
+        <div key={pathname} className="route-fade">
         {isPageAuthorized ? (
           children
         ) : (
@@ -1074,18 +1102,19 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </p>
             <button 
               onClick={() => router.push("/")}
-              style={{ background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "10px 20px", fontSize: "0.9rem", fontWeight: "bold", cursor: "pointer" }}
+              style={{ background: "var(--accent)", color: "#000000", border: "none", borderRadius: "8px", padding: "10px 20px", fontSize: "0.9rem", fontWeight: "bold", cursor: "pointer" }}
             >
               Back to Dashboard
             </button>
           </div>
         )}
+        </div>
       </main>
 
       {/* Command Palette Modal */}
       {paletteOpen && (
         <div 
-          style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "15vh", zIndex: 1000 }}
+          style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "15vh", zIndex: 1000 }}
           onClick={() => setPaletteOpen(false)}
         >
           <div 
@@ -1146,8 +1175,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             bottom: "24px",
             right: "24px",
             width: "350px",
-            background: "rgba(10, 13, 18, 0.97)",
-            backdropFilter: "blur(20px)",
+            background: "var(--bg-elevated)",
             border: "1.5px solid rgba(59,130,246,0.45)",
             boxShadow: "0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(59,130,246,0.2)",
             borderRadius: "12px",
@@ -1213,5 +1241,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         }
       `}</style>
     </div>
+    </ShellContext.Provider>
   );
 }

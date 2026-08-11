@@ -547,7 +547,7 @@ export default function SearchPage() {
                       className="input-field"
                       value={topColor}
                       onChange={(e) => setTopColor(e.target.value)}
-                      style={{ background: "#0B0F14", width: "100%", boxSizing: "border-box" }}
+                      style={{ background: "#000000", width: "100%", boxSizing: "border-box" }}
                     >
                       {colorOptions.map((o) => (
                         <option key={o.value} value={o.value} style={{ background: "var(--bg-card)" }}>{o.label}</option>
@@ -560,7 +560,7 @@ export default function SearchPage() {
                       className="input-field"
                       value={bottomColor}
                       onChange={(e) => setBottomColor(e.target.value)}
-                      style={{ background: "#0B0F14", width: "100%", boxSizing: "border-box" }}
+                      style={{ background: "#000000", width: "100%", boxSizing: "border-box" }}
                     >
                       {colorOptions.map((o) => (
                         <option key={o.value} value={o.value} style={{ background: "var(--bg-card)" }}>{o.label}</option>
@@ -573,7 +573,7 @@ export default function SearchPage() {
                       className="input-field"
                       value={headgear}
                       onChange={(e) => setHeadgear(e.target.value)}
-                      style={{ background: "#0B0F14", width: "100%", boxSizing: "border-box" }}
+                      style={{ background: "#000000", width: "100%", boxSizing: "border-box" }}
                     >
                       <option value="all">Any</option>
                       <option value="none">No headgear</option>
@@ -587,7 +587,7 @@ export default function SearchPage() {
                       className="input-field"
                       value={poseState}
                       onChange={(e) => setPoseState(e.target.value)}
-                      style={{ background: "#0B0F14", width: "100%", boxSizing: "border-box" }}
+                      style={{ background: "#000000", width: "100%", boxSizing: "border-box" }}
                     >
                       <option value="all">Any</option>
                       <option value="standing">Standing</option>
@@ -601,7 +601,7 @@ export default function SearchPage() {
                       className="input-field"
                       value={bagPresent}
                       onChange={(e) => setBagPresent(e.target.value)}
-                      style={{ background: "#0B0F14", width: "100%", boxSizing: "border-box" }}
+                      style={{ background: "#000000", width: "100%", boxSizing: "border-box" }}
                     >
                       <option value="all">Any</option>
                       <option value="yes">Yes, bag detected</option>
@@ -898,7 +898,7 @@ export default function SearchPage() {
         {/* Add Suspect Reference Image Modal */}
         {addModalOpen && (
           <div 
-            style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
+            style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
             onClick={() => setAddModalOpen(false)}
           >
             <div 

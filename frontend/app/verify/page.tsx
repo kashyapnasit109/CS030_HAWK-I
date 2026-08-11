@@ -93,7 +93,7 @@ export default function VerifyPage() {
           minHeight: "100vh",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0B0F14",
+          background: "#000000",
           fontFamily: "Inter, sans-serif",
           padding: "20px",
           color: "var(--text-primary)"
@@ -104,7 +104,6 @@ export default function VerifyPage() {
             width: "100%",
             maxWidth: "600px",
             background: "rgba(18, 24, 33, 0.8)",
-            backdropFilter: "blur(12px)",
             border: "1.5px solid rgba(59,130,246,0.2)",
             borderRadius: "20px",
             padding: "40px",
@@ -129,7 +128,7 @@ export default function VerifyPage() {
                 boxShadow: "0 0 20px rgba(59,130,246,0.3)"
               }}
             >
-              <ShieldIcon size={30} style={{ color: "#0B0F14" }} />
+              <ShieldIcon size={30} style={{ color: "#000000" }} />
             </div>
             <h1 style={{ fontSize: "1.75rem", fontWeight: 900, marginBottom: "8px" }}>
               Forensic Report Verification
@@ -182,7 +181,7 @@ export default function VerifyPage() {
               style={{
                 width: "100%",
                 background: "var(--accent)",
-                color: "#0B0F14",
+                color: "#000000",
                 border: "none",
                 borderRadius: "8px",
                 padding: "12px",
@@ -219,7 +218,7 @@ export default function VerifyPage() {
                     height: "24px",
                     borderRadius: "50%",
                     background: result.verified ? "var(--green)" : "#ef4444",
-                    color: "#0B0F14",
+                    color: "#000000",
                     fontWeight: "bold",
                     fontSize: "0.9rem"
                   }}

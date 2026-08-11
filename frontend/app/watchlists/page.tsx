@@ -248,7 +248,7 @@ export default function WatchlistsPage() {
                       <button 
                         type="submit" 
                         disabled={addingEntry}
-                        style={{ width: "100%", background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "6px", padding: "10px", fontSize: "0.85rem", fontWeight: 700, cursor: "pointer" }}
+                        style={{ width: "100%", background: "var(--accent)", color: "#000000", border: "none", borderRadius: "6px", padding: "10px", fontSize: "0.85rem", fontWeight: 700, cursor: "pointer" }}
                       >
                         {addingEntry ? "Adding..." : "Add to Watchlist"}
                       </button>
@@ -323,7 +323,7 @@ export default function WatchlistsPage() {
 
         {/* Create Watchlist Modal */}
         {showCreateModal && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
             <div style={{ width: "100%", maxWidth: "400px", background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "16px", padding: "28px", boxShadow: "var(--shadow-card)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                 <h2 style={{ color: "var(--text-primary)", fontSize: "1.2rem", margin: 0 }}>Create Watchlist Folder</h2>
@@ -344,7 +344,7 @@ export default function WatchlistsPage() {
                     placeholder="e.g. Red Corner Notices"
                     value={listName}
                     onChange={(e) => setListName(e.target.value)}
-                    style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                    style={{ width: "100%", boxSizing: "border-box", background: "#000000", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
                   />
                 </div>
 
@@ -353,7 +353,7 @@ export default function WatchlistsPage() {
                   <select 
                     value={listType}
                     onChange={(e) => setListType(e.target.value)}
-                    style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                    style={{ width: "100%", boxSizing: "border-box", background: "#000000", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
                   >
                     <option value="plate">Automated License Plate Recognition (ANPR)</option>
                     <option value="face">Face Recognition & Re-Identification</option>
@@ -362,7 +362,7 @@ export default function WatchlistsPage() {
                 <button 
                   type="submit" 
                   disabled={submitting}
-                  style={{ width: "100%", background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer" }}
+                  style={{ width: "100%", background: "var(--accent)", color: "#000000", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer" }}
                 >
                   {submitting ? "Creating..." : "Create Watchlist"}
                 </button>

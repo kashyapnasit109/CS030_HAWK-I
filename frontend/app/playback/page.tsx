@@ -121,7 +121,7 @@ export default function PlaybackPage() {
                 <select
                   value={selectedCamera}
                   onChange={(e) => setSelectedCamera(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "6px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#000000", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "6px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
                 >
                   <option value="CAM-01">CAM-01 — Front Entrance</option>
                   <option value="CAM-02">CAM-02 — Side Alleyway</option>
@@ -135,7 +135,7 @@ export default function PlaybackPage() {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "6px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
+                  style={{ width: "100%", boxSizing: "border-box", background: "#000000", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "6px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
                 />
               </div>
             </div>
@@ -210,7 +210,7 @@ export default function PlaybackPage() {
                 <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
                   <button
                     onClick={() => setIsPlaying(!isPlaying)}
-                    style={{ background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "6px", width: "40px", height: "40px", fontSize: "1.2rem", fontWeight: "bold", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    style={{ background: "var(--accent)", color: "#000000", border: "none", borderRadius: "6px", width: "40px", height: "40px", fontSize: "1.2rem", fontWeight: "bold", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                   >
                     {isPlaying ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
                   </button>
@@ -236,7 +236,7 @@ export default function PlaybackPage() {
                       onClick={() => setPlaybackSpeed(s)}
                       style={{
                         background: playbackSpeed === s ? "var(--accent)" : "transparent",
-                        color: playbackSpeed === s ? "#0B0F14" : "var(--text-primary)",
+                        color: playbackSpeed === s ? "#000000" : "var(--text-primary)",
                         border: "1px solid var(--border)",
                         borderRadius: "4px",
                         padding: "4px 8px",
@@ -283,7 +283,7 @@ export default function PlaybackPage() {
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUpOrLeave}
                 onMouseLeave={handleMouseUpOrLeave}
-                style={{ position: "relative", height: "24px", background: "#0B0F14", border: "1px solid var(--border)", borderRadius: "6px", cursor: "ew-resize", overflow: "hidden", userSelect: "none" }}
+                style={{ position: "relative", height: "24px", background: "#000000", border: "1px solid var(--border)", borderRadius: "6px", cursor: "ew-resize", overflow: "hidden", userSelect: "none" }}
               >
                 {/* Highlighted recorded zones */}
                 {/* seg1: 0 - 16.6% */}

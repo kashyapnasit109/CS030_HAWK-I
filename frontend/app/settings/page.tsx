@@ -797,7 +797,7 @@ export default function SettingsPage() {
                         type="button"
                         onClick={handleEnrollMfa}
                         disabled={enrolling}
-                        style={{ background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "10px 20px", fontWeight: "bold", fontSize: "0.85rem", cursor: "pointer" }}
+                        style={{ background: "var(--accent)", color: "#000000", border: "none", borderRadius: "8px", padding: "10px 20px", fontWeight: "bold", fontSize: "0.85rem", cursor: "pointer" }}
                       >
                         {enrolling ? "Connecting to MFA daemon..." : "Generate TOTP Secret"}
                       </button>
@@ -807,7 +807,7 @@ export default function SettingsPage() {
                           MFA TOTP Secret Key
                         </span>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-                          <code style={{ background: "#0B0F14", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: "4px", color: "var(--accent)", fontSize: "0.95rem", fontWeight: "bold", flex: 1, textAlign: "center" }}>
+                          <code style={{ background: "#000000", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: "4px", color: "var(--accent)", fontSize: "0.95rem", fontWeight: "bold", flex: 1, textAlign: "center" }}>
                             {mfaSecret}
                           </code>
                           <button
@@ -978,7 +978,7 @@ export default function SettingsPage() {
                           disabled={downloading}
                           style={{
                             background: "var(--accent)",
-                            color: "#05080C",
+                            color: "#000000",
                             border: "none",
                             borderRadius: "8px",
                             padding: "10px 20px",
@@ -1035,7 +1035,7 @@ export default function SettingsPage() {
                           disabled={uploading}
                           style={{
                             background: "var(--accent)",
-                            color: "#05080C",
+                            color: "#000000",
                             border: "none",
                             borderRadius: "8px",
                             padding: "10px 20px",
@@ -1065,7 +1065,7 @@ export default function SettingsPage() {
                 disabled={saving}
                 style={{
                   background: "var(--accent)",
-                  color: "#05080C",
+                  color: "#000000",
                   border: "none",
                   borderRadius: "8px",
                   padding: "12px 32px",

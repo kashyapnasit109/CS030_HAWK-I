@@ -316,7 +316,6 @@ function VideoPlayerModal({
       style={{
         position: "fixed", inset: 0,
         background: "rgba(0,0,0,0.9)",
-        backdropFilter: "blur(12px)",
         zIndex: 300,
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: 24,
@@ -413,7 +412,7 @@ function VideoPlayerModal({
               {/* Detection Overlay Badge */}
               <div style={{
                 position: "absolute", top: 12, left: 12,
-                background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)",
+                background: "rgba(0,0,0,0.85)",
                 border: "1px solid var(--green)", borderRadius: 6,
                 padding: "6px 12px", display: "flex", alignItems: "center", gap: 8
               }}>
@@ -867,7 +866,7 @@ export default function ResultsPage() {
                       <div style={{
                         position: "absolute", top: 8, right: 8,
                         padding: "3px 8px", borderRadius: 100,
-                        background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
+                        background: "rgba(0,0,0,0.75)",
                         fontSize: "0.7rem", fontWeight: 700,
                         color: confidenceColor(match.confidence),
                         border: `1px solid ${confidenceColor(match.confidence)}44`,
@@ -877,7 +876,7 @@ export default function ResultsPage() {
                       <div style={{
                         position: "absolute", top: 8, left: 8,
                         padding: "3px 8px", borderRadius: 100,
-                        background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
+                        background: "rgba(0,0,0,0.75)",
                         display: "flex", alignItems: "center",
                         color: "var(--text-secondary)",
                       }}>

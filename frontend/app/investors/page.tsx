@@ -109,7 +109,6 @@ export default function InvestorsPage() {
 
   const cardStyle = {
     background: "rgba(14,17,23,0.85)",
-    backdropFilter: "blur(16px)",
     border: `1px solid ${BLUE_BORDER}`,
     borderRadius: "16px",
     padding: "28px",

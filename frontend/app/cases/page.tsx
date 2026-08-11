@@ -236,7 +236,7 @@ export default function CasesPage() {
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                style={{ background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "10px 20px", fontWeight: "bold", fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
+                style={{ background: "var(--accent)", color: "#000000", border: "none", borderRadius: "8px", padding: "10px 20px", fontWeight: "bold", fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
               >
                 <PlusIcon size={16} /> Create Case Folder
               </button>
@@ -383,7 +383,7 @@ export default function CasesPage() {
                           value={sourceLabel}
                           onChange={(e) => setSourceLabel(e.target.value)}
                           placeholder="e.g. Shop CCTV, MG Road"
-                          style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "6px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
+                          style={{ width: "100%", boxSizing: "border-box", background: "#000000", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "6px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
                         />
                       </div>
 
@@ -446,7 +446,7 @@ export default function CasesPage() {
 
         {/* Create Case Folder Modal */}
         {showCreateModal && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
             <div style={{ width: "100%", maxWidth: "440px", background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "16px", padding: "28px", boxShadow: "var(--shadow-card)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                 <h2 style={{ color: "var(--text-primary)", fontSize: "1.25rem", margin: 0 }}>Create Investigation Case</h2>
@@ -467,7 +467,7 @@ export default function CasesPage() {
                     placeholder="e.g. FIR/2026/104"
                     value={caseNumber}
                     onChange={(e) => setCaseNumber(e.target.value)}
-                    style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                    style={{ width: "100%", boxSizing: "border-box", background: "#000000", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
                   />
                 </div>
 
@@ -479,7 +479,7 @@ export default function CasesPage() {
                     placeholder="e.g. MG Road Diamond Theft"
                     value={caseTitle}
                     onChange={(e) => setCaseTitle(e.target.value)}
-                    style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
+                    style={{ width: "100%", boxSizing: "border-box", background: "#000000", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
                   />
                 </div>
 
@@ -490,7 +490,7 @@ export default function CasesPage() {
                     placeholder="Enter case summary details or investigative notes..."
                     value={caseDesc}
                     onChange={(e) => setCaseDesc(e.target.value)}
-                    style={{ width: "100%", boxSizing: "border-box", background: "#0B0F14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none", resize: "none" }}
+                    style={{ width: "100%", boxSizing: "border-box", background: "#000000", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none", resize: "none" }}
                   />
                 </div>
 
@@ -505,7 +505,7 @@ export default function CasesPage() {
                   <button 
                     type="submit" 
                     disabled={submitting}
-                    style={{ background: "var(--accent)", color: "#0B0F14", border: "none", borderRadius: "8px", padding: "10px 20px", fontWeight: "bold", cursor: "pointer" }}
+                    style={{ background: "var(--accent)", color: "#000000", border: "none", borderRadius: "8px", padding: "10px 20px", fontWeight: "bold", cursor: "pointer" }}
                   >
                     {submitting ? "Creating Folder..." : "Create Folder"}
                   </button>

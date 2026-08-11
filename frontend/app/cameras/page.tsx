@@ -437,7 +437,7 @@ export default function CamerasPage() {
             {/* Live stream viewing frame */}
             {activeCamInfo ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div className="card" style={{ padding: 12, background: "#06060c", borderColor: activeCamInfo.is_connected ? "var(--accent)" : "var(--accent)" }}>
+                <div className="card" style={{ padding: 12, background: "#060606", borderColor: activeCamInfo.is_connected ? "var(--accent)" : "var(--accent)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 6px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: activeCamInfo.is_connected ? "var(--green)" : "var(--accent)", animation: activeCamInfo.is_connected ? "pulse 1.2s infinite" : "none" }} />
@@ -705,7 +705,7 @@ export default function CamerasPage() {
                     borderRadius: 6,
                     border: "none",
                     background: !isNvr ? "var(--accent)" : "transparent",
-                    color: !isNvr ? "#0B0F14" : "var(--text-secondary)",
+                    color: !isNvr ? "#000000" : "var(--text-secondary)",
                     fontWeight: "bold",
                     fontSize: "0.78rem",
                     cursor: "pointer",
@@ -723,7 +723,7 @@ export default function CamerasPage() {
                     borderRadius: 6,
                     border: "none",
                     background: isNvr ? "var(--accent)" : "transparent",
-                    color: isNvr ? "#0B0F14" : "var(--text-secondary)",
+                    color: isNvr ? "#000000" : "var(--text-secondary)",
                     fontWeight: "bold",
                     fontSize: "0.78rem",
                     cursor: "pointer",

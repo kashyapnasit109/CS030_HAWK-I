@@ -367,7 +367,6 @@ export default function DashboardPage() {
             fontFamily: "monospace",
             fontSize: "0.72rem",
             color: "var(--text-secondary)",
-            backdropFilter: "blur(6px)",
             position: "relative",
             zIndex: 1
           }}>
@@ -482,7 +481,7 @@ export default function DashboardPage() {
                       }}
                       className="catalog-item-hover"
                     >
-                      <div style={{ width: "60px", height: "40px", borderRadius: "4px", overflow: "hidden", background: "#05080c", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: "60px", height: "40px", borderRadius: "4px", overflow: "hidden", background: "#000000", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {v.thumbnail_url ? (
                           <img src={`http://localhost:8000${v.thumbnail_url}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         ) : (
