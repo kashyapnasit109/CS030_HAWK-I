@@ -4,7 +4,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
-import { PlusIcon, FolderIcon, UploadIcon, FileTextIcon, CloseIcon, ChevronRightIcon } from "@/components/Icons";
+import { PlusIcon, FolderIcon, UploadIcon, FileTextIcon, CloseIcon, ChevronRightIcon, ClockIcon } from "@/components/Icons";
+import { listCaseEvidence, deleteCaseEvidence, resolveStorageUrl, CaseEvidence } from "@/lib/api";
 
 interface Case {
   case_id: number;
@@ -48,6 +49,7 @@ export default function CasesPage() {
   const [caseDetail, setCaseDetail] = useState<Case | null>(null);
   const [mediaList, setMediaList] = useState<CaseMedia[]>([]);
   const [eventList, setEventList] = useState<CaseEvent[]>([]);
+  const [evidenceList, setEvidenceList] = useState<CaseEvidence[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
 
   // New Case Modal Form States
@@ -94,12 +96,26 @@ export default function CasesPage() {
       setCaseDetail(data.case);
       setMediaList(data.media);
       setEventList(data.events);
+      // Cross-feature: pinned AI evidence (search hits / live sightings).
+      const ev = await listCaseEvidence(caseId);
+      setEvidenceList(ev.evidence);
     } catch (err: any) {
       showToast(err.message || "Failed to load case folder detail", "error");
     } finally {
       setDetailLoading(false);
     }
   }, []);
+
+  const handleDeleteEvidence = useCallback(async (evidenceId: number) => {
+    if (activeCaseId == null) return;
+    try {
+      await deleteCaseEvidence(activeCaseId, evidenceId);
+      setEvidenceList((prev) => prev.filter((e) => e.evidence_id !== evidenceId));
+      showToast("Evidence removed", "success");
+    } catch {
+      showToast("Failed to remove evidence", "error");
+    }
+  }, [activeCaseId]);
 
   useEffect(() => {
     async function init() {
@@ -367,6 +383,82 @@ export default function CasesPage() {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Cross-feature: Pinned AI Evidence (from Search results & Live sightings) */}
+                    <h2 style={{ color: "var(--text-primary)", fontSize: "1.2rem", fontWeight: 700, margin: "32px 0 16px 0", display: "flex", alignItems: "center", gap: "10px" }}>
+                      Pinned AI Evidence
+                      {evidenceList.length > 0 && (
+                        <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--accent)", background: "var(--accent-dim)", padding: "2px 8px", borderRadius: "999px" }}>{evidenceList.length}</span>
+                      )}
+                    </h2>
+
+                    {evidenceList.length === 0 ? (
+                      <div style={{ background: "var(--bg-card)", border: "1px dashed var(--border)", borderRadius: "12px", padding: "32px", textAlign: "center", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                        No evidence pinned yet. From <strong style={{ color: "var(--text-secondary)" }}>AI Search results</strong> or <strong style={{ color: "var(--text-secondary)" }}>Live alerts</strong>, use <em>&ldquo;Add to Case&rdquo;</em> to attach hits here.
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                        {evidenceList.map((ev) => {
+                          const kindColor: Record<string, string> = {
+                            face: "var(--accent)", keyword: "var(--yellow)", lpr: "var(--green)", object: "#a78bfa", manual: "var(--text-muted)",
+                          };
+                          const c = kindColor[ev.kind] || "var(--text-muted)";
+                          const hasSeek = ev.source_label && ev.timestamp_seconds != null;
+                          return (
+                            <div key={ev.evidence_id} style={{ display: "flex", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px", overflow: "hidden" }}>
+                              <div style={{ width: "120px", height: "88px", background: "#000", flexShrink: 0, position: "relative" }}>
+                                {ev.thumb_url ? (
+                                  <img
+                                    src={resolveStorageUrl(ev.thumb_url)}
+                                    alt={ev.label}
+                                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  />
+                                ) : (
+                                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>
+                                    <FolderIcon size={22} />
+                                  </div>
+                                )}
+                                <span style={{ position: "absolute", top: "6px", left: "6px", fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "#000", background: c, padding: "2px 6px", borderRadius: "4px" }}>
+                                  {ev.kind}
+                                </span>
+                              </div>
+                              <div style={{ padding: "12px 14px", flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: "4px" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                                  <strong style={{ color: "var(--text-primary)", fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.label}</strong>
+                                  {ev.confidence != null && (
+                                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: c, flexShrink: 0 }}>{Math.round(ev.confidence * 100)}%</span>
+                                  )}
+                                </div>
+                                {ev.summary && (
+                                  <div style={{ color: "var(--text-secondary)", fontSize: "0.78rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.summary}</div>
+                                )}
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
+                                  {hasSeek && (
+                                    <button
+                                      onClick={() => router.push(`/playback?camera=${encodeURIComponent(ev.source_label || "")}&t=${Math.floor(ev.timestamp_seconds || 0)}`)}
+                                      style={{ display: "flex", alignItems: "center", gap: "4px", background: "var(--accent-dim)", color: "var(--accent)", border: "none", borderRadius: "6px", padding: "4px 10px", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
+                                    >
+                                      <ClockIcon size={12} /> Playback
+                                    </button>
+                                  )}
+                                  <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginLeft: "auto" }}>{new Date(ev.added_at * 1000).toLocaleDateString()}</span>
+                                  <button
+                                    onClick={() => handleDeleteEvidence(ev.evidence_id)}
+                                    title="Remove evidence"
+                                    style={{ display: "flex", alignItems: "center", background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", padding: "2px" }}
+                                    onMouseEnter={(e) => e.currentTarget.style.color = "var(--accent)"}
+                                    onMouseLeave={(e) => e.currentTarget.style.color = "var(--text-muted)"}
+                                  >
+                                    <CloseIcon size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

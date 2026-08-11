@@ -71,6 +71,26 @@ CREATE TABLE IF NOT EXISTS case_media (
   FOREIGN KEY (uploaded_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
+-- Case Evidence (search hits / crops pinned to a case from any AI module)
+CREATE TABLE IF NOT EXISTS case_evidence (
+  evidence_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,                       -- face, keyword, lpr, object, manual
+  label TEXT NOT NULL,                      -- human-readable match label
+  summary TEXT NULL,                        -- e.g. "Face match 92% @ 00:34 in subway.mp4"
+  video_id TEXT NULL,                       -- source uploaded video id (if any)
+  source_label TEXT NULL,                   -- original filename / camera name
+  timestamp_seconds REAL NULL,              -- position within the source clip
+  confidence REAL NULL,                     -- 0..1 match score
+  thumb_url TEXT NULL,                      -- crop/frame image url
+  frame_hash TEXT NULL,                     -- forensic hash of the frame image
+  meta_json TEXT NULL,                      -- extra fields (bbox, plate, etc.) as JSON
+  added_by INTEGER NULL,
+  added_at REAL NOT NULL,
+  FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE CASCADE,
+  FOREIGN KEY (added_by) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
 -- Reference Images (Suspect or Vehicle Photos)
 CREATE TABLE IF NOT EXISTS reference_images (
   ref_id TEXT PRIMARY KEY,
@@ -220,3 +240,4 @@ CREATE INDEX IF NOT EXISTS idx_reid_ref_score ON reid_matches(ref_id, similarity
 CREATE INDEX IF NOT EXISTS idx_custody_media ON chain_of_custody(media_id);
 CREATE INDEX IF NOT EXISTS idx_recordings_camera_time ON recordings(camera_id, start_time);
 CREATE INDEX IF NOT EXISTS idx_case_media_case ON case_media(case_id);
+CREATE INDEX IF NOT EXISTS idx_case_evidence_case ON case_evidence(case_id, added_at);

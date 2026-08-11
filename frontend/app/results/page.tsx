@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import EnhanceModal from "@/components/EnhanceModal";
 import AddSuspectModal from "@/components/AddSuspectModal";
-import { getJobStatus, exportReport, resolveStorageUrl, downloadFramesZip, MatchResult, SearchJob, apiFetch } from "@/lib/api";
+import { getJobStatus, exportReport, resolveStorageUrl, downloadFramesZip, MatchResult, SearchJob, apiFetch, addCaseEvidence, getActiveCase } from "@/lib/api";
 import {
   TargetIcon,
   SearchIcon,
@@ -29,6 +30,8 @@ import {
   SparklesIcon,
   MaximizeIcon,
   TagIcon,
+  FolderIcon,
+  ClockIcon,
 } from "@/components/Icons";
 
 const BASE_URL = "http://localhost:8000";
@@ -518,6 +521,70 @@ export default function ResultsPage() {
   const [filterLabel, setFilterLabel] = useState("");
   const [sortBy, setSortBy] = useState<"timestamp" | "confidence">("timestamp");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const router = useRouter();
+
+  // Track the globally-selected active case so per-result "Add to Case" knows
+  // where to pin evidence. Kept in sync via the shared activeCaseChanged event.
+  const [activeCase, setActiveCase] = useState<{ id: string | null; number: string | null }>({ id: null, number: null });
+  const [pinningKey, setPinningKey] = useState<string | null>(null);
+  const [pinnedKeys, setPinnedKeys] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const sync = () => setActiveCase(getActiveCase());
+    sync();
+    window.addEventListener("activeCaseChanged", sync);
+    return () => window.removeEventListener("activeCaseChanged", sync);
+  }, []);
+
+  const kindForType = (t: MatchResult["search_type"]): string => {
+    if (t === "face_recognition") return "face";
+    if (t === "lpr") return "lpr";
+    if (t === "object_detection") return "object";
+    return "keyword";
+  };
+
+  // Cross-feature: pin a search hit to the active case as forensic evidence.
+  const handleAddToCase = useCallback(async (match: MatchResult, key: string) => {
+    const ac = getActiveCase();
+    if (!ac.id) {
+      showToast("Select an active case first (top bar) to pin evidence", "error");
+      return;
+    }
+    setPinningKey(key);
+    try {
+      const kind = kindForType(match.search_type);
+      const pct = Math.round((match.confidence || 0) * 100);
+      const summary = `${kind.toUpperCase()} match ${pct}% @ ${match.timestamp_str || match.timestamp + "s"} on ${match.camera_id}`;
+      await addCaseEvidence(ac.id, {
+        kind,
+        label: match.label || "Unlabeled",
+        summary,
+        source_label: match.camera_id,
+        timestamp_seconds: match.timestamp,
+        confidence: match.confidence,
+        thumb_url: match.frame_url,
+        frame_hash: match.frame_hash || null,
+        meta_json: JSON.stringify({
+          search_type: match.search_type,
+          box: match.box || null,
+          ocr_text: match.ocr_text || null,
+          job_id: jobId || null,
+        }),
+      });
+      setPinnedKeys((prev) => new Set(prev).add(key));
+      showToast(`Pinned to case ${ac.number || ac.id}`, "success");
+    } catch (err: any) {
+      showToast(err?.status === 404 ? "Active case no longer exists" : "Failed to pin evidence", "error");
+    } finally {
+      setPinningKey(null);
+    }
+  }, [jobId]);
+
+  // Cross-feature: jump to the playback timeline at this camera + timestamp.
+  const handleJumpToPlayback = useCallback((match: MatchResult) => {
+    const t = Math.max(0, Math.floor(match.timestamp || 0));
+    router.push(`/playback?camera=${encodeURIComponent(match.camera_id || "")}&t=${t}`);
+  }, [router]);
 
   const loadJob = useCallback(async (id: string) => {
     if (!id.trim()) return;
@@ -966,6 +1033,31 @@ export default function ResultsPage() {
                           }}
                           style={{ display: "flex", alignItems: "center", gap: 4 }}
                         ><ImageIcon size={12} /> Frame</button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={(e) => { e.stopPropagation(); handleJumpToPlayback(match); }}
+                          style={{ display: "flex", alignItems: "center", gap: 4 }}
+                          title="Open the playback timeline at this camera and timestamp"
+                        ><ClockIcon size={12} /> Playback</button>
+                        {(() => {
+                          const key = `${match.camera_id}|${match.timestamp}|${i}`;
+                          const pinned = pinnedKeys.has(key);
+                          return (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              disabled={pinningKey === key || pinned}
+                              onClick={(e) => { e.stopPropagation(); handleAddToCase(match, key); }}
+                              style={{
+                                display: "flex", alignItems: "center", gap: 4,
+                                background: pinned ? "rgba(34,197,94,0.12)" : "rgba(59,130,246,0.12)",
+                                color: pinned ? "var(--green)" : "var(--accent)",
+                                border: `1px solid ${pinned ? "rgba(34,197,94,0.3)" : "rgba(59,130,246,0.3)"}`,
+                                opacity: pinningKey === key ? 0.6 : 1,
+                              }}
+                              title={activeCase.id ? `Pin this hit as evidence to case ${activeCase.number || activeCase.id}` : "Select an active case in the top bar first"}
+                            ><FolderIcon size={12} /> {pinned ? "Pinned" : pinningKey === key ? "Pinning…" : "Add to Case"}</button>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -1040,6 +1132,35 @@ export default function ResultsPage() {
                     <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setVideoPlayer(match); }} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <PlayIcon size={12} /> Play
                     </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={(e) => { e.stopPropagation(); handleJumpToPlayback(match); }}
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
+                      title="Open the playback timeline at this camera and timestamp"
+                    >
+                      <ClockIcon size={12} /> Playback
+                    </button>
+                    {(() => {
+                      const key = `list|${match.camera_id}|${match.timestamp}|${i}`;
+                      const pinned = pinnedKeys.has(key);
+                      return (
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          disabled={pinningKey === key || pinned}
+                          onClick={(e) => { e.stopPropagation(); handleAddToCase(match, key); }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 4,
+                            background: pinned ? "rgba(34,197,94,0.12)" : "rgba(59,130,246,0.12)",
+                            color: pinned ? "var(--green)" : "var(--accent)",
+                            border: `1px solid ${pinned ? "rgba(34,197,94,0.3)" : "rgba(59,130,246,0.3)"}`,
+                            opacity: pinningKey === key ? 0.6 : 1,
+                          }}
+                          title={activeCase.id ? `Pin as evidence to case ${activeCase.number || activeCase.id}` : "Select an active case in the top bar first"}
+                        >
+                          <FolderIcon size={12} /> {pinned ? "Pinned" : pinningKey === key ? "Pinning…" : "Add to Case"}
+                        </button>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

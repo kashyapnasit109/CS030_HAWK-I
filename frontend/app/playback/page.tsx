@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
-import { VideoIcon, PlayIcon, PauseIcon } from "@/components/Icons";
+import { VideoIcon, PlayIcon, PauseIcon, ClockIcon } from "@/components/Icons";
 
 // Mock video segments
 const videoSegments = [
@@ -37,11 +37,24 @@ export default function PlaybackPage() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const timelineRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
+  const [deepLinked, setDeepLinked] = useState(false);
 
   useEffect(() => {
     setMotionGraph(generateMotionGraph());
-    // Start at 9:00 AM (32400 seconds)
-    setCurrentTimeSec(32400);
+    // Deep-link support: /playback?camera=GATE-01&t=1234 jumps straight to a
+    // moment (used by "Playback" buttons on search results and live alerts).
+    let seededTime = 32400; // default 9:00 AM
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      const cam = qs.get("camera");
+      const t = qs.get("t");
+      if (cam) setSelectedCamera(cam);
+      if (t !== null && t !== "") {
+        const secs = Math.max(0, Math.min(86399, Math.floor(Number(t))));
+        if (!Number.isNaN(secs)) { seededTime = secs; setDeepLinked(true); }
+      }
+    } catch {}
+    setCurrentTimeSec(seededTime);
   }, []);
 
   // Format seconds to HH:MM:SS
@@ -110,6 +123,18 @@ export default function PlaybackPage() {
           </div>
         </div>
 
+        {deepLinked && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10, marginBottom: 20,
+            padding: "10px 14px", background: "rgba(59,130,246,0.1)",
+            border: "1px solid rgba(59,130,246,0.3)", borderRadius: 8,
+            color: "var(--accent)", fontSize: "0.85rem", fontWeight: 600,
+          }}>
+            <ClockIcon size={15} />
+            Jumped to {selectedCamera} @ {formatTime(currentTimeSec)} from a search hit.
+          </div>
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: "24px", alignItems: "flex-start" }}>
           {/* Left Column: Device and Calendar Selectors */}
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -126,6 +151,9 @@ export default function PlaybackPage() {
                   <option value="CAM-01">CAM-01 — Front Entrance</option>
                   <option value="CAM-02">CAM-02 — Side Alleyway</option>
                   <option value="CAM-03">CAM-03 — Server Room</option>
+                  {selectedCamera && !["CAM-01", "CAM-02", "CAM-03"].includes(selectedCamera) && (
+                    <option value={selectedCamera}>{selectedCamera} — (linked)</option>
+                  )}
                 </select>
               </div>
 

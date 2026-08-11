@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import {
   listReferences, ReferenceMeta, resolveStorageUrl,
   listCameras, startCameraDetection, stopCameraDetection,
-  getCameraStreamUrl, getCameraSnapshotUrl, CameraInfo, DetectionAlert
+  getCameraStreamUrl, getCameraSnapshotUrl, CameraInfo, DetectionAlert,
+  addCaseEvidence, getActiveCase
 } from "@/lib/api";
-import { SignalIcon, AlertIcon, UserIcon, LiveIcon } from "@/components/Icons";
+import { SignalIcon, AlertIcon, UserIcon, LiveIcon, FolderIcon, ClockIcon } from "@/components/Icons";
 
 interface AlertItem {
   id: string;
@@ -18,6 +20,13 @@ interface AlertItem {
   label: string;
   confidence: number;
   frameUrl?: string;
+  tsSec?: number; // seconds-of-day, for jumping to the playback timeline
+}
+
+// Convert an epoch-seconds instant to seconds-since-midnight (local).
+function secondsOfDay(epochSec: number): number {
+  const d = new Date(epochSec * 1000);
+  return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
 }
 
 export default function LivePage() {
@@ -35,6 +44,40 @@ export default function LivePage() {
   const canvasRef3 = useRef<HTMLCanvasElement>(null);
   const canvasRef4 = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const router = useRouter();
+  const [pinnedAlerts, setPinnedAlerts] = useState<Set<string>>(new Set());
+
+  // Cross-feature: jump from a live sighting to the playback timeline.
+  const alertToPlayback = useCallback((alert: AlertItem) => {
+    const t = alert.tsSec ?? secondsOfDay(Date.now() / 1000);
+    router.push(`/playback?camera=${encodeURIComponent(alert.cameraId)}&t=${t}`);
+  }, [router]);
+
+  // Cross-feature: pin a live sighting to the active case as evidence.
+  const alertToCase = useCallback(async (alert: AlertItem) => {
+    const ac = getActiveCase();
+    if (!ac.id) {
+      showToast("Select an active case first (top bar) to pin this sighting", "error");
+      return;
+    }
+    try {
+      const pct = Math.round((alert.confidence || 0) * 100);
+      await addCaseEvidence(ac.id, {
+        kind: "face",
+        label: alert.label || "Live sighting",
+        summary: `LIVE sighting ${pct}% @ ${alert.time} on ${alert.cameraName || alert.cameraId}`,
+        source_label: alert.cameraName || alert.cameraId,
+        timestamp_seconds: alert.tsSec ?? null,
+        confidence: alert.confidence,
+        thumb_url: alert.frameUrl || null,
+        meta_json: JSON.stringify({ source: "live", camera_id: alert.cameraId }),
+      });
+      setPinnedAlerts((prev) => new Set(prev).add(alert.id));
+      showToast(`Sighting pinned to case ${ac.number || ac.id}`, "success");
+    } catch (err: any) {
+      showToast(err?.status === 404 ? "Active case no longer exists" : "Failed to pin sighting", "error");
+    }
+  }, []);
 
   // Load suspects
   useEffect(() => {
@@ -95,7 +138,8 @@ export default function LivePage() {
                 time: a.timestamp_str,
                 label: a.detections.map(d => d.label).join(", "),
                 confidence: a.detections[0]?.confidence || 0.8,
-                frameUrl: a.snapshot_url
+                frameUrl: a.snapshot_url,
+                tsSec: a.timestamp ? secondsOfDay(a.timestamp) : undefined,
               }));
 
               setAlerts((prev) => {
@@ -222,7 +266,8 @@ export default function LivePage() {
       time: new Date().toLocaleTimeString(),
       label: selectedRef.label,
       confidence: 0.82 + Math.random() * 0.16,
-      frameUrl: selectedRef.image_url
+      frameUrl: selectedRef.image_url,
+      tsSec: secondsOfDay(Date.now() / 1000),
     };
 
     setAlerts((prev) => [newAlert, ...prev].slice(0, 15));
@@ -585,6 +630,33 @@ export default function LivePage() {
                         </div>
                         <div style={{ fontSize: "0.65rem", color: "var(--green)" }}>
                           Confidence: {(alert.confidence * 100).toFixed(1)}%
+                        </div>
+                        <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                          <button
+                            onClick={() => alertToPlayback(alert)}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 4,
+                              fontSize: "0.62rem", fontWeight: 700, cursor: "pointer",
+                              padding: "3px 7px", borderRadius: 5,
+                              background: "rgba(59,130,246,0.14)", color: "var(--accent)",
+                              border: "1px solid rgba(59,130,246,0.32)",
+                            }}
+                            title="Open the playback timeline at this camera & time"
+                          ><ClockIcon size={11} /> Playback</button>
+                          <button
+                            onClick={() => alertToCase(alert)}
+                            disabled={pinnedAlerts.has(alert.id)}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 4,
+                              fontSize: "0.62rem", fontWeight: 700,
+                              cursor: pinnedAlerts.has(alert.id) ? "default" : "pointer",
+                              padding: "3px 7px", borderRadius: 5,
+                              background: pinnedAlerts.has(alert.id) ? "rgba(34,197,94,0.14)" : "rgba(59,130,246,0.14)",
+                              color: pinnedAlerts.has(alert.id) ? "var(--green)" : "var(--accent)",
+                              border: `1px solid ${pinnedAlerts.has(alert.id) ? "rgba(34,197,94,0.32)" : "rgba(59,130,246,0.32)"}`,
+                            }}
+                            title="Pin this sighting as evidence to the active case"
+                          ><FolderIcon size={11} /> {pinnedAlerts.has(alert.id) ? "Pinned" : "Add to Case"}</button>
                         </div>
                       </div>
                     </div>

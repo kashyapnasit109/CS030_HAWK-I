@@ -520,3 +520,85 @@ export async function enhanceImage(options: EnhanceOptions): Promise<EnhanceResu
   });
 }
 
+// ─── Case Evidence (cross-feature: pin any search hit to a case) ──────
+
+export interface CaseEvidence {
+  evidence_id: number;
+  case_id: number;
+  kind: string;
+  label: string;
+  summary?: string | null;
+  video_id?: string | null;
+  source_label?: string | null;
+  timestamp_seconds?: number | null;
+  confidence?: number | null;
+  thumb_url?: string | null;
+  frame_hash?: string | null;
+  meta_json?: string | null;
+  added_by?: number | null;
+  added_at: number;
+}
+
+export interface AddEvidenceInput {
+  kind?: string;
+  label: string;
+  summary?: string | null;
+  video_id?: string | null;
+  source_label?: string | null;
+  timestamp_seconds?: number | null;
+  confidence?: number | null;
+  thumb_url?: string | null;
+  frame_hash?: string | null;
+  meta_json?: string | null;
+}
+
+export async function addCaseEvidence(
+  caseId: number | string,
+  input: AddEvidenceInput
+): Promise<{ success: boolean; evidence_id: number }> {
+  return apiFetch(`/api/cases/${caseId}/evidence`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kind: "manual", ...input }),
+  });
+}
+
+export async function listCaseEvidence(
+  caseId: number | string
+): Promise<{ evidence: CaseEvidence[]; count: number }> {
+  try {
+    const data = (await apiFetch(`/api/cases/${caseId}/evidence`)) as any;
+    return {
+      evidence: Array.isArray(data?.evidence) ? data.evidence : [],
+      count: data?.count ?? 0,
+    };
+  } catch {
+    return { evidence: [], count: 0 };
+  }
+}
+
+export async function deleteCaseEvidence(
+  caseId: number | string,
+  evidenceId: number | string
+): Promise<{ success: boolean }> {
+  return apiFetch(`/api/cases/${caseId}/evidence/${evidenceId}`, {
+    method: "DELETE",
+  });
+}
+
+// ─── Active case (shared cross-tab context) ──────────────────────────
+
+export interface ActiveCase {
+  id: string | null;
+  number: string | null;
+}
+
+/** Read the globally-selected active case from localStorage (client only). */
+export function getActiveCase(): ActiveCase {
+  if (typeof window === "undefined") return { id: null, number: null };
+  return {
+    id: localStorage.getItem("visioncctv_active_case_id"),
+    number: localStorage.getItem("visioncctv_active_case_number"),
+  };
+}
+
