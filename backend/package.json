@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "node --watch server.js",
     "build": "echo 'No build step needed for plain JS'",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test tests/**/*.test.js"
   },
+
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
