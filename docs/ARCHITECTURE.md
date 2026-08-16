@@ -51,36 +51,39 @@ HAWK-I operates on a modular, decoupled three-tier architecture connecting a Rea
 ---
 
 ## Detection Pipeline
-When a video file or stream frame is ingested by the platform, it passes through the following steps:
+When a video file or stream frame is ingested by the platform, it passes through the following unified pipeline:
 
 ```
 [Video Input]
       ↓
-[Frame Extraction]
+[VideoIngestor] (FPS extraction, duration validation, controlled sampling @ default 5 FPS)
       ↓
-[Object Detection & Tracking] (YOLOv8 / ByteTrack)
+[Object Detection & Tracking] (YOLOv8 / ByteTrack / EasyOCR / Differencing)
       ↓
-[Feature Extraction] (EasyOCR text / coordinates speed / frame diffs)
+[EventBuilder] (Normalizes into canonical DetectionResult & DetectionEvent)
       ↓
-[Rule/Heuristic Engine] (Correlation with access logs / restricted zone polygon limits)
+[EventPersistence Service] (Node Backend validates and records event)
       ↓
-[Event & Metadata JSON Generation]
+[Database & Severity Evaluation] (Inserts into detection_events & alerts)
       ↓
-[Database Persistence] (Node Backend records event and creates text embedding)
+[Description & Embedding] (SentenceTransformers all-MiniLM-L6-v2 -> event_embeddings)
       ↓
-[Alert & Search indexing] (Available immediately for UI querying and alerts center)
+[Semantic Search Index] (Immediately retrievable via natural language similarity)
 ```
+
+> **Note on Frame Sampling:** 5 FPS is the default processing rate for the current development environment and can be configured dynamically via the `PROCESSING_FPS` environment variable or per-request parameters.
 
 ---
 
-## Common Detection Event Structure
+## Canonical Detection Event Structure
 All detection modules generate events conforming to a standardized schema stored in the `detection_events` table:
 
 ```json
 {
   "event_id": 104,
   "camera_id": 2,
-  "detected_at": "2026-08-10T12:00:00.000Z",
+  "source_module": "velocity",
+  "event_type": "speed_violation",
   "module": "vehicle",
   "object_type": "car",
   "confidence": 0.985,
@@ -90,12 +93,17 @@ All detection modules generate events conforming to a standardized schema stored
     "w": 150,
     "h": 100
   },
-  "zone": "Entry Gate Checkpoint",
-  "severity": "low",
+  "severity": "danger",
+  "detected_at": "2026-08-10T12:00:00.000Z",
+  "description": "Car (ID #4) tracked moving at peak speed 45.2 km/h (average 38.0 km/h, threshold: 20.0 km/h).",
+  "processing_fps": 5.0,
   "metadata": {
-    "plate_text": "KA-01-AB-1234",
-    "registry_match": true,
-    "speed_kmh": 45
+    "max_speed_kmh": 45.2,
+    "avg_speed_kmh": 38.0,
+    "speed_threshold_kmh": 20.0,
+    "calibration_used": {
+      "pixels_per_meter": 12.5
+    }
   }
 }
 ```
@@ -103,17 +111,18 @@ All detection modules generate events conforming to a standardized schema stored
 ---
 
 ## Folder Structure
-The actual current structure of the HAWK-I project is laid out as follows:
+The structure of the HAWK-I project is laid out as follows:
 
 ```
 HAWK-I/
 ├── backend/                   # Node/Express API Server
-│   ├── config/                # Database pool connection configuration
-│   ├── controllers/           # Endpoint controllers (auth, alerts, cameras, search)
+│   ├── config/                # Database pool connection and bootstrap
+│   ├── controllers/           # Endpoint controllers (auth, alerts, cameras, events, search)
 │   ├── middleware/            # JWT authentication middleware
 │   ├── routes/                # Express API routes
 │   ├── scripts/               # DB bootstrap and vector backfill scripts
-│   ├── services/              # AI call wrappers and description text generators
+│   ├── services/              # AI wrappers, description generators, eventPersistence
+│   ├── tests/                 # Unit & integration test suites
 │   ├── .env                   # Local environment parameters (gitignored)
 │   ├── package.json           # Node project dependencies
 │   └── server.js              # Backend server gateway entrypoint
@@ -122,6 +131,7 @@ HAWK-I/
 │   ├── schema.sql             # SQL definitions for core tables
 │   ├── seed.sql               # Seed scripts (operator users, mock cameras)
 │   ├── migrate_prompt8.sql    # Migration script adding event_embeddings
+│   ├── migrate_week2.sql      # Migration script adding Week 2 canonical columns & indexes
 │   └── README.md              # Database setup documentation
 │
 ├── docs/                      # Project Specifications and Architecture Guides
@@ -132,10 +142,10 @@ HAWK-I/
 │   └── README.md              # Index of documentation
 │
 ├── frontend/                  # React/Vite Single Page Application (SPA)
-│   ├── assets/                # Core visual assets (hawk-i-mark.png)
+│   ├── assets/                # Core visual assets
 │   ├── public/                # Static public directory
 │   ├── src/
-│   │   ├── components/        # Shared components (AppShell layout, ui cards, buttons)
+│   │   ├── components/        # Shared components (AppShell layout, ui cards, cursor)
 │   │   ├── context/           # React context (Auth context)
 │   │   ├── design-tokens/     # Design token variables (colors)
 │   │   ├── pages/             # Page views (Dashboard, Alerts, Search, Test Benches)
@@ -146,9 +156,12 @@ HAWK-I/
 │   └── vite.config.ts         # Vite bundler configurations
 │
 └── ml-service/                # Python Computer Vision Inference API (FastAPI)
-    ├── models/                # Singleton model loaders (loader.py)
-    ├── routes/                # FastAPI endpoint handlers (anpr, velocity, search)
+    ├── models/                # Singleton model loaders (loader.py, detection_event.py)
+    ├── routes/                # FastAPI endpoint handlers (anpr, velocity, threat, ingest, search)
+    ├── services/              # VideoIngestor pipeline, EventBuilder normalization
+    ├── tests/                 # Unit tests (video pipeline, event builder)
     ├── main.py                # FastAPI server entrypoint
     ├── requirements.txt       # Python library dependencies (YOLO, EasyOCR, PyTorch)
-    └── yolov8n.pt             # YOLOv8 object detection model weights (gitignored)
+    └── yolov8n.pt             # YOLOv8 object detection model weights
 ```
+
