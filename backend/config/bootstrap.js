@@ -63,7 +63,7 @@ async function bootstrap() {
         await connection.query(seedSql);
       }
 
-      // 4. Migration
+      // 4. Migration: Prompt 8 Semantic Search
       const migratePath = path.join(__dirname, '../../database/migrate_prompt8.sql');
       if (fs.existsSync(migratePath)) {
         console.log('Applying migrate_prompt8.sql...');
@@ -71,8 +71,26 @@ async function bootstrap() {
         await connection.query(migrateSql);
       }
 
+      // 5. Migration: Week 2 Canonical Events Foundation
+      const migrateWeek2Path = path.join(__dirname, '../../database/migrate_week2.sql');
+      if (fs.existsSync(migrateWeek2Path)) {
+        console.log('Applying migrate_week2.sql...');
+        const migrateWeek2Sql = fs.readFileSync(migrateWeek2Path, 'utf8');
+        await connection.query(migrateWeek2Sql);
+      }
+
       console.log('[Database Success] Database bootstrap completed successfully.');
     } else {
+      // Run Week 2 migration if not already applied
+      try {
+        const migrateWeek2Path = path.join(__dirname, '../../database/migrate_week2.sql');
+        if (fs.existsSync(migrateWeek2Path)) {
+          const migrateWeek2Sql = fs.readFileSync(migrateWeek2Path, 'utf8');
+          await connection.query(migrateWeek2Sql);
+        }
+      } catch (mErr) {
+        // Table columns might already exist, ignore non-fatal migration warnings
+      }
       console.log('[Database Success] Database connection established and tables verified.');
     }
   } catch (err) {
@@ -83,5 +101,6 @@ async function bootstrap() {
     }
   }
 }
+
 
 module.exports = bootstrap;

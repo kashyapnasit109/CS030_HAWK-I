@@ -1,4 +1,6 @@
 const db = require('../config/db');
+const mlService = require('../services/mlService');
+const { persistDetectionEvent } = require('../services/eventPersistence');
 
 const FALLBACK_CAMERAS = [
   { camera_id: 1, name: 'CAM-01', location: 'Main Entrance Gate', zone_type: 'entrance', status: 'online', last_seen: new Date() },
@@ -21,9 +23,6 @@ exports.getCameras = async (req, res) => {
   }
 };
 
-const mlService = require('../services/mlService');
-const descriptionService = require('../services/descriptionService');
-
 exports.simulateFeed = async (req, res) => {
   const { camera_id } = req.params;
   const { module_type, rule_parameters, backdate_timestamp, ...otherParams } = req.body;
@@ -36,7 +35,8 @@ exports.simulateFeed = async (req, res) => {
   let severity = null;
   let alertType = null;
   let objectType = 'unknown';
-  let dbModuleEnum = 'object'; // fallback
+  let dbModuleEnum = 'object';
+  let eventType = 'feed_simulation';
 
   try {
     switch (module_type) {
@@ -47,6 +47,7 @@ exports.simulateFeed = async (req, res) => {
         
         dbModuleEnum = 'vehicle';
         objectType = 'vehicle';
+        eventType = 'plate_recognized';
         
         if (mlResult.detection !== 'no_detection') {
           const plateText = mlResult.plate_text;
@@ -68,6 +69,7 @@ exports.simulateFeed = async (req, res) => {
         mlResult = await mlService.callVelocity(file.buffer, file.originalname, file.mimetype, otherParams);
         
         dbModuleEnum = 'vehicle';
+        eventType = 'motion_tracked';
         if (mlResult.tracked_objects && mlResult.tracked_objects.length > 0) {
           objectType = mlResult.tracked_objects[0].object_type || 'vehicle';
           const maxSpeed = mlResult.tracked_objects[0].max_speed_kmh;
@@ -75,9 +77,11 @@ exports.simulateFeed = async (req, res) => {
           
           if (maxSpeed > threshold * 1.5) {
             severity = 'danger';
+            eventType = 'speed_violation';
             alertType = `High Velocity Warning: ${maxSpeed} km/h (Limit: ${threshold})`;
           } else if (maxSpeed > threshold) {
             severity = 'warning';
+            eventType = 'speed_violation';
             alertType = `Speed Threshold Exceeded: ${maxSpeed} km/h (Limit: ${threshold})`;
           }
         }
@@ -91,6 +95,7 @@ exports.simulateFeed = async (req, res) => {
         mlResult = await mlService.callMisplacement(ref.buffer, ref.originalname, ref.mimetype, curr.buffer, curr.originalname, curr.mimetype);
         
         dbModuleEnum = 'object';
+        eventType = 'object_misplaced';
         if (mlResult.differences && mlResult.differences.length > 0) {
           const missingCount = mlResult.differences.filter(d => d.change_type === 'missing_object').length;
           const newCount = mlResult.differences.filter(d => d.change_type === 'new_object').length;
@@ -112,6 +117,7 @@ exports.simulateFeed = async (req, res) => {
         mlResult = await mlService.callThreat(file.buffer, file.originalname, file.mimetype, rule_parameters);
         
         dbModuleEnum = 'loitering';
+        eventType = 'threat_detected';
         if (mlResult.anomalies && mlResult.anomalies.length > 0) {
           objectType = mlResult.anomalies[0].object_type || 'unknown';
           const rulesTriggered = mlResult.anomalies[0].triggered_rules || [];
@@ -135,6 +141,7 @@ exports.simulateFeed = async (req, res) => {
         
         dbModuleEnum = 'intrusion';
         objectType = 'person';
+        eventType = 'unauthorized_entry';
         if (mlResult.flagged_entries && mlResult.flagged_entries.length > 0) {
           severity = 'danger';
           alertType = `Unauthorized Entry Flagged (${mlResult.flagged_entries.length} unmatched presences)`;
@@ -150,79 +157,33 @@ exports.simulateFeed = async (req, res) => {
     return res.status(500).json({ error: `ML Service Error: ${err.message}` });
   }
 
-  // Database updates
+  // Persist canonical event through shared persistence service
   try {
-    let timestampToUse = 'NOW()';
-    let queryArgs = [];
-    if (backdate_timestamp) {
-      timestampToUse = '?';
-      queryArgs.push(backdate_timestamp);
-    }
-
-    const [eventResult] = await db.query(`
-      INSERT INTO detection_events 
-      (camera_id, module, object_type, confidence, detected_at, metadata)
-      VALUES (?, ?, ?, ?, ${timestampToUse}, ?)
-    `, [
-      camera_id, 
-      dbModuleEnum, 
-      objectType, 
-      1.0, 
-      ...queryArgs,
-      JSON.stringify(mlResult)
-    ]);
-    
-    const eventId = eventResult.insertId;
-    let alertId = null;
-
-    if (severity && alertType) {
-      const [alertResult] = await db.query(`
-        INSERT INTO alerts (event_id, alert_type, severity, status)
-        VALUES (?, ?, ?, 'open')
-      `, [eventId, alertType, severity]);
-      alertId = alertResult.insertId;
-    }
-
-    // Embed and store description
-    let descriptionText = "Event detected.";
-    let embeddingVector = [];
-    try {
-      const [camRows] = await db.query('SELECT name, zone_type FROM cameras WHERE camera_id = ?', [camera_id]);
-      if (camRows.length > 0) {
-        const cam = camRows[0];
-        // Ensure detected_at evaluates to valid Date string (if 'NOW()' we use current time for generation)
-        const eventTime = backdate_timestamp || new Date().toISOString();
-        descriptionText = descriptionService.generateDescription(cam.name, cam.zone_type, eventTime, dbModuleEnum, objectType, mlResult);
-        
-        const embedRes = await mlService.callEmbed(descriptionText);
-        if (embedRes && embedRes.embedding) {
-          embeddingVector = embedRes.embedding;
-          await db.query(`
-            INSERT INTO event_embeddings (event_id, description_text, embedding_vector)
-            VALUES (?, ?, ?)
-          `, [eventId, descriptionText, JSON.stringify(embeddingVector)]);
-        }
-      }
-    } catch (embErr) {
-      console.error('Failed to generate or store embedding during simulation:', embErr);
-      // Non-fatal, continue with response
-    }
-
-    // Update Camera Health & Last Seen
-    await db.query('UPDATE cameras SET last_seen = NOW(), status = "online" WHERE camera_id = ?', [camera_id]);
-    await db.query('INSERT INTO camera_health_logs (camera_id, status, checked_at) VALUES (?, "online", NOW())', [camera_id]);
+    const persistenceResult = await persistDetectionEvent({
+      camera_id: parseInt(camera_id, 10),
+      source_module: module_type,
+      event_type: eventType,
+      module: dbModuleEnum,
+      object_type: objectType,
+      confidence: 1.0,
+      metadata: mlResult,
+      backdate_timestamp,
+      severity,
+      alert_type: alertType,
+      processing_fps: otherParams.processing_fps || 5.0
+    });
 
     return res.json({
       success: true,
       message: 'Simulated feed processed successfully',
-      event_id: eventId,
-      alert_id: alertId,
+      event_id: persistenceResult.event_id,
+      alert_id: persistenceResult.alert_id,
       severity,
       ml_result: mlResult
     });
   } catch (dbErr) {
-    console.error('Simulation DB error:', dbErr);
-    // If DB fails, just return success with ML result to unblock UI (it's a dev tool)
+    console.error('Simulation persistence error:', dbErr);
+    // If DB write fails, return 500 with ML result for debug transparency
     return res.status(500).json({ 
       error: 'Database write failed. Returning ML result anyway.',
       ml_result: mlResult 
