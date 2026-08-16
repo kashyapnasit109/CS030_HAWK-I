@@ -1,143 +1,197 @@
-import { Eye, EyeOff } from "lucide-react";
-import { Card } from "../components/ui/Card";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Logo } from "../components/ui/Logo";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { LuminousQuantumFlow } from "../components/ui/LuminousQuantumFlow";
+import { 
+  ShieldCheck, 
+  Lock, 
+  User, 
+  AlertCircle,
+  Fingerprint,
+  Radio,
+  Cpu
+} from "lucide-react";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login } = useAuth();
-  
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("admin123");
+  const [clearanceTier, setClearanceTier] = useState<"L2" | "L3" | "L4">("L4");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError(null);
     setLoading(true);
+    setIsScanning(true);
 
     try {
+      await new Promise((r) => setTimeout(r, 600));
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-      
-      const text = await res.text();
-      if (!text) {
-        throw new Error("Server returned an empty response. Is the backend running?");
-      }
-      
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (pErr) {
-        throw new Error("Invalid response format from server.");
-      }
-      
-      if (!res.ok) {
-        throw new Error(data.error || "Login failed");
-      }
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Authentication failed");
 
       login(data.token, data.user);
-      
-      const from = location.state?.from?.pathname || "/";
-      navigate(from, { replace: true });
+      navigate("/");
     } catch (err: any) {
-      if (err.name === "TypeError" && err.message?.toLowerCase().includes("fetch")) {
-        setError("Unable to connect to backend server. Please verify backend (node server.js) is running.");
-      } else {
-        setError(err.message || "Authentication failed.");
-      }
+      setError(err.message || "Failed to authenticate session");
     } finally {
       setLoading(false);
+      setIsScanning(false);
+    }
+  };
+
+  const handleTierSelect = (tier: "L2" | "L3" | "L4") => {
+    setClearanceTier(tier);
+    if (tier === "L4") {
+      setUsername("admin");
+      setPassword("admin123");
+    } else if (tier === "L3") {
+      setUsername("supervisor");
+      setPassword("super123");
+    } else {
+      setUsername("operator");
+      setPassword("oper123");
     }
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-hawk-bg px-4">
-      {/* Background Atmosphere */}
-      <div className="hawk-atmosphere fixed inset-0 z-0 pointer-events-none">
-        <div className="hawk-spotlight-beam" />
-        <div className="hawk-aura hawk-aura--blue" />
-        <div className="hawk-aura hawk-aura--violet" />
-      </div>
+    <div className="relative min-h-screen w-full bg-[#05060A] flex items-center justify-center p-6 overflow-hidden select-none">
+      
+      {/* Butter-Smooth 60FPS Luminous Quantum Flow Canvas */}
+      <LuminousQuantumFlow />
 
-      <div className="relative z-10 w-full max-w-sm">
-        {/* Logo */}
-        <div className="mb-10 flex justify-center">
-          <Logo size={56} />
+      {/* Atmospheric Ambient Lighting */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-hawk-sapphire/15 rounded-full blur-[160px] pointer-events-none" />
+
+      {/* Ultra-Luxury Frosted Liquid Glass Gateway Card */}
+      <div className="relative w-full max-w-md bg-gradient-to-b from-[#0F1422]/70 via-[#0A0E1A]/75 to-[#060812]/85 backdrop-blur-3xl border border-white/[0.14] rounded-3xl p-8 lg:p-10 shadow-[0_35px_120px_rgba(0,0,0,0.85)] space-y-8 z-10 overflow-hidden">
+        
+        {/* Specular Top Bevel Edge Highlight */}
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
+
+        {/* Biometric Scanning Laser line upon submit */}
+        {isScanning && (
+          <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-hawk-emerald to-transparent animate-scan-sweep z-30 pointer-events-none shadow-[0_0_15px_rgba(16,185,129,1)]" />
+        )}
+
+        {/* Brand & Wordmark with 3D Iridescent Orb */}
+        <div className="text-center relative">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-hawk-sapphire/30 rounded-full blur-2xl pointer-events-none" />
+          <Logo size={88} showWordmark={true} />
         </div>
 
-        {/* Login card */}
-        <Card padding="lg" className="border-white/[0.08] bg-black/40 backdrop-blur-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-          <h2 className="mb-6 text-center text-xl font-semibold text-white tracking-wide" style={{ fontFamily: "'Clash Display', sans-serif" }}>
-            Operator Authentication
-          </h2>
+        {/* Clearance Tier Selector Keycards */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[9.5px] font-mono text-hawk-muted uppercase tracking-widest font-bold">
+              CLEARANCE PROFILE
+            </span>
+            <span className="text-[9px] font-mono text-hawk-emerald font-bold flex items-center gap-1">
+              <ShieldCheck className="h-3 w-3" /> SECURED
+            </span>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400 text-center">
-                {error}
-              </div>
-            )}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { tier: "L2", label: "OPERATOR" },
+              { tier: "L3", label: "SUPERVISOR" },
+              { tier: "L4", label: "ROOT ADMIN" },
+            ].map((item) => (
+              <button
+                type="button"
+                key={item.tier}
+                onClick={() => handleTierSelect(item.tier as any)}
+                className={`p-2.5 rounded-2xl border text-center transition-all duration-300 cursor-pointer ${
+                  clearanceTier === item.tier
+                    ? "bg-gradient-to-b from-hawk-sapphire/30 to-hawk-sapphire/15 border-hawk-sapphire/70 shadow-[0_0_25px_rgba(59,130,246,0.35)]"
+                    : "bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.06]"
+                }`}
+              >
+                <div className="text-xs font-mono font-black text-white">{item.tier}</div>
+                <div className="text-[8px] font-mono text-hawk-muted uppercase mt-0.5">{item.label}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Credentials Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-3">
             
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-hawk-muted uppercase tracking-wider">
-                Operator ID
-              </label>
+            {/* Username Input */}
+            <div className="relative">
+              <User className="h-4 w-4 text-hawk-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                placeholder="admin, operator, or viewer"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                placeholder="Operator Handle"
                 required
-                className="h-12 w-full rounded-full border border-white/10 bg-black/40 px-4 text-sm text-white placeholder:text-white/30 outline-none transition-all duration-300 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/25 focus:bg-black/60"
+                className="w-full bg-black/55 border border-white/15 rounded-2xl py-3.5 pl-10 pr-4 text-xs text-white placeholder:text-white/40 font-sans outline-none focus:border-hawk-sapphire transition-colors shadow-inner"
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-hawk-muted uppercase tracking-wider">
-                Security Clearance Key
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="h-12 w-full rounded-full border border-white/10 bg-black/40 px-4 pr-12 text-sm text-white placeholder:text-white/30 outline-none transition-all duration-300 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/25 focus:bg-black/60"
-                />
-                <button 
-                  type="button" 
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" strokeWidth={1.75} />
-                  ) : (
-                    <Eye className="h-4 w-4" strokeWidth={1.75} />
-                  )}
-                </button>
-              </div>
+
+            {/* Password Input */}
+            <div className="relative">
+              <Lock className="h-4 w-4 text-hawk-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Access Keycode"
+                required
+                className="w-full bg-black/55 border border-white/15 rounded-2xl py-3.5 pl-10 pr-4 text-xs text-white placeholder:text-white/40 font-sans outline-none focus:border-hawk-sapphire transition-colors shadow-inner"
+              />
             </div>
 
-            <Button variant="primary" size="lg" className="w-full mt-2" type="submit" disabled={loading}>
-              {loading ? "Authenticating..." : "Initialize Session"}
-            </Button>
-          </form>
+          </div>
 
-          <p className="mt-6 text-center text-[10px] uppercase tracking-widest text-hawk-muted/60">
-            Secure Connection <span className="mx-1">•</span> Live System
-          </p>
-        </Card>
+          {/* Error Banner */}
+          {error && (
+            <div className="p-3 rounded-2xl bg-hawk-burgundy/10 border border-hawk-burgundy/30 text-hawk-burgundy text-xs font-sans flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Submit Button with Biometric Icon */}
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            isLoading={loading}
+            className="w-full shadow-[0_10px_30px_rgba(59,130,246,0.35)] cursor-pointer"
+            icon={<Fingerprint className="h-4 w-4" />}
+          >
+            AUTHORIZE CONSOLE
+          </Button>
+        </form>
+
+        {/* Cryptographic Telemetry Footer */}
+        <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between text-[9px] font-mono text-hawk-muted">
+          <span className="flex items-center gap-1">
+            <Radio className="h-3 w-3 text-hawk-emerald animate-pulse" /> AES-256 ENCRYPTED
+          </span>
+          <span className="flex items-center gap-1">
+            <Cpu className="h-3 w-3 text-hawk-sapphire" /> NODE: HAWK-PROD-01
+          </span>
+        </div>
+
       </div>
+
     </div>
   );
 }

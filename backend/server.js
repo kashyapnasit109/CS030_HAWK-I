@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const bootstrapDb = require('./config/bootstrap');
 
 const app = express();
 app.use(cors());
@@ -17,6 +18,15 @@ app.use('/api/modules', require('./routes/modules'));
 app.use('/api/search', require('./routes/search'));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Backend server running on port ${PORT}`);
+
+bootstrapDb().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Backend server running on port ${PORT}`);
+  });
+}).catch(err => {
+  console.error('Critical database bootstrap failure:', err);
+  app.listen(PORT, () => {
+    console.log(`Backend server running on port ${PORT} (fallback mode active)`);
+  });
 });
+

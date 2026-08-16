@@ -16,6 +16,7 @@ import MisplacementTestBench from "./pages/MisplacementTestBench";
 import ThreatTestBench from "./pages/ThreatTestBench";
 import EntryTestBench from "./pages/EntryTestBench";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { FluidCursor } from "./components/ui/FluidCursor";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -30,6 +31,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
+      <FluidCursor />
       <Routes>
         {/* Login — standalone layout, no sidebar */}
         <Route path="/login" element={<LoginPage />} />

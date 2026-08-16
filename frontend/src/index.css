@@ -1,308 +1,165 @@
 @import "tailwindcss";
 
-/* ══════════════════════════════════════════════════════════════════════
-   Hawk-I Unified Design System v5 — Agex Electric & Iridescent Glass UI
-   Inspired by Agex AI Dashboard, Nauriton Typography, Manifesto Layout & Liquid Glass Orbs
-   ══════════════════════════════════════════════════════════════════════ */
-
 @theme {
-  /* ── Typography ─────────────────────────────────────────────────── */
-  --font-display: "Outfit", "Space Grotesk", sans-serif;
-  --font-brand: "Space Grotesk", "Outfit", sans-serif;
-  --font-body: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-display: "Plus Jakarta Sans", "Space Grotesk", -apple-system, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 
-  /* ── Agex & Iridescent Color Palette ─────────────────────────────── */
-  --color-hawk-bg: #020306;
-  --color-hawk-card: rgba(10, 14, 26, 0.75);
-  --color-hawk-border: rgba(255, 255, 255, 0.08);
-  --color-hawk-border-bright: rgba(255, 255, 255, 0.22);
-
-  /* Agex Electric Sapphire */
-  --color-hawk-blue: #3B82F6;
-  --color-hawk-blue-deep: #1E3A8A;
-  --color-hawk-blue-glow: rgba(59, 130, 246, 0.4);
-
-  /* Iridescent Liquid Violet / Purple */
-  --color-hawk-violet: #8B5CF6;
-  --color-hawk-violet-deep: #4C1D95;
-  --color-hawk-violet-glow: rgba(139, 92, 246, 0.4);
-
-  /* Velvet Crimson Threat */
-  --color-hawk-crimson: #EF4444;
-  --color-hawk-crimson-deep: #7F1D1D;
-  --color-hawk-crimson-glow: rgba(239, 68, 68, 0.4);
-
-  /* Emerald Radiant Health */
+  --color-hawk-bg: #050608;
+  --color-hawk-surface: #090B10;
+  --color-hawk-panel: #0D1017;
+  --color-hawk-card: #121622;
+  
+  --color-hawk-sapphire: #3B82F6;
+  --color-hawk-sapphire-dark: #1D4ED8;
   --color-hawk-emerald: #10B981;
-  --color-hawk-emerald-deep: #064E3B;
-  --color-hawk-emerald-glow: rgba(16, 185, 129, 0.4);
-
-  /* Vivid Amber Warning */
+  --color-hawk-emerald-dark: #047857;
+  --color-hawk-burgundy: #F43F5E;
+  --color-hawk-burgundy-dark: #BE123C;
   --color-hawk-amber: #F59E0B;
-  --color-hawk-amber-glow: rgba(245, 158, 11, 0.4);
+  --color-hawk-amber-dark: #B45309;
 
-  /* Text Colors */
-  --color-hawk-text: #F8FAFC;
-  --color-hawk-muted: #94A3B8;
-  --color-hawk-dim: #64748B;
+  --color-hawk-muted: #848D9E;
+  --color-hawk-border: rgba(255, 255, 255, 0.08);
+  --color-hawk-border-bright: rgba(255, 255, 255, 0.18);
 }
 
-/* ── Base Resets & Selection ────────────────────────────────────────── */
-:root {
-  --hawk-bg: #020306;
-  --hawk-blue: #3B82F6;
-  --hawk-violet: #8B5CF6;
-  --hawk-crimson: #EF4444;
-  --hawk-emerald: #10B981;
-  --hawk-amber: #F59E0B;
-  --hawk-text: #F8FAFC;
-  --hawk-muted: #94A3B8;
-}
-
-*, *::before, *::after { box-sizing: border-box; }
-
-html {
+/* ══════════════════════════════════════════════════════════════════════
+   BASE & RESET
+   ══════════════════════════════════════════════════════════════════════ */
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #050608;
+  color: #F3F4F6;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background-color: #020306;
-  color: #F8FAFC;
-  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-  overflow-x: hidden;
+@media (pointer: fine) {
+  *, html, body, a, button, input, select, textarea, [role="button"], .cursor-pointer {
+    cursor: none !important;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   AGEX TOP LIGHT BEAM & LIQUID ATMOSPHERE
-   Center electric blue spotlight + background liquid purple/blue glows
+   GLOBAL SELECTION & RADIAL MESH PATTERNS
    ══════════════════════════════════════════════════════════════════════ */
-.hawk-atmosphere {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  background: #020306;
+::selection {
+  background-color: rgba(59, 130, 246, 0.4);
+  color: #FFFFFF;
 }
 
-/* Agex signature top vertical light beam */
-.hawk-spotlight-beam {
-  position: absolute;
-  top: -120px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 600px;
-  height: 450px;
-  background: radial-gradient(ellipse at top, rgba(59, 130, 246, 0.4) 0%, rgba(139, 92, 246, 0.15) 45%, transparent 75%);
-  filter: blur(40px);
-  opacity: 0.85;
+.bg-dot-matrix {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-.hawk-aura {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(140px);
-  will-change: transform, opacity;
-  animation: liquid-pulse 16s ease-in-out infinite alternate;
-}
-
-.hawk-aura--blue {
-  width: 750px;
-  height: 750px;
-  top: -10%;
-  right: -10%;
-  background: radial-gradient(circle, rgba(30, 64, 175, 0.35) 0%, rgba(59, 130, 246, 0.12) 50%, transparent 70%);
-}
-
-.hawk-aura--violet {
-  width: 700px;
-  height: 700px;
-  top: 20%;
-  left: -12%;
-  background: radial-gradient(circle, rgba(109, 40, 217, 0.3) 0%, rgba(139, 92, 246, 0.1) 50%, transparent 70%);
-  animation-delay: -5s;
-}
-
-.hawk-aura--crimson {
-  width: 600px;
-  height: 600px;
-  bottom: -15%;
-  right: 20%;
-  background: radial-gradient(circle, rgba(185, 28, 28, 0.25) 0%, transparent 70%);
-  animation-delay: -10s;
-}
-
-@keyframes liquid-pulse {
-  0% { transform: scale(1) translateY(0); }
-  50% { transform: scale(1.06) translateY(-15px); }
-  100% { transform: scale(0.95) translateY(15px); }
+.bg-grid-mesh {
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   AGEX & MANIFESTO SPECULAR GLASS CARDS
-   High backdrop blur, specular top-edge rim, inner indigo highlights
+   POETIC / PRIXA LIQUID GLASS & GRADIENT BORDERS
    ══════════════════════════════════════════════════════════════════════ */
-.hawk-glass-card {
-  background: linear-gradient(
-    145deg,
-    rgba(17, 24, 39, 0.6) 0%,
-    rgba(10, 14, 26, 0.75) 50%,
-    rgba(6, 9, 18, 0.85) 100%
-  );
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
+.liquid-glass {
+  background: linear-gradient(135deg, rgba(14, 18, 28, 0.75) 0%, rgba(9, 11, 16, 0.9) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-top: 1px solid rgba(255, 255, 255, 0.22);
-  border-left: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 24px;
-  box-shadow:
-    0 20px 50px rgba(0, 0, 0, 0.7),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -1px 25px rgba(0, 0, 0, 0.5);
-  position: relative;
-  overflow: hidden;
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Top Specular Rim Reflection */
-.hawk-glass-card::before {
+.liquid-glass-interactive {
+  background: linear-gradient(135deg, rgba(14, 18, 28, 0.75) 0%, rgba(9, 11, 16, 0.9) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass-interactive:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.9), 0 0 30px -5px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Shimmer light sweep keyframe */
+@keyframes shimmerSweep {
+  0% { transform: translateX(-100%) rotate(45deg); opacity: 0; }
+  50% { opacity: 0.6; }
+  100% { transform: translateX(200%) rotate(45deg); opacity: 0; }
+}
+
+.shimmer-sweep::after {
   content: "";
   position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.6), rgba(255, 255, 255, 0.8), rgba(139, 92, 246, 0.6), transparent);
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 100%
+  );
+  transform: rotate(45deg);
   pointer-events: none;
+  animation: shimmerSweep 4s ease-in-out infinite;
 }
 
-.hawk-glass-card--interactive {
-  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
-  cursor: pointer;
+/* Radar pulse animation */
+@keyframes radarSweep {
+  0% { transform: scale(0.96); opacity: 0.7; }
+  50% { transform: scale(1.04); opacity: 0.2; }
+  100% { transform: scale(0.96); opacity: 0.7; }
 }
 
-.hawk-glass-card--interactive:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.25);
-  border-top-color: rgba(255, 255, 255, 0.45);
-  box-shadow:
-    0 25px 60px rgba(0, 0, 0, 0.8),
-    0 0 30px rgba(59, 130, 246, 0.2),
-    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+.animate-radar {
+  animation: radarSweep 3s ease-in-out infinite;
 }
 
-.hawk-glass-card--glow-blue:hover {
-  box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 35px rgba(59, 130, 246, 0.3), inset 0 1px 2px rgba(255,255,255,0.3);
-  border-color: rgba(59, 130, 246, 0.4);
+/* Scan line sweep */
+@keyframes scanSweep {
+  0% { top: 0%; opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { top: 100%; opacity: 0.8; }
 }
 
-.hawk-glass-card--glow-violet:hover {
-  box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 35px rgba(139, 92, 246, 0.3), inset 0 1px 2px rgba(255,255,255,0.3);
-  border-color: rgba(139, 92, 246, 0.4);
-}
-
-.hawk-glass-card--glow-crimson:hover {
-  box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 35px rgba(239, 68, 68, 0.3), inset 0 1px 2px rgba(255,255,255,0.3);
-  border-color: rgba(239, 68, 68, 0.4);
-}
-
-.hawk-glass-card--glow-emerald:hover {
-  box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 35px rgba(16, 185, 129, 0.3), inset 0 1px 2px rgba(255,255,255,0.3);
-  border-color: rgba(16, 185, 129, 0.4);
+.animate-scan-sweep {
+  animation: scanSweep 3s ease-in-out infinite;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   IRIDESCENT LIQUID GLASS ORB CONTAINER (LogoArter / Liquid Orb Reference)
+   SCROLLBAR UTILITIES
    ══════════════════════════════════════════════════════════════════════ */
-.hawk-logo-orb {
-  background: radial-gradient(circle at 30% 25%, rgba(139, 92, 246, 0.35) 0%, rgba(59, 130, 246, 0.2) 40%, rgba(10, 14, 26, 0.9) 90%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 16px;
-  position: relative;
-  box-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.6),
-    0 0 25px rgba(139, 92, 246, 0.35),
-    inset 0 2px 2px rgba(255, 255, 255, 0.6),
-    inset 0 -3px 12px rgba(0, 0, 0, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.hawk-logo-orb::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: 16px;
-  padding: 1.5px;
-  background: linear-gradient(135deg, #8B5CF6 0%, #3B82F6 40%, #10B981 70%, #EF4444 100%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0.9;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
-
-/* ══════════════════════════════════════════════════════════════════════
-   SIDEBAR ACTIVE NAVIGATION PILL (Agex Style)
-   ══════════════════════════════════════════════════════════════════════ */
-.hawk-sidebar-active {
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(139, 92, 246, 0.1) 100%);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  border-left: 3px solid #3B82F6;
-  box-shadow: 0 0 25px rgba(59, 130, 246, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.25);
-  border-radius: 14px;
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
 }
-
-/* ══════════════════════════════════════════════════════════════════════
-   PULSING STATUS DOTS
-   ══════════════════════════════════════════════════════════════════════ */
-.hawk-dot {
-  position: relative;
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
 }
-
-.hawk-dot::before {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  opacity: 0.6;
-  animation: hawk-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
-
-.hawk-dot--emerald { background: #10B981; box-shadow: 0 0 10px #10B981; }
-.hawk-dot--emerald::before { background: #10B981; }
-
-.hawk-dot--crimson { background: #EF4444; box-shadow: 0 0 10px #EF4444; }
-.hawk-dot--crimson::before { background: #EF4444; }
-
-.hawk-dot--blue { background: #3B82F6; box-shadow: 0 0 10px #3B82F6; }
-.hawk-dot--blue::before { background: #3B82F6; }
-
-.hawk-dot--violet { background: #8B5CF6; box-shadow: 0 0 10px #8B5CF6; }
-.hawk-dot--violet::before { background: #8B5CF6; }
-
-.hawk-dot--amber { background: #F59E0B; box-shadow: 0 0 10px #F59E0B; }
-.hawk-dot--amber::before { background: #F59E0B; }
-
-@keyframes hawk-pulse {
-  0% { transform: scale(0.9); opacity: 0.8; }
-  50% { transform: scale(1.8); opacity: 0.15; }
-  100% { transform: scale(0.9); opacity: 0.8; }
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   SCROLLBAR & SELECTION
-   ══════════════════════════════════════════════════════════════════════ */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }

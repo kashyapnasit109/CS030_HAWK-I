@@ -1,64 +1,46 @@
+import orbSrc from "../../assets/hawk_i_3d_orb_transparent.png";
+
 interface LogoProps {
   size?: number;
   showWordmark?: boolean;
   className?: string;
 }
 
-/**
- * HAWK-I Brand Logo v5
- * 1. Icon Mark: Iridescent Liquid Glass Orb with glowing multi-color rim (purple -> blue -> green -> red)
- *    and a crisp geometric Hawk aperture emblem inside (matching liquid orb references).
- * 2. Wordmark: "hawk-i" in bold lowercase Space Grotesk/Outfit with electric blue glowing dot,
- *    and "CCTV INTELLIGENCE PLATFORM" in tracked uppercase text.
- */
-export function Logo({ size = 42, showWordmark = true, className = "" }: LogoProps) {
+export function Logo({ size = 48, showWordmark = false, className = "" }: LogoProps) {
   return (
-    <div className={`flex items-center gap-3.5 ${className}`}>
-      {/* Liquid Iridescent Glass Orb Icon Mark */}
+    <div className={`flex flex-col items-center justify-center group cursor-none ${className}`}>
+      
+      {/* 
+        The 3D Iridescent Orb 
+        Applying the zoom-out (scale-90) and elegant glow hover transition.
+      */}
       <div 
-        className="hawk-logo-orb shrink-0" 
+        className="relative flex items-center justify-center transition-all duration-700 ease-out group-hover:scale-95" 
         style={{ width: size, height: size }}
       >
-        <svg
-          width={size * 0.65}
-          height={size * 0.65}
-          viewBox="0 0 40 40"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Hawk Eye / Lens Aperture emblem */}
-          <g stroke="#F8FAFC" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-            {/* Outer winged eye arch */}
-            <path d="M 6,20 C 12,11 28,11 34,20 C 28,29 12,29 6,20 Z" strokeWidth="2.4" opacity="0.95" />
-            {/* Inner pupil circle */}
-            <circle cx="20" cy="20" r="5.5" strokeWidth="2" opacity="0.9" fill="rgba(59,130,246,0.3)" />
-            {/* Core pupil point */}
-            <circle cx="20" cy="20" r="2" fill="#F8FAFC" stroke="none" />
-            {/* Corner wing accents */}
-            <path d="M 6,20 L 2,20" strokeWidth="2" opacity="0.7" />
-            <path d="M 34,20 L 38,20" strokeWidth="2" opacity="0.7" />
-          </g>
-        </svg>
+        {/* Subtle hover glow ring */}
+        <div className="absolute inset-0 bg-hawk-sapphire/30 rounded-full blur-[30px] mix-blend-screen opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none scale-110" />
+        
+        <img
+          src={orbSrc}
+          alt="Hawk-I Core"
+          className="w-full h-full object-contain filter contrast-125 brightness-110 drop-shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-transform duration-1000 group-hover:rotate-12"
+        />
       </div>
-
-      {/* Wordmark Lockup — HAWK-I */}
+      
+      {/* 
+        Wordmark
+        Fixed alignment, removed top margin when sizing down. 
+        Glow should not overpower the text. 
+      */}
       {showWordmark && (
-        <div className="flex flex-col justify-center">
-          <div className="flex items-baseline">
-            <span
-              className="text-[22px] font-extrabold leading-none tracking-[-0.04em] text-white"
-              style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}
-            >
-              hawk-i
-            </span>
-            <span className="ml-1 h-2 w-2 rounded-full bg-[#3B82F6] shadow-[0_0_10px_#3B82F6]" />
-          </div>
-          <span 
-            className="mt-1 text-[9px] font-bold uppercase tracking-[0.24em] text-[#94A3B8] opacity-80"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-          >
-            CCTV INTELLIGENCE PLATFORM
-          </span>
+        <div className="mt-4 flex flex-col items-center select-none cursor-none relative z-10 transition-transform duration-700 group-hover:-translate-y-1">
+          <h1 className="text-3xl font-bold text-white tracking-[0.15em] font-display uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+            Hawk-I
+          </h1>
+          <p className="text-[7.5px] font-mono tracking-[0.45em] text-hawk-muted uppercase mt-1 opacity-80 pl-1 drop-shadow-md">
+            Advanced Vision Technologies
+          </p>
         </div>
       )}
     </div>

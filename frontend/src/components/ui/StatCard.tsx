@@ -1,73 +1,69 @@
 import type { ReactNode } from "react";
-import type { SemanticColor } from "../../design-tokens/colors";
+import { Card } from "./Card";
 
 interface StatCardProps {
-  icon: ReactNode;
-  value: string | number;
   label: string;
-  trend?: ReactNode;
+  value: string | number;
+  subtext?: string;
+  icon?: ReactNode;
+  trend?: string;
   trendDirection?: "up" | "down" | "neutral";
-  accentColor?: SemanticColor;
-  className?: string;
+  accentColor?: "sapphire" | "emerald" | "burgundy" | "amber";
+  code?: string;
 }
 
-const trendColors = {
-  up: "text-hawk-emerald bg-hawk-emerald/10 border-hawk-emerald/30",
-  down: "text-hawk-crimson bg-hawk-crimson/10 border-hawk-crimson/30",
-  neutral: "text-hawk-muted bg-white/5 border-white/10",
-} as const;
-
-const accentGradient: Record<SemanticColor, string> = {
-  blue: "bg-gradient-to-br from-hawk-blue/30 to-hawk-blue-deep/80 text-hawk-blue border-hawk-blue/40 shadow-[0_0_15px_rgba(59,130,246,0.3)]",
-  violet: "bg-gradient-to-br from-hawk-violet/30 to-hawk-violet-deep/80 text-hawk-violet border-hawk-violet/40 shadow-[0_0_15px_rgba(139,92,246,0.3)]",
-  crimson: "bg-gradient-to-br from-hawk-crimson/30 to-hawk-crimson-deep/80 text-hawk-crimson border-hawk-crimson/40 shadow-[0_0_15px_rgba(239,68,68,0.3)]",
-  emerald: "bg-gradient-to-br from-hawk-emerald/30 to-hawk-emerald-deep/80 text-hawk-emerald border-hawk-emerald/40 shadow-[0_0_15px_rgba(16,185,129,0.3)]",
-  amber: "bg-gradient-to-br from-hawk-amber/30 to-amber-900/80 text-hawk-amber border-hawk-amber/40 shadow-[0_0_15px_rgba(245,158,11,0.3)]",
-};
-
-const glowMap: Record<SemanticColor, string> = {
-  blue: "hawk-glass-card--glow-blue",
-  violet: "hawk-glass-card--glow-violet",
-  crimson: "hawk-glass-card--glow-crimson",
-  emerald: "hawk-glass-card--glow-emerald",
-  amber: "hawk-glass-card--glow-violet",
-};
-
 export function StatCard({
-  icon,
-  value,
   label,
+  value,
+  subtext,
+  icon,
   trend,
-  trendDirection = "neutral",
-  accentColor = "blue",
-  className = "",
+  trendDirection = "up",
+  accentColor = "sapphire",
 }: StatCardProps) {
+  const accentGlow = {
+    sapphire: "text-hawk-sapphire bg-hawk-sapphire/10 border-hawk-sapphire/20",
+    emerald: "text-hawk-emerald bg-hawk-emerald/10 border-hawk-emerald/20",
+    burgundy: "text-hawk-burgundy bg-hawk-burgundy/10 border-hawk-burgundy/20",
+    amber: "text-hawk-amber bg-hawk-amber/10 border-hawk-amber/20",
+  };
+
+  const trendColors = {
+    up: "text-hawk-emerald bg-hawk-emerald/10 border-hawk-emerald/20",
+    down: "text-hawk-burgundy bg-hawk-burgundy/10 border-hawk-burgundy/20",
+    neutral: "text-white/40 bg-white/5 border-white/10",
+  };
+
   return (
-    <div className={`hawk-glass-card hawk-glass-card--interactive ${glowMap[accentColor]} p-6 ${className}`}>
-      {/* Icon badge in top-right corner */}
+    <Card padding="md" interactive glowColor={accentColor} className="space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wider text-hawk-muted">{label}</span>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-full border ${accentGradient[accentColor]}`}>
-          {icon}
+        <span className="text-[11px] font-mono uppercase tracking-wider text-hawk-muted font-semibold">
+          {label}
+        </span>
+        {icon && (
+          <div className={`p-2.5 rounded-xl border ${accentGlow[accentColor]}`}>
+            {icon}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-baseline justify-between">
+        <div className="text-3xl lg:text-4xl font-display font-extrabold text-white tracking-tight tabular-nums drop-shadow-[0_2px_12px_rgba(255,255,255,0.15)]">
+          {value}
         </div>
-      </div>
-
-      {/* Large display number in Outfit geometric style */}
-      <div
-        className="mt-3 text-4xl font-extrabold tracking-tight text-white"
-        style={{ fontFamily: "'Outfit', 'Space Grotesk', sans-serif" }}
-      >
-        {value}
-      </div>
-
-      {/* Trend indicator pill */}
-      {trend && (
-        <div className="mt-4 flex items-center">
-          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${trendColors[trendDirection]}`}>
+        {trend && (
+          <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold border ${trendColors[trendDirection]}`}>
             {trend}
           </span>
+        )}
+      </div>
+
+      {subtext && (
+        <div className="pt-3 border-t border-white/[0.04] flex items-center justify-between text-[11px] text-hawk-muted/80">
+          <span className="line-clamp-1">{subtext}</span>
+          <span className="h-1.5 w-1.5 rounded-full bg-hawk-emerald animate-pulse shrink-0 ml-2" />
         </div>
       )}
-    </div>
+    </Card>
   );
 }

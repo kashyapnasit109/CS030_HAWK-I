@@ -1,375 +1,344 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
-import {
-  Camera,
-  AlertTriangle,
-  Shield,
-  Activity,
-  ArrowUpRight,
-  ArrowDownRight,
-  Clock,
-  Sliders,
-  CheckCircle2,
-} from "lucide-react";
-import { StatCard } from "../components/ui/StatCard";
+import { useState } from "react";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
-import { ProgressRing } from "../components/ui/ProgressRing";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
-import { colors } from "../design-tokens/colors";
+import { Button } from "../components/ui/Button";
+import { StatCard } from "../components/ui/StatCard";
+import { 
+  Camera, 
+  Activity, 
+  ScanLine, 
+  Video, 
+  ArrowUpRight, 
+  ShieldAlert, 
+  Gauge, 
+  Boxes, 
+  LogIn, 
+  Zap,
+  Sparkles,
+  Maximize2,
+  Radio,
+  Eye,
+  Flame,
+  Sun
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
-/* ── Rich Mock Data (Kept for visual chart) ─────────────────────────────────────────────────── */
-const activityData = [
-  { time: "00:00", events: 14, alerts: 2 },
-  { time: "02:00", events: 9, alerts: 1 },
-  { time: "04:00", events: 6, alerts: 0 },
-  { time: "06:00", events: 22, alerts: 3 },
-  { time: "08:00", events: 54, alerts: 6 },
-  { time: "10:00", events: 78, alerts: 11 },
-  { time: "12:00", events: 62, alerts: 5 },
-  { time: "14:00", events: 88, alerts: 8 },
-  { time: "16:00", events: 82, alerts: 12 },
-  { time: "18:00", events: 60, alerts: 7 },
-  { time: "20:00", events: 42, alerts: 4 },
-  { time: "22:00", events: 28, alerts: 2 },
-];
-
-const priorityAlerts = [
-  {
-    id: 1,
-    title: "Unauthorized Perimeter Breach — Zone 4",
-    severity: "crimson" as const,
-    time: "2 min ago",
-    camera: "CAM-07 (North Fence)",
-    module: "Intrusion Detection",
-  },
-  {
-    id: 2,
-    title: "High Velocity Vehicle — 74 km/h in restricted zone",
-    severity: "amber" as const,
-    time: "14 min ago",
-    camera: "CAM-12 (Gate B)",
-    module: "Speed Tracking",
-  },
-  {
-    id: 3,
-    title: "Loitering Suspicion near VIP Entrance",
-    severity: "amber" as const,
-    time: "29 min ago",
-    camera: "CAM-01 (Main Lobby)",
-    module: "Behavior Analysis",
-  },
-];
-
-const alertIconStyle: Record<string, string> = {
-  crimson: "bg-hawk-crimson/20 text-hawk-crimson border-hawk-crimson/40 shadow-[0_0_15px_rgba(239,68,68,0.3)]",
-  amber: "bg-hawk-amber/20 text-hawk-amber border-hawk-amber/40 shadow-[0_0_15px_rgba(245,158,11,0.3)]",
-  blue: "bg-hawk-blue/20 text-hawk-blue border-hawk-blue/40 shadow-[0_0_15px_rgba(59,130,246,0.3)]",
-};
-
-function CustomTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number; dataKey: string }>;
-  label?: string;
-}) {
-  if (!active || !payload) return null;
-  return (
-    <div className="hawk-glass-card p-3.5 text-xs shadow-2xl backdrop-blur-2xl">
-      <p className="mb-2 font-bold text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>{label}</p>
-      {payload.map((entry) => (
-        <div key={entry.dataKey} className="flex items-center justify-between gap-6 py-0.5 text-hawk-muted">
-          <span className="flex items-center gap-1.5 font-semibold">
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: entry.dataKey === "events" ? colors.blue : colors.crimson }}
-            />
-            {entry.dataKey === "events" ? "Events Detected" : "Security Alerts"}
-          </span>
-          <span className="font-extrabold text-white">{entry.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+// Optical feed assets
+import feedAnpr from "../assets/feed_anpr_gate_1786554321922.png";
+import feedServer from "../assets/feed_server_room_1786554342814.png";
+import feedDrone from "../assets/feed_drone_view_1786554359554.png";
 
 export default function DashboardPage() {
-  const currentDate = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-  const { token } = useAuth();
+  const [activeStreamIndex, setActiveStreamIndex] = useState(0);
+  const [visionMode, setVisionMode] = useState<"optical" | "thermal" | "night">("optical");
+  const [selectedBBox, setSelectedBBox] = useState<string | null>(null);
 
-  const [summary, setSummary] = useState<any>(null);
-  const [cameras, setCameras] = useState<any[]>([]);
+  const streams = [
+    { id: "CAM-01", name: "Sector 1 Gate (ANPR Optical)", src: feedAnpr, fps: "59.9 FPS", resolution: "4K (3840x2160)", type: "ANPR / OVERVIEW", zone: "Perimeter Gate" },
+    { id: "CAM-02", name: "Server Vault (Thermal Core)", src: feedServer, fps: "30.0 FPS", resolution: "1080p (1920x1080)", type: "THERMAL FLIR", zone: "Vault Sector B" },
+    { id: "CAM-03", name: "Perimeter Drone Alpha", src: feedDrone, fps: "60.0 FPS", resolution: "4K (3840x2160)", type: "AERIAL PATROL", zone: "Outer Perimeter" },
+  ];
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [summaryRes, camerasRes] = await Promise.all([
-          fetch("/api/analytics/summary", {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch("/api/cameras", {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        ]);
+  const detectionBoxes = [
+    { id: "box-1", label: "SUV (TOYOTA)", confidence: "98.4%", color: "border-hawk-sapphire text-hawk-sapphire", top: "42%", left: "46%", width: "24%", height: "28%" },
+    { id: "box-2", label: "PLATE [MH-12-AB-3456]", confidence: "99.1%", color: "border-hawk-emerald text-hawk-emerald", top: "58%", left: "54%", width: "10%", height: "8%" },
+    { id: "box-3", label: "SECURITY GUARD", confidence: "96.7%", color: "border-hawk-amber text-hawk-amber", top: "38%", left: "28%", width: "9%", height: "32%" },
+  ];
 
-        if (summaryRes.ok) setSummary(await summaryRes.json());
-        if (camerasRes.ok) setCameras(await camerasRes.json());
-      } catch (err) {
-        console.error("Error fetching dashboard data", err);
-      }
-    };
-    
-    if (token) fetchData();
-  }, [token]);
+  const incidents = [
+    { id: "INC-8942", time: "Just now", type: "UNAUTHORIZED_ENTRY", zone: "Vault Entry Gate", severity: "critical", msg: "Unregistered individual detected in restricted sector" },
+    { id: "INC-8941", time: "2 min ago", type: "SPEED_VIOLATION", zone: "Loading Bay North", severity: "warning", msg: "Vehicle MH-12-DE-1420 clocked at 84 km/h (Limit: 40)" },
+    { id: "INC-8940", time: "14 min ago", type: "UNATTENDED_OBJECT", zone: "Terminal B Lobby", severity: "warning", msg: "Static briefcase detected unattended for > 120s" },
+    { id: "INC-8939", time: "32 min ago", type: "ANPR_MATCH", zone: "Main Perimeter Gate", severity: "neutral", msg: "Blacklist plate DL-08-CC-8899 flagged at entrance" },
+  ];
 
-  const totalEventsToday = summary?.events_today_per_module?.reduce((acc: number, curr: any) => acc + curr.count, 0) || 0;
+  const activeStream = streams[activeStreamIndex];
 
   return (
-    <div className="space-y-8">
-      {/* Overview Context Header Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-8 pb-16">
+      
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <p className="text-sm font-semibold text-hawk-muted">
-            Unified Hawk-I Surveillance Feed · <span className="text-white font-bold">{currentDate}</span>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="h-2 w-2 rounded-full bg-hawk-emerald animate-ping" />
+            <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-hawk-muted">
+              AUTONOMOUS SURVEILLANCE PLATFORM
+            </span>
+          </div>
+          <h1 className="text-3xl lg:text-5xl font-display font-black text-white tracking-tight">
+            Command Center
+          </h1>
+          <p className="text-sm text-hawk-muted font-sans mt-1">
+            Real-time optical surveillance feeds, automated neural threat triage & spatial telemetry
           </p>
         </div>
+
         <div className="flex items-center gap-3">
-          <Badge variant="emerald" dot>
-            Hawk Engine Optimal
-          </Badge>
-          <Badge variant="blue">
-            9 AI Modules Active
-          </Badge>
+          <Link to="/live">
+            <Button variant="secondary" size="md" icon={<Video className="h-4 w-4 text-hawk-sapphire" />}>
+              Live Matrix
+            </Button>
+          </Link>
+          <Link to="/search">
+            <Button variant="primary" size="md" icon={<Zap className="h-4 w-4" />}>
+              Semantic Query
+            </Button>
+          </Link>
         </div>
       </div>
 
-      {/* ── KPI Stat Cards Grid ────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {/* KPI Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
-          icon={<Camera className="h-5 w-5" strokeWidth={2} />}
-          value={summary ? summary.total_cameras : "..."}
-          label="Active Feeds"
-          trend={
-            <span className="flex items-center gap-1">
-              <ArrowUpRight className="h-4 w-4 text-hawk-emerald" /> Linked to DB
-            </span>
-          }
+          icon={<Camera className="h-4 w-4" />}
+          label="Active Optical Feeds"
+          value="08 / 08"
+          accentColor="sapphire"
+          trend="+2 online"
           trendDirection="up"
-          accentColor="blue"
+          subtext="100% frame delivery rate"
         />
         <StatCard
-          icon={<AlertTriangle className="h-5 w-5" strokeWidth={2} />}
-          value={summary ? summary.open_alerts : "..."}
-          label="Pending Alerts"
-          trend={
-            <span className="flex items-center gap-1">
-              <ArrowDownRight className="h-4 w-4 text-hawk-crimson" /> Needs review
-            </span>
-          }
+          icon={<ShieldAlert className="h-4 w-4" />}
+          label="Threat Incidents (24h)"
+          value="03"
+          accentColor="burgundy"
+          trend="1 Critical"
           trendDirection="down"
-          accentColor="crimson"
+          subtext="Requires immediate operator triage"
         />
         <StatCard
-          icon={<Shield className="h-5 w-5" strokeWidth={2} />}
-          value="99.4%"
-          label="Uptime Index"
-          trend={
-            <span className="flex items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5 text-hawk-emerald" /> 30-day average
-            </span>
-          }
-          trendDirection="up"
+          icon={<Activity className="h-4 w-4" />}
+          label="Inference Latency"
+          value="14.2ms"
           accentColor="emerald"
+          trend="60 FPS"
+          trendDirection="up"
+          subtext="YOLOv8 + ByteTrack TensorRT"
         />
         <StatCard
-          icon={<Activity className="h-5 w-5" strokeWidth={2} />}
-          value={summary ? totalEventsToday : "..."}
-          label="AI Detections Today"
-          trend={
-            <span className="flex items-center gap-1">
-              <ArrowUpRight className="h-4 w-4 text-hawk-emerald" /> Aggregated live
-            </span>
-          }
+          icon={<Sparkles className="h-4 w-4" />}
+          label="Total Vision Events"
+          value="1,482"
+          accentColor="amber"
+          trend="+18.4%"
           trendDirection="up"
-          accentColor="violet"
+          subtext="Processed in past 24 hours"
         />
       </div>
 
-      {/* ── Activity Chart & Donut Gauge Progress Ring ──────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Main Analytics Area Chart — 2/3 width */}
-        <Card padding="lg" className="lg:col-span-2">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h3 
-                className="text-xl font-extrabold tracking-tight text-white"
-                style={{ fontFamily: "'Outfit', 'Space Grotesk', sans-serif" }}
-              >
-                Intelligence Activity Timeline
-              </h3>
-              <p className="mt-1 text-xs text-hawk-muted">Real-time event frequency &amp; alert distribution across 24h</p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-bold">
-              <span className="flex items-center gap-2 text-hawk-muted">
-                <span className="h-2.5 w-2.5 rounded-full bg-hawk-blue shadow-[0_0_10px_#3B82F6]" />
-                Events
-              </span>
-              <span className="flex items-center gap-2 text-hawk-muted">
-                <span className="h-2.5 w-2.5 rounded-full bg-hawk-crimson shadow-[0_0_10px_#EF4444]" />
-                Alerts
-              </span>
-            </div>
-          </div>
+      {/* Central Workbench: Live Video with Interactive AI Bounding Box Overlays */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        
+        {/* Left 8 Columns: High-Resolution Optical Live Canvas */}
+        <div className="xl:col-span-8 space-y-4">
+          <Card padding="none" className="overflow-hidden bg-[#07080B] flex flex-col justify-between shadow-[0_25px_60px_rgba(0,0,0,0.8)] border border-white/[0.1]">
+            
+            {/* Camera Switcher & Vision Shader Mode Pills */}
+            <div className="p-4 border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-4 bg-white/[0.01]">
+              <div className="flex items-center gap-2">
+                <Radio className="h-4 w-4 text-hawk-sapphire animate-pulse" />
+                {streams.map((s, idx) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setActiveStreamIndex(idx)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                      activeStreamIndex === idx
+                        ? "bg-hawk-sapphire text-white shadow-[0_0_15px_rgba(59,130,246,0.4)] border border-blue-400/40"
+                        : "bg-white/[0.03] text-hawk-muted hover:text-white border border-white/5"
+                    }`}
+                  >
+                    {s.id}
+                  </button>
+                ))}
+              </div>
 
-          <div className="h-[290px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={activityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="v5GradBlue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.45} />
-                    <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="v5GradCrimson" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#EF4444" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#EF4444" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 11, fontWeight: 700 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 11, fontWeight: 700 }} dx={-10} />
-                <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.15)", strokeWidth: 1 }} />
-                <Area type="monotone" dataKey="events" stroke="#3B82F6" strokeWidth={3} fill="url(#v5GradBlue)" />
-                <Area type="monotone" dataKey="alerts" stroke="#EF4444" strokeWidth={3} fill="url(#v5GradCrimson)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        {/* Progress Gauge Donut Ring — System Capacity (1/3 width) */}
-        <Card padding="lg" className="flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <h3 
-                className="text-xl font-extrabold tracking-tight text-white"
-                style={{ fontFamily: "'Outfit', 'Space Grotesk', sans-serif" }}
-              >
-                Module Processing
-              </h3>
-              <button className="text-hawk-muted hover:text-white transition-colors">
-                <Sliders className="h-4 w-4" />
-              </button>
+              {/* Spectral Shader Modes */}
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/60 border border-white/10 text-xs font-mono">
+                {[
+                  { id: "optical", label: "OPTICAL", icon: Eye },
+                  { id: "thermal", label: "THERMAL", icon: Flame },
+                  { id: "night", label: "NIGHT IR", icon: Sun },
+                ].map((mode) => {
+                  const Icon = mode.icon;
+                  return (
+                    <button
+                      key={mode.id}
+                      onClick={() => setVisionMode(mode.id as any)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                        visionMode === mode.id
+                          ? "bg-white/15 text-white font-bold"
+                          : "text-hawk-muted hover:text-white"
+                      }`}
+                    >
+                      <Icon className="h-3 w-3" />
+                      <span className="text-[10px]">{mode.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <p className="mt-1 text-xs text-hawk-muted">GPU acceleration &amp; model load index</p>
-          </div>
 
-          <div className="my-6 flex flex-col items-center justify-center">
-            <ProgressRing value={94} size={170} strokeWidth={10} color="emerald" label="Peak Optimal" />
-          </div>
+            {/* Video Canvas with Dynamic Shader Filter and AI Target Bounding Boxes */}
+            <div className="relative aspect-video w-full bg-black flex items-center justify-center overflow-hidden group">
+              <img
+                src={activeStream.src}
+                alt={activeStream.name}
+                className={`w-full h-full object-cover transition-all duration-700 ${
+                  visionMode === "thermal"
+                    ? "hue-rotate-180 contrast-200 saturate-200"
+                    : visionMode === "night"
+                    ? "invert brightness-90 contrast-150 saturate-50 sepia hue-rotate-90"
+                    : "group-hover:scale-101"
+                }`}
+              />
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="hawk-glass-card p-3 text-center border-white/10">
-              <div className="text-[11px] font-bold text-hawk-muted">Inference Latency</div>
-              <div className="mt-1 text-lg font-extrabold text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>11.4 ms</div>
-            </div>
-            <div className="hawk-glass-card p-3 text-center border-white/10">
-              <div className="text-[11px] font-bold text-hawk-muted">VRAM Utilized</div>
-              <div className="mt-1 text-lg font-extrabold text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>5.8 / 16 GB</div>
-            </div>
-          </div>
-        </Card>
-      </div>
+              {/* Dynamic Neural AI Bounding Box Tracking Overlays */}
+              {detectionBoxes.map((box) => (
+                <div
+                  key={box.id}
+                  onClick={() => setSelectedBBox(selectedBBox === box.id ? null : box.id)}
+                  style={{ top: box.top, left: box.left, width: box.width, height: box.height }}
+                  className={`absolute border-2 ${box.color} rounded-lg transition-all cursor-pointer group/bbox ${
+                    selectedBBox === box.id ? "bg-hawk-sapphire/20 shadow-[0_0_20px_rgba(59,130,246,0.6)]" : "hover:bg-white/10"
+                  }`}
+                >
+                  <div className="absolute -top-5 left-0 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[8px] font-mono font-bold whitespace-nowrap border border-white/20">
+                    {box.label} <span className="text-hawk-emerald">{box.confidence}</span>
+                  </div>
 
-      {/* ── Priority Detections & Camera Feed Status Row ─────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Recent Priority Detections (Kept Mock per instructions not explicitly stating to fetch priority alerts, but we fetch from API in AlertsPage) */}
-        <Card>
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-extrabold tracking-tight text-white" style={{ fontFamily: "'Outfit', 'Space Grotesk', sans-serif" }}>
-                Priority Security Detections
-              </h3>
-              <p className="mt-0.5 text-xs text-hawk-muted">Flagged events requiring operator review</p>
+                  {/* Corner reticle brackets */}
+                  <span className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-white" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 border-white" />
+                  <span className="absolute -bottom-1 -left-1 w-2 h-2 border-b-2 border-l-2 border-white" />
+                  <span className="absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2 border-white" />
+                </div>
+              ))}
+
+              {/* Bottom Canvas Overlay */}
+              <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/95 via-black/50 to-transparent flex items-end justify-between">
+                <div>
+                  <h3 className="text-xl font-display font-black text-white uppercase tracking-wide">
+                    {activeStream.name}
+                  </h3>
+                  <p className="text-xs font-mono text-white/70 mt-1">
+                    Zone: <strong className="text-hawk-sapphire">{activeStream.zone}</strong> · Frame Rate: <strong className="text-hawk-emerald">{activeStream.fps}</strong>
+                  </p>
+                </div>
+
+                <Link to="/live">
+                  <button className="p-3 rounded-xl bg-black/70 hover:bg-black text-white border border-white/20 transition-all cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.6)]">
+                    <Maximize2 className="h-4 w-4" />
+                  </button>
+                </Link>
+              </div>
             </div>
+
+          </Card>
+        </div>
+
+        {/* Right 4 Columns: Threat Radar & Incidents Rail */}
+        <div className="xl:col-span-4 space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-hawk-burgundy animate-pulse" />
+              <h2 className="text-base font-display font-bold text-white uppercase tracking-wider">
+                Threat Incidents
+              </h2>
+            </div>
+            <Link to="/alerts" className="text-xs font-mono text-hawk-sapphire hover:text-blue-400 font-bold">
+              View All (4) &rarr;
+            </Link>
           </div>
 
           <div className="space-y-3">
-            {priorityAlerts.map((alert) => (
-              <div key={alert.id} className="hawk-glass-card hawk-glass-card--interactive flex items-center justify-between p-4">
-                <div className="flex items-center gap-4">
-                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${alertIconStyle[alert.severity]}`}>
-                    <AlertTriangle className="h-5 w-5" strokeWidth={2} />
+            {incidents.map((inc) => (
+              <Card key={inc.id} padding="sm" interactive glowColor={inc.severity === 'critical' ? 'burgundy' : inc.severity === 'warning' ? 'amber' : 'sapphire'} className="space-y-2 group">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${inc.severity === 'critical' ? 'bg-hawk-burgundy animate-ping' : 'bg-hawk-amber'}`} />
+                    <span className="text-xs font-mono font-bold text-white">{inc.id}</span>
+                    <Badge variant={inc.severity === 'critical' ? 'burgundy' : inc.severity === 'warning' ? 'amber' : 'neutral'} size="sm">
+                      {inc.type}
+                    </Badge>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white">{alert.title}</h4>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-hawk-muted">
-                      <span>{alert.camera}</span>
-                      <span className="text-white/20">·</span>
-                      <span>{alert.module}</span>
-                      <span className="text-white/20">·</span>
-                      <Clock className="inline h-3.5 w-3.5" />
-                      <span>{alert.time}</span>
+                  <span className="text-[10px] font-mono text-hawk-muted">{inc.time}</span>
+                </div>
+
+                <p className="text-xs text-white/80 font-sans leading-relaxed">
+                  {inc.msg}
+                </p>
+
+                <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-hawk-muted border-t border-white/[0.04]">
+                  <span>ZONE: <strong className="text-white/80">{inc.zone}</strong></span>
+                  <Link to="/alerts" className="text-hawk-sapphire font-bold flex items-center gap-1">
+                    Audit <ArrowUpRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Vision Intelligence Diagnostic Suites */}
+      <div className="space-y-4 pt-2">
+        <div className="flex items-center justify-between px-1">
+          <div>
+            <h2 className="text-xl font-display font-black text-white uppercase tracking-wider">
+              Vision Intelligence Diagnostic Suites
+            </h2>
+            <p className="text-xs text-hawk-muted font-sans mt-0.5">
+              Interactive test benches for computer vision neural pipelines
+            </p>
+          </div>
+          <span className="text-xs font-mono text-hawk-emerald font-bold bg-hawk-emerald/10 border border-hawk-emerald/20 px-2.5 py-1 rounded-full">
+            5 MODULES ONLINE
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[
+            { title: "ANPR Engine", path: "/modules/anpr", icon: ScanLine, tag: "YOLO + OCR", latency: "24ms", desc: "Plate detection & registry lookup" },
+            { title: "Velocity Radar", path: "/modules/velocity", icon: Gauge, tag: "ByteTrack", latency: "16ms", desc: "Physical km/h speed trajectory" },
+            { title: "Object Differencing", path: "/modules/misplacement", icon: Boxes, tag: "ResNet Diff", latency: "12ms", desc: "Appeared & missing anomalies" },
+            { title: "Threat Polygons", path: "/modules/threat", icon: ShieldAlert, tag: "Threat Logic", latency: "18ms", desc: "Weapon & perimeter breach" },
+            { title: "Access Control", path: "/modules/entry", icon: LogIn, tag: "Cross-Zone", latency: "14ms", desc: "Gate vs. interior correlation" },
+          ].map((bench) => {
+            const Icon = bench.icon;
+            return (
+              <Link to={bench.path} key={bench.path} className="block">
+                <Card interactive padding="md" className="h-full flex flex-col justify-between space-y-4 group">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-hawk-sapphire group-hover:bg-hawk-sapphire group-hover:text-white transition-colors">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className="text-[10px] font-mono text-hawk-emerald font-bold">{bench.latency}</span>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-display font-bold text-white group-hover:text-hawk-sapphire transition-colors">
+                        {bench.title}
+                      </h3>
+                      <p className="text-xs text-hawk-muted font-sans mt-1 line-clamp-2">
+                        {bench.desc}
+                      </p>
                     </div>
                   </div>
-                </div>
-                <Badge variant={alert.severity}>{alert.severity === "crimson" ? "Flagged" : "Pending"}</Badge>
-              </div>
-            ))}
-          </div>
-        </Card>
 
-        {/* Camera Feed Status Grid (Fetched from Real API) */}
-        <Card>
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-extrabold tracking-tight text-white" style={{ fontFamily: "'Outfit', 'Space Grotesk', sans-serif" }}>
-                Live Camera Grid Status
-              </h3>
-              <p className="mt-0.5 text-xs text-hawk-muted">Real-time health monitoring of connected RTSP streams</p>
-            </div>
-            <Badge variant="emerald" dot>
-              {cameras.filter((c) => c.status === "online").length} Active
-            </Badge>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-            {cameras.map((cam) => (
-              <div key={cam.camera_id} className="hawk-glass-card hawk-glass-card--interactive flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`hawk-dot ${
-                      cam.status === "online" ? "hawk-dot--emerald" : cam.status === "warning" ? "hawk-dot--amber" : "hawk-dot--crimson"
-                    }`}
-                  />
-                  <div>
-                    <p className="text-sm font-bold text-white">{cam.name}</p>
-                    <p className="text-xs text-hawk-muted">ID: {cam.camera_id} · {cam.location}</p>
+                  <div className="pt-2 border-t border-white/[0.04] flex items-center justify-between text-[10px] font-mono text-hawk-muted">
+                    <span>{bench.tag}</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 group-hover:text-hawk-sapphire transition-colors" />
                   </div>
-                </div>
-                <div className="text-right">
-                  <span
-                    className={`text-xs font-extrabold ${cam.status === "online" ? "text-hawk-emerald" : "text-hawk-crimson"}`}
-                    style={{ fontFamily: "'Outfit', sans-serif" }}
-                  >
-                    {cam.status === "online" ? `30 FPS` : "OFFLINE"}
-                  </span>
-                </div>
-              </div>
-            ))}
-            {cameras.length === 0 && <p className="text-sm text-hawk-muted col-span-2">Loading cameras...</p>}
-          </div>
-        </Card>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
       </div>
+
     </div>
   );
 }

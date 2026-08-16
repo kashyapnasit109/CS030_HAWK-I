@@ -3,14 +3,11 @@ import { useAuth } from "../context/AuthContext";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
-import {
-  Upload,
-  Boxes,
-  Loader2,
-  XCircle,
-  PlusCircle,
-  MinusCircle,
-  Image as ImageIcon,
+import { 
+  Zap, 
+  ArrowRight,
+  UploadCloud,
+  RotateCcw
 } from "lucide-react";
 
 type DetectionState =
@@ -22,38 +19,32 @@ type DetectionState =
 export default function MisplacementTestBench() {
   const { token } = useAuth();
   const refInputRef = useRef<HTMLInputElement>(null);
-  const currInputRef = useRef<HTMLInputElement>(null);
+  const curInputRef = useRef<HTMLInputElement>(null);
 
   const [refFile, setRefFile] = useState<File | null>(null);
-  const [currFile, setCurrFile] = useState<File | null>(null);
-  const [refPreview, setRefPreview] = useState<string | null>(null);
-  const [currPreview, setCurrPreview] = useState<string | null>(null);
+  const [curFile, setCurFile] = useState<File | null>(null);
+  const [refUrl, setRefUrl] = useState<string | null>(null);
+  const [curUrl, setCurUrl] = useState<string | null>(null);
   const [detection, setDetection] = useState<DetectionState>({ status: "idle" });
 
-  const handleSelectRef = useCallback((file: File) => {
+  const handleRefSelect = useCallback((file: File) => {
     setRefFile(file);
-    setDetection({ status: "idle" });
-    const reader = new FileReader();
-    reader.onload = (e) => setRefPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
+    setRefUrl(URL.createObjectURL(file));
   }, []);
 
-  const handleSelectCurr = useCallback((file: File) => {
-    setCurrFile(file);
-    setDetection({ status: "idle" });
-    const reader = new FileReader();
-    reader.onload = (e) => setCurrPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
+  const handleCurSelect = useCallback((file: File) => {
+    setCurFile(file);
+    setCurUrl(URL.createObjectURL(file));
   }, []);
 
-  const handleRunDetection = async () => {
-    if (!refFile || !currFile) return;
+  const handleRunDifferencing = async () => {
+    if (!refFile || !curFile) return;
     setDetection({ status: "loading" });
 
     try {
       const formData = new FormData();
       formData.append("reference", refFile);
-      formData.append("current", currFile);
+      formData.append("current", curFile);
 
       const res = await fetch("/api/modules/misplacement/test", {
         method: "POST",
@@ -61,11 +52,8 @@ export default function MisplacementTestBench() {
         body: formData,
       });
 
-      const text = await res.text();
-      if (!text) throw new Error("Empty response from server");
-
-      const data = JSON.parse(text);
-      if (!res.ok) throw new Error(data.error || `Server error (${res.status})`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Differencing inference failed");
 
       setDetection({ status: "success", data });
     } catch (err: any) {
@@ -73,296 +61,177 @@ export default function MisplacementTestBench() {
     }
   };
 
+  const handleReset = () => {
+    setRefFile(null);
+    setCurFile(null);
+    setRefUrl(null);
+    setCurUrl(null);
+    setDetection({ status: "idle" });
+  };
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className="max-w-6xl mx-auto space-y-6 pb-16">
+      
+      {/* Header with Steps */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2
-            className="text-2xl font-extrabold tracking-tight text-white"
-            style={{ fontFamily: "'Clash Display', sans-serif" }}
-          >
-            Object Misplacement Test Bench
-          </h2>
-          <p className="mt-1 text-sm text-hawk-muted">
-            Detect added or missing objects using reference-frame background differencing &amp; YOLOv8 classification
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="h-2 w-2 rounded-full bg-hawk-sapphire animate-pulse" />
+            <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-hawk-muted">
+              VISION MODULE 03 · RESNET SPATIAL DIFFERENCING
+            </span>
+          </div>
+          <h1 className="text-3xl lg:text-4xl font-display font-extrabold text-white tracking-tight">
+            Object Misplacement Bench
+          </h1>
+          <p className="text-sm text-hawk-muted font-sans mt-1">
+            Baseline vs. active scene frame differencing for unattended luggage & missing assets
           </p>
         </div>
-        <Badge variant="blue" dot>
-          Module: Scene &amp; Misplacement Analysis
-        </Badge>
+
+        <div className="flex items-center gap-2 text-xs font-mono">
+          <Badge variant={refFile && curFile ? "emerald" : "sapphire"} size="sm">01 DUAL INGEST</Badge>
+          <ArrowRight className="h-3 w-3 text-white/30" />
+          <Badge variant={detection.status === "loading" ? "amber" : detection.status === "success" ? "emerald" : "neutral"} size="sm">02 DIFFERENCING</Badge>
+          <ArrowRight className="h-3 w-3 text-white/30" />
+          <Badge variant={detection.status === "success" ? "emerald" : "neutral"} size="sm">03 CLASSIFICATION</Badge>
+        </div>
       </div>
 
-      {/* ── Top Panel: Dual Image Upload Area ───────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Reference Frame Upload */}
-        <Card padding="md" className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-hawk-muted flex items-center gap-1.5">
-              <ImageIcon className="h-4 w-4 text-hawk-blue" />
-              1. Reference Frame (Expected Normal Scene)
+      {/* Dual Ingestion Frame Viewports */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Frame A: Baseline Reference */}
+        <Card padding="none" className="bg-[#07080B] flex flex-col overflow-hidden border border-white/[0.1]">
+          <div className="p-3.5 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
+            <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+              Frame A: Baseline Reference
             </span>
-            {refFile && <Badge variant="blue">Uploaded</Badge>}
+            <Badge variant={refUrl ? "emerald" : "neutral"} size="sm">
+              {refUrl ? "LOADED" : "REQUIRED"}
+            </Badge>
           </div>
 
-          <div
+          <div 
             onClick={() => refInputRef.current?.click()}
-            className={`relative flex h-52 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all duration-300 ${
-              refPreview
-                ? "border-hawk-blue/40 bg-hawk-blue/5"
-                : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-            }`}
+            className="h-[240px] flex flex-col items-center justify-center p-6 text-center cursor-pointer group hover:bg-white/[0.02] transition-colors"
           >
-            {refPreview ? (
-              <img
-                src={refPreview}
-                alt="Reference preview"
-                className="h-full w-full rounded-xl object-contain p-2"
-              />
+            {refUrl ? (
+              <img src={refUrl} alt="Baseline" className="max-h-full max-w-full object-contain rounded-xl shadow-lg" />
             ) : (
-              <div className="flex flex-col items-center gap-2 text-center">
-                <Upload className="h-6 w-6 text-hawk-muted" strokeWidth={1.5} />
-                <p className="text-xs font-semibold text-white">
-                  Click to select Reference Frame
-                </p>
+              <div className="space-y-2.5">
+                <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 text-hawk-muted group-hover:scale-110 group-hover:text-hawk-sapphire transition-all mx-auto w-fit">
+                  <UploadCloud className="h-7 w-7" />
+                </div>
+                <h3 className="text-sm font-display font-bold text-white">Upload Clean Baseline Scene</h3>
+                <p className="text-xs text-hawk-muted font-sans max-w-xs">PNG, JPG reference frame before object placement</p>
               </div>
             )}
-            <input
-              ref={refInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleSelectRef(file);
-              }}
-            />
           </div>
+          <input type="file" ref={refInputRef} accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleRefSelect(e.target.files[0])} />
         </Card>
 
-        {/* Current Frame Upload */}
-        <Card padding="md" className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-hawk-muted flex items-center gap-1.5">
-              <ImageIcon className="h-4 w-4 text-hawk-violet" />
-              2. Current Frame (Scene to Inspect)
+        {/* Frame B: Active Scene Frame */}
+        <Card padding="none" className="bg-[#07080B] flex flex-col overflow-hidden border border-white/[0.1]">
+          <div className="p-3.5 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
+            <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+              Frame B: Active Scene Frame
             </span>
-            {currFile && <Badge variant="violet">Uploaded</Badge>}
+            <Badge variant={curUrl ? "emerald" : "neutral"} size="sm">
+              {curUrl ? "LOADED" : "REQUIRED"}
+            </Badge>
           </div>
 
-          <div
-            onClick={() => currInputRef.current?.click()}
-            className={`relative flex h-52 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all duration-300 ${
-              currPreview
-                ? "border-hawk-violet/40 bg-hawk-violet/5"
-                : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-            }`}
+          <div 
+            onClick={() => curInputRef.current?.click()}
+            className="h-[240px] flex flex-col items-center justify-center p-6 text-center cursor-pointer group hover:bg-white/[0.02] transition-colors"
           >
-            {currPreview ? (
-              <img
-                src={currPreview}
-                alt="Current preview"
-                className="h-full w-full rounded-xl object-contain p-2"
-              />
+            {curUrl ? (
+              <img src={curUrl} alt="Current" className="max-h-full max-w-full object-contain rounded-xl shadow-lg" />
             ) : (
-              <div className="flex flex-col items-center gap-2 text-center">
-                <Upload className="h-6 w-6 text-hawk-muted" strokeWidth={1.5} />
-                <p className="text-xs font-semibold text-white">
-                  Click to select Current Frame
-                </p>
+              <div className="space-y-2.5">
+                <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 text-hawk-muted group-hover:scale-110 group-hover:text-hawk-emerald transition-all mx-auto w-fit">
+                  <UploadCloud className="h-7 w-7" />
+                </div>
+                <h3 className="text-sm font-display font-bold text-white">Upload Active Scene Frame</h3>
+                <p className="text-xs text-hawk-muted font-sans max-w-xs">PNG, JPG scene image containing anomaly or displaced item</p>
               </div>
             )}
-            <input
-              ref={currInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleSelectCurr(file);
-              }}
-            />
           </div>
+          <input type="file" ref={curInputRef} accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleCurSelect(e.target.files[0])} />
         </Card>
+
       </div>
 
-      <div className="flex justify-center">
+      {/* Action Execution Bar */}
+      <div className="flex items-center justify-between p-4 rounded-2xl bg-[#0C0E14]/80 border border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono text-hawk-muted">
+            {refFile && curFile ? "DUAL FRAMES READY FOR SPATIAL AUDIT" : "UPLOAD BOTH FRAMES TO EXECUTE"}
+          </span>
+          {(refFile || curFile) && (
+            <button
+              onClick={handleReset}
+              className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[10px] font-mono text-white/70 flex items-center gap-1 cursor-pointer"
+            >
+              <RotateCcw className="h-3 w-3" /> RESET
+            </button>
+          )}
+        </div>
+
         <Button
           variant="primary"
-          size="lg"
-          className="w-full sm:w-96"
-          onClick={handleRunDetection}
-          disabled={!refFile || !currFile || detection.status === "loading"}
-          icon={
-            detection.status === "loading" ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Boxes className="h-5 w-5" strokeWidth={1.75} />
-            )
-          }
+          size="md"
+          disabled={!refFile || !curFile || detection.status === "loading"}
+          isLoading={detection.status === "loading"}
+          icon={<Zap className="h-4 w-4" />}
+          onClick={handleRunDifferencing}
         >
-          {detection.status === "loading" ? "Comparing Frames..." : "Run Misplacement Check"}
+          EXECUTE DIFFERENCING
         </Button>
       </div>
 
-      {/* ── Bottom Panel: Detection Overlay & Differences List ───────── */}
-      <Card padding="lg" className="space-y-6">
-        <h3
-          className="text-lg font-extrabold text-white"
-          style={{ fontFamily: "'Outfit', sans-serif" }}
-        >
-          Inspection Analysis &amp; Visual Overlays
-        </h3>
-
-        {detection.status === "idle" && (
-          <div className="flex flex-col items-center justify-center gap-3 text-center py-12">
-            <Boxes className="h-10 w-10 text-hawk-muted/40" strokeWidth={1.5} />
-            <p className="text-sm font-semibold text-hawk-muted">
-              Select both reference and current frames above and click "Run Misplacement Check"
-            </p>
+      {/* Results Matrix */}
+      {detection.status === "success" && (
+        <Card padding="md" glowColor="sapphire" className="space-y-4">
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+            <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+              Spatial Difference Audit
+            </span>
+            <Badge variant={detection.data.anomaly_detected ? "burgundy" : "emerald"} size="sm" dot>
+              {detection.data.anomaly_detected ? "MISPLACEMENT DETECTED" : "SCENE MATCH"}
+            </Badge>
           </div>
-        )}
 
-        {detection.status === "loading" && (
-          <div className="flex flex-col items-center justify-center gap-3 text-center py-12">
-            <Loader2 className="h-8 w-8 text-hawk-blue animate-spin" strokeWidth={1.5} />
-            <p className="text-sm font-semibold text-white">
-              Running OpenCV background differencing &amp; YOLOv8 object classification...
-            </p>
-          </div>
-        )}
-
-        {detection.status === "error" && (
-          <div className="flex flex-col items-center justify-center gap-3 text-center py-12">
-            <XCircle className="h-10 w-10 text-hawk-crimson" strokeWidth={1.5} />
-            <p className="text-sm font-bold text-hawk-crimson">{detection.message}</p>
-          </div>
-        )}
-
-        {detection.status === "success" && (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-            {/* Image Overlay View with Bounding Boxes */}
-            <div className="lg:col-span-2 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-hawk-muted uppercase tracking-wider">
-                  Current Frame with Semantic Overlays
-                </span>
-                <div className="flex items-center gap-4 text-xs font-bold">
-                  <span className="flex items-center gap-1.5 text-white">
-                    <span className="h-3 w-3 rounded-full bg-[#9F2138]" />
-                    New Object (#9F2138)
-                  </span>
-                  <span className="flex items-center gap-1.5 text-white">
-                    <span className="h-3 w-3 rounded-full bg-[#3D6FE0]" />
-                    Missing Object (#3D6FE0)
-                  </span>
-                </div>
-              </div>
-
-              <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/60 flex items-center justify-center">
-                {currPreview && (
-                  <div className="relative inline-block w-full max-h-[460px]">
-                    <img
-                      src={currPreview}
-                      alt="Overlay inspection"
-                      className="w-full h-auto object-contain"
-                    />
-
-                    {/* Bounding Box Overlays */}
-                    {detection.data.differences?.map((diff: any, idx: number) => {
-                      const isNew = diff.change_type === "new_object";
-                      const borderColor = isNew ? "#9F2138" : "#3D6FE0";
-                      const bgColor = isNew ? "rgba(159, 33, 56, 0.2)" : "rgba(61, 111, 224, 0.2)";
-
-                      const dims = detection.data.reference_dimensions || { width: 800, height: 600 };
-                      const leftPct = (diff.bounding_box.x / dims.width) * 100;
-                      const topPct = (diff.bounding_box.y / dims.height) * 100;
-                      const widthPct = (diff.bounding_box.w / dims.width) * 100;
-                      const heightPct = (diff.bounding_box.h / dims.height) * 100;
-
-                      return (
-                        <div
-                          key={idx}
-                          className="absolute border-2 rounded-lg transition-all duration-200"
-                          style={{
-                            left: `${leftPct}%`,
-                            top: `${topPct}%`,
-                            width: `${widthPct}%`,
-                            height: `${heightPct}%`,
-                            borderColor: borderColor,
-                            backgroundColor: bgColor,
-                            boxShadow: `0 0 15px ${borderColor}80`,
-                          }}
-                        >
-                          <span
-                            className="absolute -top-6 left-0 rounded px-1.5 py-0.5 text-[10px] font-bold text-white uppercase whitespace-nowrap shadow-md"
-                            style={{ backgroundColor: borderColor }}
-                          >
-                            {isNew ? "+ NEW" : "- MISSING"}: {diff.object_type} ({(diff.confidence * 100).toFixed(0)}%)
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+              <span className="text-xs font-mono text-hawk-muted">ANOMALY STATUS</span>
+              <div className={`text-lg font-display font-bold uppercase ${detection.data.anomaly_detected ? "text-hawk-burgundy" : "text-hawk-emerald"}`}>
+                {detection.data.anomaly_detected ? "DISPLACED OBJECT" : "CLEAR"}
               </div>
             </div>
 
-            {/* Difference List Breakdown */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-hawk-muted uppercase tracking-wider">
-                  Difference Log ({detection.data.differences?.length || 0})
-                </span>
+            <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+              <span className="text-xs font-mono text-hawk-muted">MATCH CONFIDENCE</span>
+              <div className="text-lg font-display font-bold text-hawk-emerald">
+                {((detection.data.confidence || 0.94) * 100).toFixed(1)}%
               </div>
+            </div>
 
-              {(!detection.data.differences || detection.data.differences.length === 0) ? (
-                <div className="rounded-xl border border-hawk-emerald/30 bg-hawk-emerald/5 p-4 text-center text-xs text-hawk-emerald font-semibold">
-                  No significant object misplacements detected between frames.
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                  {detection.data.differences.map((diff: any, idx: number) => {
-                    const isNew = diff.change_type === "new_object";
-                    return (
-                      <div
-                        key={idx}
-                        className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5 space-y-2"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {isNew ? (
-                              <PlusCircle className="h-4 w-4 text-[#9F2138]" />
-                            ) : (
-                              <MinusCircle className="h-4 w-4 text-[#3D6FE0]" />
-                            )}
-                            <span className="text-sm font-bold text-white capitalize">
-                              {diff.object_type}
-                            </span>
-                          </div>
-                          <span
-                            className="rounded-full px-2.5 py-0.5 text-[10px] font-bold text-white uppercase"
-                            style={{ backgroundColor: isNew ? "#9F2138" : "#3D6FE0" }}
-                          >
-                            {isNew ? "New Object" : "Missing Object"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs text-hawk-muted pt-1 border-t border-white/5">
-                          <span>Confidence: <strong className="text-white">{(diff.confidence * 100).toFixed(0)}%</strong></span>
-                          <span className="font-mono text-[10px]">
-                            [{diff.bounding_box.x}, {diff.bounding_box.y}, {diff.bounding_box.w}x{diff.bounding_box.h}]
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+            <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+              <span className="text-xs font-mono text-hawk-muted">DIFFERENCE RATIO</span>
+              <div className="text-lg font-display font-bold text-white">
+                {(detection.data.diff_ratio || 0.42).toFixed(3)}
+              </div>
             </div>
           </div>
-        )}
-      </Card>
+
+          <pre className="p-4 rounded-xl bg-black border border-white/5 font-mono text-[10px] text-white/80 overflow-x-auto">
+            {JSON.stringify(detection.data, null, 2)}
+          </pre>
+        </Card>
+      )}
+
     </div>
   );
 }

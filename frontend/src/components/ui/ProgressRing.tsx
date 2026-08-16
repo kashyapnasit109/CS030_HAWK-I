@@ -1,4 +1,4 @@
-import type { SemanticColor } from "../../design-tokens/colors";
+import { colors, type SemanticColor } from "../../design-tokens/colors";
 
 interface ProgressRingProps {
   value: number;
@@ -9,12 +9,12 @@ interface ProgressRingProps {
   className?: string;
 }
 
-const colorGradients: Record<SemanticColor, { stroke: string; glow: string }> = {
-  emerald: { stroke: "#10B981", glow: "rgba(16, 185, 129, 0.5)" },
-  blue: { stroke: "#3B82F6", glow: "rgba(59, 130, 246, 0.5)" },
-  violet: { stroke: "#8B5CF6", glow: "rgba(139, 92, 246, 0.5)" },
-  crimson: { stroke: "#EF4444", glow: "rgba(239, 68, 68, 0.5)" },
-  amber: { stroke: "#F59E0B", glow: "rgba(245, 158, 11, 0.5)" },
+/** Ring stroke colors pulled from the jewel-tone token source. */
+const strokeMap: Record<SemanticColor, string> = {
+  burgundy: colors.burgundy,
+  sapphire: colors.sapphire,
+  emerald: colors.emerald,
+  amber: colors.amber,
 };
 
 export function ProgressRing({
@@ -28,20 +28,11 @@ export function ProgressRing({
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (value / 100) * circumference;
-  const cfg = colorGradients[color];
+  const stroke = strokeMap[color];
 
   return (
     <div className={`relative inline-flex items-center justify-center ${className}`}>
       <svg width={size} height={size} className="-rotate-90 transform">
-        <defs>
-          <filter id={`hawk-ring-glow-${color}`} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3.5" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
         {/* Track */}
         <circle
           cx={size / 2}
@@ -51,31 +42,27 @@ export function ProgressRing({
           stroke="rgba(255, 255, 255, 0.05)"
           strokeWidth={strokeWidth}
         />
-        {/* Glowing Progress Arc */}
+        {/* Sharp progress arc */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={cfg.stroke}
+          stroke={stroke}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          filter={`url(#hawk-ring-glow-${color})`}
           className="transition-all duration-1000 ease-out"
         />
       </svg>
-      {/* Center Display Text */}
+      {/* Center display */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span
-          className="text-3xl font-extrabold tracking-tight text-white"
-          style={{ fontFamily: "'Outfit', 'Space Grotesk', sans-serif" }}
-        >
+        <span className="text-3xl font-extrabold tracking-tight text-white font-display">
           {value}%
         </span>
         {label && (
-          <span className="mt-0.5 text-xs font-bold uppercase tracking-wider text-hawk-emerald">
+          <span className="mt-0.5 text-xs font-bold uppercase tracking-wider text-hawk-emerald font-body">
             {label}
           </span>
         )}

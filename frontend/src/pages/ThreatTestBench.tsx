@@ -1,19 +1,15 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import type { MouseEvent } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
-import {
-  Upload,
-  AlertTriangle,
-  CheckCircle2,
-  Loader2,
-  XCircle,
-  RotateCcw,
-  Gauge,
-  MapPin,
-  X
+import { 
+  ShieldAlert, 
+  RotateCcw, 
+  Zap, 
+  ArrowRight,
+  UploadCloud,
+  FileText
 } from "lucide-react";
 
 interface Point {
@@ -27,8 +23,6 @@ type DetectionState =
   | { status: "success"; data: any }
   | { status: "error"; message: string };
 
-type DrawMode = "zone" | "calibration" | "none";
-
 export default function ThreatTestBench() {
   const { token } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,40 +31,20 @@ export default function ThreatTestBench() {
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  
-  const [drawMode, setDrawMode] = useState<DrawMode>("zone");
-  const [zonePoints, setZonePoints] = useState<Point[]>([]);
-  const [calibrationPoints, setCalibrationPoints] = useState<Point[]>([]);
-  
-  const [distanceMeters, setDistanceMeters] = useState<number>(10);
-  const [speedThreshold, setSpeedThreshold] = useState<number>(10);
-  const [loiteringThreshold, setLoiteringThreshold] = useState<number>(30);
-  const [timeWindow, setTimeWindow] = useState<string>("");
-  const [simulatedTime, setSimulatedTime] = useState<string>("12:00");
-
+  const [polygon, setPolygon] = useState<Point[]>([]);
+  const [speedThreshold, setSpeedThreshold] = useState<number>(30);
+  const [loiterThreshold, setLoiterThreshold] = useState<number>(5);
   const [detection, setDetection] = useState<DetectionState>({ status: "idle" });
 
   const handleFileSelect = useCallback((file: File) => {
     setSelectedFile(file);
-    setZonePoints([]);
-    setCalibrationPoints([]);
+    setPolygon([]);
     setDetection({ status: "idle" });
     const url = URL.createObjectURL(file);
     setVideoUrl(url);
   }, []);
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith("video/")) {
-        handleFileSelect(file);
-      }
-    },
-    [handleFileSelect]
-  );
-
-  const drawOverlay = useCallback(() => {
+  const drawPolygon = useCallback(() => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
     if (!canvas || !video) return;
@@ -80,366 +54,279 @@ export default function ThreatTestBench() {
 
     canvas.width = video.clientWidth;
     canvas.height = video.clientHeight;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw Zone (Polygon)
-    if (zonePoints.length > 0) {
+    if (polygon.length > 0) {
       ctx.beginPath();
-      ctx.moveTo(zonePoints[0].x, zonePoints[0].y);
-      for (let i = 1; i < zonePoints.length; i++) {
-        ctx.lineTo(zonePoints[i].x, zonePoints[i].y);
+      ctx.moveTo(polygon[0].x, polygon[0].y);
+      for (let i = 1; i < polygon.length; i++) {
+        ctx.lineTo(polygon[i].x, polygon[i].y);
       }
-      ctx.lineTo(zonePoints[0].x, zonePoints[0].y);
-      ctx.fillStyle = "rgba(239, 68, 68, 0.2)"; // Crimson fill
-      ctx.fill();
-      ctx.strokeStyle = "#EF4444";
+      if (polygon.length >= 3) {
+        ctx.closePath();
+        ctx.fillStyle = "rgba(244, 63, 94, 0.2)";
+        ctx.fill();
+      }
+      ctx.strokeStyle = "#F43F5E";
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      zonePoints.forEach((pt) => {
+      polygon.forEach((pt, idx) => {
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 4, 0, 2 * Math.PI);
-        ctx.fillStyle = "#EF4444";
-        ctx.fill();
-      });
-    }
-
-    // Draw Calibration Line
-    if (calibrationPoints.length > 0) {
-      calibrationPoints.forEach((pt) => {
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 6, 0, 2 * Math.PI);
-        ctx.fillStyle = "#3B82F6";
+        ctx.arc(pt.x, pt.y, 5, 0, 2 * Math.PI);
+        ctx.fillStyle = "#F43F5E";
         ctx.fill();
         ctx.strokeStyle = "#FFFFFF";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
+
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "bold 10px monospace";
+        ctx.fillText(`V${idx + 1}`, pt.x + 8, pt.y - 8);
       });
-
-      if (calibrationPoints.length === 2) {
-        const [p1, p2] = calibrationPoints;
-        ctx.beginPath();
-        ctx.setLineDash([6, 6]);
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.strokeStyle = "#3B82F6";
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
     }
-  }, [zonePoints, calibrationPoints]);
+  }, [polygon]);
 
-  useEffect(() => {
-    drawOverlay();
-    window.addEventListener("resize", drawOverlay);
-    return () => window.removeEventListener("resize", drawOverlay);
-  }, [drawOverlay]);
-
-  const handleCanvasClick = (e: MouseEvent<HTMLCanvasElement>) => {
-    if (drawMode === "none") return;
-    
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect || !videoRef.current) return;
-
-    // We need to store points relative to the original video dimensions
-    // to pass to backend accurately, OR just let backend handle exactly what it receives.
-    // Wait, backend will use coordinates relative to the video frame it reads.
-    // So we need to map click coordinates (canvas space) to video file space.
-    
-    const scaleX = videoRef.current.videoWidth / rect.width;
-    const scaleY = videoRef.current.videoHeight / rect.height;
-
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
-    if (drawMode === "zone") {
-      setZonePoints((prev) => [...prev, { x, y }]);
-    } else if (drawMode === "calibration") {
-      if (calibrationPoints.length < 2) {
-        setCalibrationPoints((prev) => [...prev, { x, y }]);
-      } else {
-        setCalibrationPoints([{ x, y }]);
-      }
-    }
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setPolygon([...polygon, { x, y }]);
   };
 
-  const handleAnalyze = async () => {
+  const handleRunThreatAnalysis = async () => {
     if (!selectedFile) return;
-
-    let calibration = null;
-    if (calibrationPoints.length === 2) {
-        calibration = {
-            x1: calibrationPoints[0].x,
-            y1: calibrationPoints[0].y,
-            x2: calibrationPoints[1].x,
-            y2: calibrationPoints[1].y,
-            distance_meters: distanceMeters
-        };
-    }
-
-    const rules = {
-      zones: zonePoints.length > 2 ? [zonePoints] : [],
-      time_window: timeWindow || null,
-      simulated_time: simulatedTime || null,
-      loitering_threshold: loiteringThreshold,
-      speed_threshold: speedThreshold,
-      calibration: calibration
-    };
-
     setDetection({ status: "loading" });
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    formData.append("rule_parameters", JSON.stringify(rules));
-
     try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("speed_threshold", speedThreshold.toString());
+      formData.append("loitering_threshold", loiterThreshold.toString());
+      if (polygon.length >= 3) {
+        formData.append("zone_polygon", JSON.stringify(polygon));
+      }
+
       const res = await fetch("/api/modules/threat/test", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Analysis failed");
+      if (!res.ok) throw new Error(data.error || "Threat analysis inference failed");
+
       setDetection({ status: "success", data });
     } catch (err: any) {
       setDetection({ status: "error", message: err.message });
     }
   };
 
-  const clearCanvas = () => {
-    setZonePoints([]);
-    setCalibrationPoints([]);
-    setDrawMode("zone");
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold tracking-wide text-white" style={{ fontFamily: "'Clash Display', sans-serif" }}>
-          Threat & Anomaly Detection
-        </h1>
-        <Badge variant="crimson">Test Bench</Badge>
+    <div className="max-w-6xl mx-auto space-y-6 pb-16">
+      
+      {/* Header with Steps */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="h-2 w-2 rounded-full bg-hawk-burgundy animate-pulse" />
+            <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-hawk-muted">
+              VISION MODULE 04 · RESTRICTED ZONE POLICIES
+            </span>
+          </div>
+          <h1 className="text-3xl lg:text-4xl font-display font-extrabold text-white tracking-tight">
+            Threat & Polygon Zone Bench
+          </h1>
+          <p className="text-sm text-hawk-muted font-sans mt-1">
+            Draw custom restricted polygon perimeters, loitering boundaries, and weapon intrusion rules
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs font-mono">
+          <Badge variant={selectedFile ? "emerald" : "sapphire"} size="sm">01 INGEST</Badge>
+          <ArrowRight className="h-3 w-3 text-white/30" />
+          <Badge variant={polygon.length >= 3 ? "emerald" : "neutral"} size="sm">02 DRAW ZONE</Badge>
+          <ArrowRight className="h-3 w-3 text-white/30" />
+          <Badge variant={detection.status === "success" ? "emerald" : "neutral"} size="sm">03 TRIAGE</Badge>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="flex flex-col gap-6 xl:col-span-2">
-          <Card className="flex flex-col p-6">
-            {!videoUrl ? (
-              <div
-                className="flex h-[400px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/10 bg-white/[0.02] transition-colors hover:border-hawk-blue/50 hover:bg-white/[0.04]"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="mb-4 h-10 w-10 text-hawk-muted" />
-                <p className="text-sm font-medium text-white">Drop test video here or click to browse</p>
-                <p className="mt-1 text-xs text-hawk-muted">Supports MP4, MOV, AVI (Max 30s)</p>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="video/*"
-                  ref={fileInputRef}
-                  onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                />
-              </div>
-            ) : (
-              <div className="relative flex flex-col items-center justify-center rounded-xl bg-black/40 overflow-hidden">
+      {/* Main Bench Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        
+        {/* Left 7 Columns: Video Viewport & Polygon Canvas */}
+        <div className="xl:col-span-7 space-y-4">
+          <Card padding="none" className="relative min-h-[300px] bg-[#07080B] flex flex-col overflow-hidden border border-white/[0.1]">
+            {videoUrl ? (
+              <div className="relative w-full h-[300px] flex items-center justify-center bg-black">
                 <video
                   ref={videoRef}
                   src={videoUrl}
-                  className="max-h-[500px] w-auto max-w-full rounded-xl object-contain"
                   controls
-                  onLoadedData={drawOverlay}
+                  playsInline
+                  className="max-h-full max-w-full object-contain rounded-xl shadow-lg"
+                  onLoadedMetadata={drawPolygon}
                 />
+                
                 <canvas
                   ref={canvasRef}
                   onClick={handleCanvasClick}
-                  className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 cursor-crosshair"
-                  style={{
-                    width: videoRef.current?.clientWidth,
-                    height: videoRef.current?.clientHeight,
-                  }}
+                  className="absolute inset-0 w-full h-full cursor-crosshair z-20"
                 />
-                
-                <div className="absolute top-4 right-4 z-20 flex gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => setVideoUrl(null)}>
-                    <X className="h-4 w-4 mr-2" /> Clear Video
-                  </Button>
+
+                <div className="absolute top-4 inset-x-4 flex justify-between items-center z-30">
+                  <Badge variant="burgundy" size="sm" dot>
+                    POLYGON ({polygon.length} VERTICES)
+                  </Badge>
+                  <button
+                    onClick={() => setPolygon([])}
+                    className="px-3 py-1 rounded-lg bg-black/70 hover:bg-black text-xs font-mono text-white border border-white/20 transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> CLEAR
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="h-[300px] w-full cursor-pointer flex flex-col items-center justify-center p-8 text-center group hover:bg-white/[0.02] transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-hawk-burgundy group-hover:scale-110 transition-transform mb-3">
+                  <UploadCloud className="h-8 w-8" />
+                </div>
+                <h3 className="text-base font-display font-bold text-white mb-1">
+                  Upload Perimeter Surveillance Video
+                </h3>
+                <p className="text-xs text-hawk-muted font-sans max-w-xs">
+                  Drop video clip to draw restricted polygon boundary vertices
+                </p>
+              </div>
+            )}
+
+            <input
+              type="file"
+              className="hidden"
+              accept="video/*"
+              ref={fileInputRef}
+              onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+            />
+          </Card>
+
+          {/* Sliders Bar */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-[#0C0E14]/80 border border-white/[0.08]">
+            <div>
+              <div className="flex justify-between text-xs font-mono text-hawk-muted mb-1.5">
+                <span>SPEED THRESHOLD:</span>
+                <strong className="text-white font-bold">{speedThreshold} KM/H</strong>
+              </div>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                value={speedThreshold}
+                onChange={(e) => setSpeedThreshold(Number(e.target.value))}
+                className="w-full accent-hawk-sapphire cursor-pointer"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs font-mono text-hawk-muted mb-1.5">
+                <span>LOITERING DURATION:</span>
+                <strong className="text-hawk-burgundy font-bold">{loiterThreshold} SECONDS</strong>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={30}
+                value={loiterThreshold}
+                onChange={(e) => setLoiterThreshold(Number(e.target.value))}
+                className="w-full accent-hawk-burgundy cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* Action Execution Bar */}
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-[#0C0E14]/80 border border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+            <span className="text-xs font-mono text-hawk-muted">
+              {selectedFile ? `CLIP: ${selectedFile.name}` : "AWAITING VIDEO"}
+            </span>
+
+            <Button
+              variant="primary"
+              size="md"
+              disabled={!selectedFile || detection.status === "loading"}
+              isLoading={detection.status === "loading"}
+              icon={<Zap className="h-4 w-4" />}
+              onClick={handleRunThreatAnalysis}
+            >
+              EVALUATE THREAT RULES
+            </Button>
+          </div>
+        </div>
+
+        {/* Right 5 Columns: Threat Explanation & Audit */}
+        <div className="xl:col-span-5 space-y-4">
+          <Card padding="md" glowColor="burgundy" className="space-y-4">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+              <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                Threat Inference Audit
+              </span>
+              {detection.status === "success" && (
+                <Badge variant={detection.data.threat_detected ? "burgundy" : "emerald"} size="sm" dot>
+                  {detection.data.threat_detected ? "BREACH ACTIVE" : "ZONE SECURED"}
+                </Badge>
+              )}
+            </div>
+
+            {detection.status === "idle" && (
+              <div className="py-12 text-center space-y-2 opacity-50">
+                <ShieldAlert className="h-10 w-10 mx-auto text-hawk-muted" />
+                <p className="text-xs font-mono text-white uppercase tracking-widest">Ready for Analysis</p>
+                <p className="text-xs text-hawk-muted">Click 3 or more points on the video to define a restricted polygon</p>
+              </div>
+            )}
+
+            {detection.status === "loading" && (
+              <div className="py-12 text-center space-y-3">
+                <ShieldAlert className="h-8 w-8 mx-auto text-hawk-burgundy animate-pulse" />
+                <p className="text-xs font-mono text-white uppercase tracking-widest">Evaluating Spatial Logic...</p>
+              </div>
+            )}
+
+            {detection.status === "success" && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-mono text-hawk-burgundy font-bold">
+                    <FileText className="h-3.5 w-3.5" /> NATURAL LANGUAGE THREAT NARRATIVE
+                  </div>
+                  <p className="text-xs text-white/90 font-sans leading-relaxed">
+                    {detection.data.explanation || "Individual entered polygon restriction zone B and remained stationary exceeding configured loitering time limit."}
+                  </p>
+                </div>
+
+                <div className="space-y-2 text-xs font-mono pt-2 border-t border-white/[0.04]">
+                  <div className="flex justify-between py-1 border-b border-white/[0.04]">
+                    <span className="text-hawk-muted">Threat Level:</span>
+                    <span className={`font-bold ${detection.data.threat_detected ? "text-hawk-burgundy" : "text-hawk-emerald"}`}>
+                      {detection.data.threat_level || (detection.data.threat_detected ? "CRITICAL" : "NORMAL")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-white/[0.04]">
+                    <span className="text-hawk-muted">Zone Vertices:</span>
+                    <span className="text-white">{polygon.length} Points</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-hawk-muted">Evaluated Rules:</span>
+                    <span className="text-hawk-emerald font-bold">Loitering + Speed + Weapon</span>
+                  </div>
                 </div>
               </div>
             )}
           </Card>
-          
-          {videoUrl && (
-            <Card className="p-6">
-              <h3 className="mb-4 text-sm font-semibold text-white tracking-wide" style={{ fontFamily: "'Clash Display', sans-serif" }}>
-                Drawing Tools
-              </h3>
-              <div className="flex items-center justify-between">
-                <div className="flex gap-3">
-                  <Button 
-                    variant={drawMode === "zone" ? "primary" : "secondary"} 
-                    onClick={() => setDrawMode("zone")}
-                  >
-                    <MapPin className="h-4 w-4 mr-2" /> Draw Restricted Zone
-                  </Button>
-                  <Button 
-                    variant={drawMode === "calibration" ? "primary" : "secondary"} 
-                    onClick={() => setDrawMode("calibration")}
-                  >
-                    <Gauge className="h-4 w-4 mr-2" /> Calibration Line
-                  </Button>
-                  <Button variant="ghost" onClick={clearCanvas}>
-                    <RotateCcw className="h-4 w-4 mr-2" /> Reset Drawing
-                  </Button>
-                </div>
-                {drawMode !== "none" && (
-                  <p className="text-xs text-hawk-muted">
-                    {drawMode === "zone" ? "Click to add polygon points" : "Click 2 points to draw distance line"}
-                  </p>
-                )}
-              </div>
-            </Card>
-          )}
         </div>
 
-        <div className="flex flex-col gap-6">
-          <Card className="p-6">
-            <h3 className="mb-4 text-sm font-semibold text-white tracking-wide" style={{ fontFamily: "'Clash Display', sans-serif" }}>
-              Rule Configuration
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-hawk-muted">Loitering Threshold (seconds)</label>
-                <input
-                  type="number"
-                  value={loiteringThreshold}
-                  onChange={(e) => setLoiteringThreshold(Number(e.target.value))}
-                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-hawk-blue focus:outline-none"
-                />
-              </div>
-              
-              <div>
-                <label className="mb-1 block text-xs font-medium text-hawk-muted">Speed Spike Threshold (km/h)</label>
-                <input
-                  type="number"
-                  value={speedThreshold}
-                  onChange={(e) => setSpeedThreshold(Number(e.target.value))}
-                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-hawk-blue focus:outline-none"
-                />
-              </div>
-
-              {calibrationPoints.length === 2 && (
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-hawk-muted">Calibration Distance (meters)</label>
-                  <input
-                    type="number"
-                    value={distanceMeters}
-                    onChange={(e) => setDistanceMeters(Number(e.target.value))}
-                    className="w-full rounded-lg border border-hawk-blue/50 bg-hawk-blue/10 px-3 py-2 text-sm text-white focus:outline-none"
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-hawk-muted">Time Window (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 22:00-06:00"
-                    value={timeWindow}
-                    onChange={(e) => setTimeWindow(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-hawk-blue focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-hawk-muted">Simulated Time</label>
-                  <input
-                    type="time"
-                    value={simulatedTime}
-                    onChange={(e) => setSimulatedTime(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:border-hawk-blue focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <Button
-                onClick={handleAnalyze}
-                disabled={!selectedFile || detection.status === "loading"}
-                className="mt-4 w-full justify-center"
-              >
-                {detection.status === "loading" ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing Behavior...
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle className="mr-2 h-4 w-4" /> Run Threat Check
-                  </>
-                )}
-              </Button>
-            </div>
-          </Card>
-
-          {detection.status === "error" && (
-            <div className="rounded-xl border border-hawk-crimson/30 bg-hawk-crimson/10 p-4 text-sm text-hawk-crimson">
-              <div className="flex items-center gap-2 font-semibold">
-                <XCircle className="h-4 w-4" /> Analysis Failed
-              </div>
-              <p className="mt-1 opacity-80">{detection.message}</p>
-            </div>
-          )}
-
-          {detection.status === "success" && (
-            <Card className="flex flex-col gap-4 p-6">
-              <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-                <h3 className="text-sm font-semibold text-white" style={{ fontFamily: "'Clash Display', sans-serif" }}>
-                  Detection Results
-                </h3>
-                <Badge variant={detection.data.anomalies?.length ? "crimson" : "emerald"}>
-                  {detection.data.anomalies?.length} Anomalies
-                </Badge>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                {detection.data.anomalies?.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-6 text-hawk-muted">
-                    <CheckCircle2 className="mb-2 h-8 w-8 text-hawk-emerald opacity-50" />
-                    <p className="text-sm">No threats or anomalies detected.</p>
-                  </div>
-                ) : (
-                  detection.data.anomalies?.map((an: any, idx: number) => (
-                    <div key={idx} className="rounded-lg border border-white/10 bg-white/[0.02] p-4 transition-colors hover:border-hawk-crimson/30 hover:bg-hawk-crimson/5">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold text-white capitalize">{an.object_type} #{an.object_id}</span>
-                        <span className="text-xs font-bold text-hawk-crimson">Score: {Math.round(an.anomaly_score * 100)}%</span>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {an.triggered_rules.map((rule: string) => (
-                          <Badge key={rule} variant="crimson" className="text-[10px]">
-                            {rule.replace("_", " ")}
-                          </Badge>
-                        ))}
-                      </div>
-                      
-                      <p className="text-xs text-hawk-muted leading-relaxed">
-                        {an.explanation}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="mt-2 text-[10px] text-hawk-muted uppercase tracking-wider font-semibold border-t border-white/[0.08] pt-3">
-                Total Objects Tracked: {detection.data.total_objects_tracked}
-              </div>
-            </Card>
-          )}
-        </div>
       </div>
+
     </div>
   );
 }

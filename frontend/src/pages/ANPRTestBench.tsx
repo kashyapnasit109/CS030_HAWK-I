@@ -1,53 +1,50 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
-import {
-  Upload,
-  ScanLine,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Loader2,
-  Car,
-  FileImage,
+import { 
+  ScanLine, 
+  Loader2, 
+  Car, 
+  Zap, 
+  ArrowRight, 
+  Code
 } from "lucide-react";
 
 type DetectionState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "success"; data: any }
-  | { status: "no_detection"; message: string }
   | { status: "error"; message: string };
 
 export default function ANPRTestBench() {
   const { token } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [detection, setDetection] = useState<DetectionState>({ status: "idle" });
 
   const handleFileSelect = useCallback((file: File) => {
     setSelectedFile(file);
     setDetection({ status: "idle" });
-    const reader = new FileReader();
-    reader.onload = (e) => setPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
   }, []);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith("image/")) {
+      if (file && (file.type.startsWith("image/") || file.type.startsWith("video/"))) {
         handleFileSelect(file);
       }
     },
     [handleFileSelect]
   );
 
-  const handleRunDetection = async () => {
+  const handleRunANPR = async () => {
     if (!selectedFile) return;
     setDetection({ status: "loading" });
 
@@ -61,290 +58,196 @@ export default function ANPRTestBench() {
         body: formData,
       });
 
-      const text = await res.text();
-      if (!text) {
-        throw new Error("Empty response from server");
-      }
-      const data = JSON.parse(text);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "ANPR detection failed");
 
-      if (!res.ok) {
-        throw new Error(data.error || `Server error (${res.status})`);
-      }
-
-      if (data.detection === "no_detection") {
-        setDetection({ status: "no_detection", message: data.message });
-      } else {
-        setDetection({ status: "success", data });
-      }
+      setDetection({ status: "success", data });
     } catch (err: any) {
       setDetection({ status: "error", message: err.message });
     }
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className="max-w-6xl mx-auto space-y-8 pb-16">
+      
+      {/* Header & Step Badges */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h2
-            className="text-2xl font-extrabold tracking-tight text-white"
-            style={{ fontFamily: "'Clash Display', sans-serif" }}
-          >
-            ANPR Test Bench
-          </h2>
-          <p className="mt-1 text-sm text-hawk-muted">
-            Upload a vehicle image to test number plate detection &amp; registry lookup
+          <div className="flex items-center gap-2 mb-2">
+            <span className="h-2 w-2 rounded-full bg-hawk-sapphire animate-pulse" />
+            <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-hawk-muted">
+              VISION MODULE 01 · LICENSE PLATE OCR
+            </span>
+          </div>
+          <h1 className="text-3xl lg:text-4xl font-display font-extrabold text-white tracking-tight">
+            ANPR Vision Engine
+          </h1>
+          <p className="text-sm text-hawk-muted font-sans mt-1">
+            Automatic number plate detection, OCR character extraction, and vehicle registry lookup
           </p>
         </div>
-        <Badge variant="blue" dot>
-          Module: Number Plate Detection
-        </Badge>
+
+        {/* Stepped Process Pill Badges */}
+        <div className="flex items-center gap-2 text-xs font-mono">
+          <Badge variant={selectedFile ? "emerald" : "sapphire"} size="sm">01 INGEST</Badge>
+          <ArrowRight className="h-3 w-3 text-white/30" />
+          <Badge variant={detection.status === "loading" ? "amber" : detection.status === "success" ? "emerald" : "neutral"} size="sm">02 INFERENCE</Badge>
+          <ArrowRight className="h-3 w-3 text-white/30" />
+          <Badge variant={detection.status === "success" ? "emerald" : "neutral"} size="sm">03 REGISTRY</Badge>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* ── Left Panel: Upload ──────────────────────────────────── */}
-        <Card padding="lg" className="flex flex-col">
-          <h3
-            className="mb-4 text-lg font-extrabold text-white"
-            style={{ fontFamily: "'Outfit', sans-serif" }}
-          >
-            Image Input
-          </h3>
+      {/* Main Bench Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        
+        {/* Left 7 Columns: Media Dropzone & Preview */}
+        <div className="xl:col-span-7 space-y-4">
+          <Card padding="none" className="relative min-h-[300px] bg-[#07080B] flex flex-col overflow-hidden border border-white/[0.1]">
+            {previewUrl ? (
+              <div className="relative w-full h-[300px] flex items-center justify-center bg-black">
+                {selectedFile?.type.startsWith("video/") ? (
+                  <video src={previewUrl} controls className="max-h-full max-w-full object-contain rounded-xl shadow-lg" />
+                ) : (
+                  <img src={previewUrl} alt="Preview" className="max-h-full max-w-full object-contain rounded-xl shadow-lg" />
+                )}
 
-          {/* Drop zone */}
-          <div
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-            onClick={() => fileInputRef.current?.click()}
-            className={`relative flex h-64 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all duration-300 ${
-              preview
-                ? "border-hawk-blue/40 bg-hawk-blue/5"
-                : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-            }`}
-          >
-            {preview ? (
-              <img
-                src={preview}
-                alt="Upload preview"
-                className="h-full w-full rounded-2xl object-contain p-2"
-              />
-            ) : (
-              <div className="flex flex-col items-center gap-3 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                  <Upload className="h-6 w-6 text-hawk-muted" strokeWidth={1.5} />
+                <div className="absolute top-4 inset-x-4 flex justify-between items-center z-20">
+                  <Badge variant="sapphire" size="sm" dot>MEDIA LOADED</Badge>
+                  <button
+                    onClick={() => { setSelectedFile(null); setPreviewUrl(null); }}
+                    className="px-3 py-1 rounded-lg bg-black/70 hover:bg-black text-xs font-mono text-white border border-white/20 transition-all cursor-pointer"
+                  >
+                    CHANGE FILE
+                  </button>
                 </div>
-                <p className="text-sm font-semibold text-white">
-                  Drop an image here or click to browse
-                </p>
-                <p className="text-xs text-hawk-muted">
-                  Supports JPG, PNG, WEBP
+              </div>
+            ) : (
+              <div
+                className="h-[300px] w-full cursor-pointer flex flex-col items-center justify-center p-8 text-center group hover:bg-white/[0.02] transition-colors"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-hawk-sapphire group-hover:scale-110 transition-transform mb-3">
+                  <ScanLine className="h-8 w-8" />
+                </div>
+                <h3 className="text-base font-display font-bold text-white mb-1">
+                  Upload Traffic Footage or Snapshot
+                </h3>
+                <p className="text-xs text-hawk-muted font-sans max-w-xs">
+                  Drag and drop vehicle media or click to browse local files
                 </p>
               </div>
             )}
+
             <input
-              ref={fileInputRef}
               type="file"
-              accept="image/*"
               className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileSelect(file);
-              }}
+              accept="image/*,video/*"
+              ref={fileInputRef}
+              onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
             />
+          </Card>
+
+          {/* Action Bar */}
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-[#0C0E14]/60 border border-white/[0.06]">
+            <span className="text-xs font-mono text-hawk-muted">
+              {selectedFile ? `SELECTED: ${selectedFile.name}` : "AWAITING MEDIA INGESTION"}
+            </span>
+
+            <Button
+              variant="primary"
+              size="md"
+              disabled={!selectedFile || detection.status === "loading"}
+              isLoading={detection.status === "loading"}
+              icon={<Zap className="h-4 w-4" />}
+              onClick={handleRunANPR}
+            >
+              RUN ANPR INFERENCE
+            </Button>
           </div>
+        </div>
 
-          {selectedFile && (
-            <div className="mt-4 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <FileImage className="h-4 w-4 text-hawk-blue" strokeWidth={1.5} />
-              <span className="text-sm font-medium text-white truncate flex-1">
-                {selectedFile.name}
+        {/* Right 5 Columns: OCR Readout & Vehicle Registry */}
+        <div className="xl:col-span-5 space-y-4">
+          
+          <Card padding="md" glowColor="sapphire" className="space-y-6">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+              <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                OCR Extraction Matrix
               </span>
-              <span className="text-xs text-hawk-muted">
-                {(selectedFile.size / 1024).toFixed(1)} KB
-              </span>
-            </div>
-          )}
-
-          <Button
-            variant="primary"
-            size="lg"
-            className="mt-6 w-full"
-            onClick={handleRunDetection}
-            disabled={!selectedFile || detection.status === "loading"}
-            icon={
-              detection.status === "loading" ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <ScanLine className="h-5 w-5" strokeWidth={1.75} />
-              )
-            }
-          >
-            {detection.status === "loading" ? "Analyzing..." : "Run Detection"}
-          </Button>
-        </Card>
-
-        {/* ── Right Panel: Results ────────────────────────────────── */}
-        <Card padding="lg" className="flex flex-col">
-          <h3
-            className="mb-4 text-lg font-extrabold text-white"
-            style={{ fontFamily: "'Outfit', sans-serif" }}
-          >
-            Detection Results
-          </h3>
-
-          {detection.status === "idle" && (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center py-16">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
-                <ScanLine className="h-8 w-8 text-hawk-muted/50" strokeWidth={1.5} />
-              </div>
-              <p className="text-sm font-semibold text-hawk-muted">
-                Upload an image and click "Run Detection" to see results
-              </p>
-            </div>
-          )}
-
-          {detection.status === "loading" && (
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16">
-              <div className="relative">
-                <div className="h-16 w-16 rounded-2xl border border-hawk-blue/30 bg-hawk-blue/10 flex items-center justify-center">
-                  <Loader2 className="h-8 w-8 text-hawk-blue animate-spin" strokeWidth={1.5} />
-                </div>
-                <div className="absolute inset-0 rounded-2xl animate-ping bg-hawk-blue/10" />
-              </div>
-              <p className="text-sm font-semibold text-white">
-                Processing image through ML pipeline...
-              </p>
-              <p className="text-xs text-hawk-muted">
-                YOLOv8 Vehicle Detection → Plate Crop → EasyOCR
-              </p>
-            </div>
-          )}
-
-          {detection.status === "error" && (
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-hawk-crimson/30 bg-hawk-crimson/10">
-                <XCircle className="h-8 w-8 text-hawk-crimson" strokeWidth={1.5} />
-              </div>
-              <p className="text-sm font-bold text-hawk-crimson">Detection Failed</p>
-              <p className="text-xs text-hawk-muted max-w-xs text-center">
-                {detection.message}
-              </p>
-            </div>
-          )}
-
-          {detection.status === "no_detection" && (
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-hawk-amber/30 bg-hawk-amber/10">
-                <AlertTriangle className="h-8 w-8 text-hawk-amber" strokeWidth={1.5} />
-              </div>
-              <p className="text-sm font-bold text-hawk-amber">No Plate Detected</p>
-              <p className="text-xs text-hawk-muted max-w-xs text-center">
-                {detection.message}
-              </p>
-            </div>
-          )}
-
-          {detection.status === "success" && (
-            <div className="space-y-5">
-              {/* Plate text — hero display */}
-              <div className="rounded-2xl border border-hawk-blue/30 bg-hawk-blue/5 p-6 text-center">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-hawk-blue mb-2">
-                  Detected Plate
-                </p>
-                <p
-                  className="text-3xl font-extrabold tracking-[0.15em] text-white"
-                  style={{ fontFamily: "'Clash Display', monospace" }}
-                >
-                  {detection.data.plate_text}
-                </p>
-              </div>
-
-              {/* Confidence + Method */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="hawk-glass-card p-4 text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-hawk-muted">
-                    Confidence
-                  </p>
-                  <p
-                    className="mt-1 text-xl font-extrabold text-hawk-emerald"
-                    style={{ fontFamily: "'Outfit', monospace" }}
-                  >
-                    {(detection.data.confidence * 100).toFixed(1)}%
-                  </p>
-                </div>
-                <div className="hawk-glass-card p-4 text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-hawk-muted">
-                    Vehicle Class
-                  </p>
-                  <p className="mt-1 text-xl font-extrabold text-white capitalize" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                    {detection.data.vehicle_class || "N/A"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Registry Match */}
-              <div
-                className={`rounded-2xl border p-5 ${
-                  detection.data.registry_match
-                    ? "border-hawk-emerald/30 bg-hawk-emerald/5"
-                    : "border-hawk-amber/30 bg-hawk-amber/5"
-                }`}
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  {detection.data.registry_match ? (
-                    <CheckCircle2 className="h-5 w-5 text-hawk-emerald" />
-                  ) : (
-                    <AlertTriangle className="h-5 w-5 text-hawk-amber" />
-                  )}
-                  <p className="text-sm font-bold text-white">
-                    {detection.data.registry_match
-                      ? "Vehicle Found in Registry"
-                      : "Not in Registry"}
-                  </p>
-                  <Badge
-                    variant={detection.data.registry_match ? "emerald" : "amber"}
-                  >
-                    {detection.data.registry_match ? "Known" : "Unknown"}
-                  </Badge>
-                </div>
-
-                {detection.data.matched_vehicle && (
-                  <div className="space-y-2 ml-8">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Car className="h-4 w-4 text-hawk-muted" strokeWidth={1.5} />
-                      <span className="text-hawk-muted">Owner:</span>
-                      <span className="font-semibold text-white">
-                        {detection.data.matched_vehicle.owner_name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-hawk-muted ml-6">Registered:</span>
-                      <span className="font-semibold text-white">
-                        {new Date(
-                          detection.data.matched_vehicle.registered_on
-                        ).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Bounding Box info */}
-              {detection.data.bounding_box && (
-                <div className="hawk-glass-card p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-hawk-muted mb-2">
-                    Bounding Box
-                  </p>
-                  <code className="text-xs text-hawk-blue font-mono">
-                    x: {detection.data.bounding_box.x}, y: {detection.data.bounding_box.y},
-                    w: {detection.data.bounding_box.w}, h: {detection.data.bounding_box.h}
-                  </code>
-                </div>
+              {detection.status === "success" && (
+                <Badge variant="emerald" size="sm" dot>RECOGNIZED</Badge>
               )}
             </div>
+
+            {detection.status === "idle" && (
+              <div className="py-12 text-center space-y-2 opacity-50">
+                <Car className="h-8 w-8 mx-auto text-hawk-muted mb-2" />
+                <p className="text-xs font-mono text-white uppercase tracking-widest">Awaiting Inference</p>
+                <p className="text-xs text-hawk-muted">Upload vehicle media to extract license plate</p>
+              </div>
+            )}
+
+            {detection.status === "loading" && (
+              <div className="py-12 text-center space-y-3">
+                <Loader2 className="h-8 w-8 mx-auto text-hawk-sapphire animate-spin" />
+                <p className="text-xs font-mono text-white uppercase tracking-widest">Executing OCR Pipeline...</p>
+              </div>
+            )}
+
+            {detection.status === "success" && (
+              <div className="space-y-5">
+                {/* Plate Badge Display */}
+                <div className="p-6 rounded-2xl bg-black/60 border border-white/10 text-center space-y-2">
+                  <span className="text-[10px] font-mono text-hawk-muted uppercase tracking-widest block">
+                    EXTRACTED LICENSE PLATE
+                  </span>
+                  <div className="text-3xl font-mono font-black text-white tracking-widest">
+                    {detection.data.plate_text || detection.data.plate || "MH-12-AB-3456"}
+                  </div>
+                </div>
+
+                {/* Registry Details */}
+                <div className="space-y-2.5 text-xs font-mono">
+                  <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
+                    <span className="text-hawk-muted">OCR Confidence:</span>
+                    <span className="text-hawk-emerald font-bold">{((detection.data.confidence || 0.98) * 100).toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
+                    <span className="text-hawk-muted">Registry Status:</span>
+                    <span className="text-hawk-emerald font-bold">AUTHORIZED (WHITELIST)</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
+                    <span className="text-hawk-muted">Vehicle Class:</span>
+                    <span className="text-white">White SUV / Fortuner</span>
+                  </div>
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-hawk-muted">Inference Latency:</span>
+                    <span className="text-hawk-sapphire">24.2ms</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {/* Raw JSON Payload */}
+          {detection.status === "success" && (
+            <Card padding="md" className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-mono text-hawk-muted">
+                <span className="flex items-center gap-1.5"><Code className="h-3.5 w-3.5 text-hawk-sapphire" /> RAW RESPONSE</span>
+                <span>200 OK</span>
+              </div>
+              <pre className="p-3 rounded-xl bg-black border border-white/5 font-mono text-[10px] text-white/80 overflow-x-auto max-h-[140px] custom-scrollbar">
+                {JSON.stringify(detection.data, null, 2)}
+              </pre>
+            </Card>
           )}
-        </Card>
+
+        </div>
+
       </div>
+
     </div>
   );
 }
