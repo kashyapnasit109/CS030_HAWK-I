@@ -11,3 +11,10 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Added NMS threshold tuning: IoU=0.45, conf=0.25
 - Benchmarked at 42ms/frame on RTX 4090
 
+
+## [2026-08-17 20:44] Commit #6
+### Face Recognition Pipeline
+- FaceNet embedding dimension: 512
+- Cosine similarity threshold: 0.72
+- MTCNN face detection as preprocessing step
+
