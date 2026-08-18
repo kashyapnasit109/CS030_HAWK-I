@@ -12,3 +12,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 18, 2026 15:28:59]` **perf(wall): vectorize dwell time trajectory state transitions with numpy** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Aug 18, 2026 15:47:55]` **refactor(compliance): decouple camera frame ingestion from computer vision workers** — *Verified component: compliance engine core & rule execution*
 - `[Aug 18, 2026 16:03:09]` **fix(twin): resolve memory leak in detached HTML5 video canvas contexts** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Aug 18, 2026 21:53:07]` **refactor(wall): unify telemetry event formats for detection frames and violations** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
