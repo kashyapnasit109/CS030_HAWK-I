@@ -9,3 +9,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 18, 2026 09:52:05]` **perf(diagnostics): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: hardware decoders & operational telemetry*
 - `[Aug 18, 2026 13:24:03]` **fix(evidence): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Aug 18, 2026 13:37:09]` **fix(compliance): resolve thread-safety collision during concurrent WebSocket broadcast** — *Verified component: compliance engine core & rule execution*
+- `[Aug 18, 2026 15:28:59]` **perf(wall): vectorize dwell time trajectory state transitions with numpy** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
