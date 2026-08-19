@@ -273,7 +273,7 @@ export default function LiveTacticalWallPage() {
 
               return (
                 <div
-                  key={cam.camera_id}
+                  key={`${cam.camera_id || 'cam'}-${idx}`}
                   onClick={() => setActiveCamId(cam.camera_id)}
                   style={{
                     background: "#080C16",
@@ -428,9 +428,9 @@ export default function LiveTacticalWallPage() {
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {alerts.map((al) => (
+                  {alerts.map((al, aIdx) => (
                     <div
-                      key={al.id}
+                      key={`${al.id || 'alert'}-${aIdx}`}
                       style={{
                         background: "rgba(255,255,255,0.02)",
                         border: "1px solid rgba(239,68,68,0.3)",
@@ -506,9 +506,9 @@ export default function LiveTacticalWallPage() {
               </p>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 300, overflowY: "auto", marginBottom: 18 }}>
-                {availableVideos.map((v) => (
+                {availableVideos.map((v, vIdx) => (
                   <div
-                    key={v.id}
+                    key={`${v.id || 'video'}-${vIdx}`}
                     onClick={() => handleSetCameraSource(selectedCamSlot, v.video_url, v.original_filename)}
                     style={{
                       background: "var(--bg-elevated)",
