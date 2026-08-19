@@ -33,6 +33,7 @@ interface IncidentItem {
   actions_taken: string[];
   status: "active" | "responding" | "resolved" | "acknowledged";
   dispatched_guard?: string | null;
+  video_url?: string;
 }
 
 interface MerkleBlock {
@@ -365,38 +366,45 @@ export default function IncidentsCommandHub() {
                   style={{
                     position: "relative",
                     width: "100%",
-                    height: "320px",
+                    height: "340px",
                     background: "#000000",
                     borderRadius: "8px",
                     overflow: "hidden",
-                    border: "1px solid rgba(59,130,246,0.3)",
+                    border: "1px solid rgba(59,130,246,0.35)",
                   }}
                 >
-                  <img
-                    src={`http://localhost:8001/api/cameras/${selectedIncident.camera_id}/stream`}
-                    alt="evidence stream"
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = `http://localhost:8001/api/cameras/${selectedIncident.camera_id}/snapshot`;
-                    }}
+                  <video
+                    key={selectedIncident.video_url || selectedIncident.incident_id}
+                    src={
+                      selectedIncident.video_url
+                        ? `http://localhost:8001${selectedIncident.video_url.startsWith('/') ? '' : '/'}${selectedIncident.video_url}`
+                        : "http://localhost:8001/storage/uploads/trump_speech.mp4"
+                    }
+                    autoPlay
+                    loop
+                    muted
+                    controls
+                    style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000000" }}
                   />
 
-                  {/* Optical HUD Crosshair */}
+                  {/* Optical HUD Watermark Tag */}
                   <div
                     style={{
                       position: "absolute",
-                      top: 14,
-                      left: 14,
-                      background: "rgba(0,0,0,0.7)",
-                      padding: "4px 8px",
+                      top: 12,
+                      left: 12,
+                      background: "rgba(0,0,0,0.75)",
+                      padding: "4px 10px",
                       borderRadius: 4,
                       fontFamily: "JetBrains Mono, monospace",
                       fontSize: "0.72rem",
                       color: "#EF4444",
                       fontWeight: 800,
+                      border: "1px solid rgba(239,68,68,0.4)",
+                      pointerEvents: "none",
                     }}
                   >
-                    ● FORENSIC EVIDENCE HUD · 25 FPS
+                    ● FORENSIC EVIDENCE HUD · {selectedIncident.severity} ACTIVE · 25 FPS
                   </div>
                 </div>
 

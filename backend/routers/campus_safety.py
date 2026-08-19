@@ -163,7 +163,8 @@ def scan_video_for_hazard(req: VideoHazardScanRequest):
         zone_code="ZONE-01",
         camera_id=req.camera_id,
         consensus_score=0.96,
-        iot_telemetry=iot_meta
+        iot_telemetry=iot_meta,
+        video_url=req.video_url
     )
 
     add_chain_event(

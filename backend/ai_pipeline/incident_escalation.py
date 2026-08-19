@@ -102,7 +102,8 @@ def create_incident(
     camera_id: str,
     consensus_score: float,
     iot_telemetry: dict[str, Any],
-    dempster_shafer: dict[str, Any] | None = None
+    dempster_shafer: dict[str, Any] | None = None,
+    video_url: str | None = None
 ) -> dict[str, Any]:
     """Autonomous Escalation trigger according to P1-P4 Matrix."""
     inc_id = f"INC-{time.strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
@@ -129,6 +130,11 @@ def create_incident(
     else:
         actions.append("Telemetry logged to campus facilities maintenance database")
 
+    resolved_video_url = video_url or (
+        "/storage/uploads/trump_speech.mp4" if "trump" in title.lower() or "quad" in zone_name.lower()
+        else "/storage/uploads/subway.mp4"
+    )
+
     incident = {
         "incident_id": inc_id,
         "severity": severity,
@@ -143,7 +149,8 @@ def create_incident(
         "iot_telemetry": iot_telemetry,
         "actions_taken": actions,
         "status": "active",
-        "dispatched_guard": dispatched_guard
+        "dispatched_guard": dispatched_guard,
+        "video_url": resolved_video_url
     }
 
     _active_incidents.insert(0, incident)
