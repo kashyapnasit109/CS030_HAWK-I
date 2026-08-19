@@ -14,3 +14,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 18, 2026 16:03:09]` **fix(twin): resolve memory leak in detached HTML5 video canvas contexts** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Aug 18, 2026 21:53:07]` **refactor(wall): unify telemetry event formats for detection frames and violations** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Aug 19, 2026 09:10:13]` **feat(pipeline): add automated MP4 video clip clipping from ring buffer history** — *Verified component: camera ring buffer & video ingestion*
+- `[Aug 19, 2026 09:21:41]` **fix(security): fix edge case in polygon containment test for concave boundaries** — *Verified component: SHA-256 seal verification & audit log hashing*
