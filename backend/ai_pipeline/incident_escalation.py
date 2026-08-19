@@ -41,7 +41,8 @@ _active_incidents: list[dict[str, Any]] = [
             "QRT-02 (Officer Priya Nair) dispatched to locus"
         ],
         "status": "active",
-        "dispatched_guard": "QRT-02 (Officer Priya Nair)"
+        "dispatched_guard": "QRT-02 (Officer Priya Nair)",
+        "video_url": "/storage/uploads/376bd311.mp4"
     },
     {
         "incident_id": "INC-2026-0819-02",
@@ -60,7 +61,8 @@ _active_incidents: list[dict[str, Any]] = [
             "PTZ Camera CAM-01 auto-locked and zoomed on subject coordinates"
         ],
         "status": "responding",
-        "dispatched_guard": "QRT-01 (Officer Rajesh Sharma)"
+        "dispatched_guard": "QRT-01 (Officer Rajesh Sharma)",
+        "video_url": "/storage/uploads/subway.mp4"
     },
     {
         "incident_id": "INC-2026-0819-03",
@@ -131,7 +133,7 @@ def create_incident(
         actions.append("Telemetry logged to campus facilities maintenance database")
 
     resolved_video_url = video_url or (
-        "/storage/uploads/trump_speech.mp4" if "trump" in title.lower() or "quad" in zone_name.lower()
+        "/storage/uploads/376bd311.mp4" if "trump" in title.lower() or "quad" in zone_name.lower() or "fire" in title.lower()
         else "/storage/uploads/subway.mp4"
     )
 

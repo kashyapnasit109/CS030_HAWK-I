@@ -29,8 +29,8 @@ _jobs: dict[str, dict[str, Any]] = {}
 class ImageSearchRequest(BaseModel):
     video_ids: list[str] = Field(..., description="List of uploaded video IDs to search")
     reference_ids: list[str] = Field(..., description="List of reference image IDs")
-    confidence_threshold: float = Field(0.40, ge=0.0, le=1.0)
-    similarity_threshold: float = Field(0.45, ge=0.0, le=1.0)
+    confidence_threshold: float = Field(0.60, ge=0.0, le=1.0)
+    similarity_threshold: float = Field(0.58, ge=0.0, le=1.0)
     sample_fps: float = Field(1.0, ge=0.1, le=10.0)
     start_time: float | None = Field(None, description="Start time filter in seconds")
     end_time: float | None = Field(None, description="End time filter in seconds")
@@ -104,7 +104,7 @@ def _run_face_search_task(job_id: str, request: ImageSearchRequest):
                 job_id=sub_job_id,
                 start_time=request.start_time,
                 end_time=request.end_time,
-                progress_cb=lambda p, m: _update_progress(job_id, p, m),
+                progress_cb=lambda p, m, cur=None: _update_progress(job_id, p, m, cur),
             )
             all_matches.extend(matches)
 
@@ -121,13 +121,12 @@ def _save_matches_to_db(job_id: str, matches: list[dict], search_type: str):
     """Save matches of a search job to detection_events, chain_of_custody, and reid_matches/person_attributes."""
     from database import DB_PATH
     import sqlite3
-
-    conn = None
+    
     try:
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-
+        
         # Determine the active open case_id (or default to 1)
         cursor.execute("SELECT case_id FROM cases WHERE status = 'open' LIMIT 1;")
         case_row = cursor.fetchone()
@@ -171,27 +170,28 @@ def _save_matches_to_db(job_id: str, matches: list[dict], search_type: str):
                 (None, event_id, "ingested", 1, m.get("frame_hash", ""), f"Search match found: {m.get('label', '')}", time.time())
             )
             
-            # If face_recognition, write to reid_matches (links a reference image to this event)
+            # If face_recognition, write to reid_matches
             if search_type == "face_recognition":
                 cursor.execute(
-                    "SELECT ref_id FROM reference_images WHERE label = ? OR image_path LIKE ? LIMIT 1;",
+                    "SELECT ref_id FROM reference_images WHERE label = ? OR filename LIKE ? LIMIT 1;",
                     (m.get("label"), f"%{m.get('label')}%")
                 )
                 ref_row = cursor.fetchone()
                 ref_id = ref_row["ref_id"] if ref_row else None
-
-                # ref_id is NOT NULL in reid_matches; only record the link when we resolved a reference
-                if ref_id is not None:
-                    cursor.execute(
-                        """INSERT INTO reid_matches (ref_id, event_id, similarity_score, matched_at)
-                           VALUES (?, ?, ?, ?);""",
-                        (
-                            ref_id,
-                            event_id,
-                            m.get("confidence", 0.0),
-                            m.get("timestamp", time.time()),
-                        )
+                
+                cursor.execute(
+                    """INSERT INTO reid_matches (case_id, reference_image_id, camera_id, confidence, matched_at, frame_hash, frame_path)
+                       VALUES (?, ?, ?, ?, ?, ?, ?);""",
+                    (
+                        case_id,
+                        ref_id,
+                        m.get("camera_id", "CAM-01"),
+                        m.get("confidence", 0.0),
+                        m.get("timestamp", time.time()),
+                        m.get("frame_hash", ""),
+                        m.get("frame_url", "")
                     )
+                )
                 
             # If attributes, write to person_attributes
             if "attributes" in m:
@@ -213,22 +213,18 @@ def _save_matches_to_db(job_id: str, matches: list[dict], search_type: str):
         conn.close()
     except Exception as db_err:
         print(f"[search] Failed to save search matches to DB: {db_err}")
-    finally:
-        if conn is not None:
-            try:
-                conn.close()
-            except Exception:
-                pass
 
 
-def _update_progress(job_id: str, frames_processed: int, frames_matched: int):
+def _update_progress(job_id: str, frames_processed: int, frames_matched: int, current_matches: list | None = None):
     """Called by AI pipelines to report incremental progress. Raises InterruptedError if cancelled."""
     if job_id in _jobs:
         if _jobs[job_id].get("status") == "cancelled" or _jobs[job_id].get("cancelled"):
             raise InterruptedError("Search job cancelled by user")
         _jobs[job_id]["frames_processed"] = frames_processed
         _jobs[job_id]["frames_matched"] = frames_matched
-        _jobs[job_id]["match_count"] = frames_matched
+        if current_matches is not None:
+            _jobs[job_id]["matches"] = list(current_matches)
+            _jobs[job_id]["match_count"] = len(current_matches)
 
 
 @router.post("/cancel/{job_id}")
@@ -265,28 +261,11 @@ def _run_keyword_search_task(job_id: str, request: KeywordSearchRequest):
     _jobs[job_id]["started_at"] = time.time()
     all_matches = []
 
-    # Language-aware query understanding, best-available strategy:
-    #   1) Custom AI gateway (if configured) turns a messy, possibly non-English
-    #      query into a clean English visual phrase + COCO object hints.
-    #   2) Otherwise, the built-in Hindi/Gujarati dictionary translation.
-    search_keyword = request.keyword
-    try:
-        import ai_gateway  # noqa: PLC0415
-        understood = ai_gateway.understand_query(request.keyword)
-    except Exception:
-        understood = None
-
-    if understood and understood.get("english"):
-        search_keyword = understood["english"]
+    # Translate Gujarati/Hindi to English if applicable
+    search_keyword, translated = translate_query_to_english(request.keyword)
+    if translated:
+        print(f"[nlp_translation] Translated '{request.keyword}' -> '{search_keyword}'")
         _jobs[job_id]["translated_query"] = search_keyword
-        _jobs[job_id]["gateway_understanding"] = understood
-        print(f"[ai_gateway] Understood '{request.keyword}' -> '{search_keyword}' "
-              f"objects={understood.get('objects')}")
-    else:
-        search_keyword, translated = translate_query_to_english(request.keyword)
-        if translated:
-            print(f"[nlp_translation] Translated '{request.keyword}' -> '{search_keyword}'")
-            _jobs[job_id]["translated_query"] = search_keyword
 
     try:
         for vid_id in request.video_ids:
@@ -369,7 +348,7 @@ def search_by_image(
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Face Re-ID: {', '.join(request.reference_ids)}"
     }
-    # Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
     t = threading.Thread(target=_run_face_search_task, args=(job_id, request), daemon=True)
     t.start()
     return {"job_id": job_id, "status": "queued"}
@@ -388,7 +367,7 @@ def search_by_keyword(
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Keyword: \"{request.keyword}\""
     }
-    # Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
     t = threading.Thread(target=_run_keyword_search_task, args=(job_id, request), daemon=True)
     t.start()
     return {"job_id": job_id, "status": "queued"}
@@ -407,7 +386,7 @@ def search_by_lpr(
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Plate: \"{request.plate_text}\""
     }
-    # Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
     t = threading.Thread(target=_run_lpr_search_task, args=(job_id, request), daemon=True)
     t.start()
     return {"job_id": job_id, "status": "queued"}
@@ -642,7 +621,7 @@ def search_by_object(request: ObjectSearchRequest, background_tasks: BackgroundT
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Object: {', '.join(request.target_classes)}" if request.target_classes else "Object: All"
     }
-    # Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
     t = threading.Thread(target=_run_object_search_task, args=(job_id, request), daemon=True)
     t.start()
     return {"job_id": job_id, "status": "queued"}
@@ -657,7 +636,7 @@ def search_activity(request: ActivityAnalysisRequest, background_tasks: Backgrou
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Activity: Crowd >= {request.crowd_threshold}"
     }
-    # Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
     t = threading.Thread(target=_run_activity_analysis_task, args=(job_id, request), daemon=True)
     t.start()
     return {"job_id": job_id, "status": "queued"}
