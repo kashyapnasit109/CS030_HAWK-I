@@ -95,7 +95,9 @@ def load_active_yolo_model_path() -> tuple[str, bool]:
     # Find active model details
     for m in models:
         if m.get("id") == active_id:
-            return m.get("file_path", "yolov8n.pt"), m.get("is_custom", False)
+            fp = m.get("file_path", "yolov8n.pt")
+            if Path(fp).exists() or fp in ("yolov8n.pt", "yolov8s.pt", "yolov8m.pt"):
+                return fp, m.get("is_custom", False)
             
     return "yolov8n.pt", False
 

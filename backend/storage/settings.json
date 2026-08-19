@@ -40,7 +40,7 @@
     "password_complexity": "medium"
   },
   "ai_models": {
-    "active_object_model": "custom_1785217498",
+    "active_object_model": "yolov8n",
     "active_face_model": "facenet",
     "models": [
       {
