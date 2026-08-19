@@ -23,6 +23,7 @@ import {
   ActivityIcon,
   CloseIcon,
   SearchIcon,
+  UploadIcon,
 } from "@/components/Icons";
 
 interface AlertItem {
@@ -59,6 +60,8 @@ export default function LiveTacticalWallPage() {
   const [sourceModalOpen, setSourceModalOpen] = useState(false);
   const [activeCamId, setActiveCamId] = useState<string>("");
   const [pinnedAlerts, setPinnedAlerts] = useState<Set<string>>(new Set());
+  const [uploadingModalVideo, setUploadingModalVideo] = useState(false);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Load Reference Profiles (Suspects)
   const loadRefs = async () => {
@@ -67,7 +70,6 @@ export default function LiveTacticalWallPage() {
       const refList = Array.isArray(r?.references) ? r.references : [];
       setRefs(refList);
       if (refList.length > 0 && !selectedRef) {
-        // Default to Trump or first suspect
         const trump = refList.find((x) => x.label.toLowerCase().includes("trump") || x.id.includes("trump"));
         setSelectedRef(trump || refList[0]);
       }
@@ -87,9 +89,17 @@ export default function LiveTacticalWallPage() {
         }
       }
 
-      const vRes = await fetch("http://localhost:8001/api/cameras/videos/available").then((r) => r.json());
+      const vRes = await fetch("http://localhost:8001/api/videos/list").then((r) => r.json());
       if (vRes?.videos) {
-        setAvailableVideos(vRes.videos);
+        const vList = vRes.videos.map((v: any) => ({
+          id: v.id,
+          original_filename: v.original_filename || v.stored_filename || "Video File",
+          stored_filename: v.stored_filename || `${v.id}.mp4`,
+          duration: Math.round(v.duration_seconds || 60),
+          video_url: v.stored_filename ? `/storage/uploads/${v.stored_filename}` : `/storage/uploads/${v.id}.mp4`,
+          thumbnail_url: v.thumbnail_url || null,
+        }));
+        setAvailableVideos(vList);
       }
     } catch (e) {
       console.error(e);
@@ -166,10 +176,41 @@ export default function LiveTacticalWallPage() {
       showToast(`Camera ${cameraId} source switched to: ${videoName}`, "success");
       setSourceModalOpen(false);
       loadCamerasAndVideos();
-      // Restart detection on this camera
       triggerLiveDetection(detectionMode, selectedRef?.id);
     } catch {
       showToast("Failed to switch video source", "error");
+    }
+  };
+
+  const handleModalUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedCamSlot) return;
+
+    setUploadingModalVideo(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("camera_id", selectedCamSlot);
+
+      const token = localStorage.getItem("visioncctv_token");
+      const res = await fetch("http://localhost:8001/api/videos/upload", {
+        method: "POST",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+
+      const data = await res.json();
+      showToast(`Video '${file.name}' uploaded successfully!`, "success");
+
+      const newUrl = data.stored_filename ? `/storage/uploads/${data.stored_filename}` : `/storage/uploads/${data.id}.mp4`;
+      handleSetCameraSource(selectedCamSlot, newUrl, file.name);
+    } catch (err: any) {
+      showToast(err.message || "Failed to upload video", "error");
+    } finally {
+      setUploadingModalVideo(false);
+      if (modalFileInputRef.current) modalFileInputRef.current.value = "";
     }
   };
 
@@ -327,7 +368,6 @@ export default function LiveTacticalWallPage() {
                       alt={cam.name}
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                       onError={(e) => {
-                        // Fallback snapshot if stream reconnecting
                         (e.target as HTMLImageElement).src = `http://localhost:8001/api/cameras/${cam.camera_id}/snapshot`;
                       }}
                     />
@@ -486,26 +526,61 @@ export default function LiveTacticalWallPage() {
                 background: "#0A0F1D",
                 border: "1px solid #3B82F6",
                 borderRadius: 12,
-                maxWidth: 520,
+                maxWidth: 580,
                 width: "100%",
                 padding: 24,
                 boxShadow: "0 20px 60px rgba(0,0,0,0.9)",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <h3 style={{ fontSize: "1.1rem", fontWeight: 800, margin: 0, color: "white" }}>
-                  Select Video Simulation Source for Channel {selectedCamSlot}
+                <h3 style={{ fontSize: "1.1rem", fontWeight: 800, margin: 0, color: "white", display: "flex", alignItems: "center", gap: 8 }}>
+                  <VideoIcon size={18} style={{ color: "#3B82F6" }} />
+                  Select or Upload Simulation Video for Channel {selectedCamSlot}
                 </h3>
                 <button onClick={() => setSourceModalOpen(false)} className="btn btn-ghost btn-sm">
                   <CloseIcon size={16} />
                 </button>
               </div>
 
-              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 16 }}>
-                Choose any uploaded video or camera feed to simulate live optical AI scans in real-time.
-              </p>
+              {/* Direct Video Upload Dropzone */}
+              <div
+                style={{
+                  border: "1px dashed rgba(59,130,246,0.5)",
+                  borderRadius: 8,
+                  padding: 14,
+                  textAlign: "center",
+                  background: "rgba(59,130,246,0.04)",
+                  marginBottom: 16,
+                }}
+              >
+                <input
+                  ref={modalFileInputRef}
+                  type="file"
+                  accept="video/*"
+                  onChange={handleModalUpload}
+                  style={{ display: "none" }}
+                />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                  <UploadIcon size={20} style={{ color: "#3B82F6" }} />
+                  <span style={{ fontSize: "0.82rem", fontWeight: 800, color: "#FFFFFF" }}>
+                    {uploadingModalVideo ? "Uploading Video..." : "Upload New Video File (.mp4, .avi, .mov)"}
+                  </span>
+                  <button
+                    onClick={() => modalFileInputRef.current?.click()}
+                    disabled={uploadingModalVideo}
+                    className="btn btn-secondary btn-sm"
+                    style={{ marginTop: 4, fontWeight: 800, color: "#60A5FA" }}
+                  >
+                    {uploadingModalVideo ? "Uploading..." : "Browse Local Video"}
+                  </button>
+                </div>
+              </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 300, overflowY: "auto", marginBottom: 18 }}>
+              <label style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>
+                OR SELECT INGESTED VIDEO ARCHIVE ({availableVideos.length} Available)
+              </label>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 220, overflowY: "auto", marginBottom: 18 }}>
                 {availableVideos.map((v, vIdx) => (
                   <div
                     key={`${v.id || 'video'}-${vIdx}`}
@@ -526,7 +601,7 @@ export default function LiveTacticalWallPage() {
                   >
                     <div>
                       <div style={{ fontWeight: 800, fontSize: "0.85rem", color: "#FFFFFF" }}>{v.original_filename}</div>
-                      <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Duration: {v.duration}s · File ID: {v.id}</div>
+                      <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Duration: {v.duration}s · File: {v.video_url}</div>
                     </div>
                     <span className="badge badge-blue">SELECT</span>
                   </div>

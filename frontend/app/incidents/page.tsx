@@ -52,6 +52,7 @@ interface AvailVideo {
   stored_filename: string;
   duration?: number;
   video_url: string;
+  thumbnail_url?: string;
 }
 
 export default function IncidentsCommandHub() {
@@ -69,6 +70,8 @@ export default function IncidentsCommandHub() {
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string>("");
   const [hazardType, setHazardType] = useState<string>("fall");
   const [scanningInProgress, setScanningInProgress] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = () => {
     fetch("http://localhost:8001/api/safety/incidents")
@@ -87,13 +90,21 @@ export default function IncidentsCommandHub() {
       })
       .catch(() => {});
 
-    fetch("http://localhost:8001/api/cameras/videos/available")
+    fetch("http://localhost:8001/api/videos/list")
       .then((r) => r.json())
       .then((d) => {
-        if (d.videos) {
-          setAvailableVideos(d.videos);
-          if (d.videos.length > 0 && !selectedVideoUrl) {
-            setSelectedVideoUrl(d.videos[0].video_url);
+        if (d.videos && d.videos.length > 0) {
+          const vList = d.videos.map((v: any) => ({
+            id: v.id,
+            original_filename: v.original_filename || v.stored_filename || "Video File",
+            stored_filename: v.stored_filename || `${v.id}.mp4`,
+            duration: Math.round(v.duration_seconds || 60),
+            video_url: v.stored_filename ? `/storage/uploads/${v.stored_filename}` : `/storage/uploads/${v.id}.mp4`,
+            thumbnail_url: v.thumbnail_url || null,
+          }));
+          setAvailableVideos(vList);
+          if (!selectedVideoUrl && vList.length > 0) {
+            setSelectedVideoUrl(vList[0].video_url);
           }
         }
       })
@@ -124,9 +135,44 @@ export default function IncidentsCommandHub() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingVideo(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("camera_id", "CAM-01");
+
+      const token = localStorage.getItem("visioncctv_token");
+      const res = await fetch("http://localhost:8001/api/videos/upload", {
+        method: "POST",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const data = await res.json();
+      showToast(`Video '${file.name}' uploaded successfully!`, "success");
+      
+      const newVideoUrl = data.stored_filename ? `/storage/uploads/${data.stored_filename}` : `/storage/uploads/${data.id}.mp4`;
+      setSelectedVideoUrl(newVideoUrl);
+      loadData();
+    } catch (err: any) {
+      showToast(err.message || "Failed to upload video", "error");
+    } finally {
+      setUploadingVideo(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const handleScanVideo = async () => {
     if (!selectedVideoUrl) {
-      showToast("Please select a video first", "error");
+      showToast("Please select or upload a video first", "error");
       return;
     }
     setScanningInProgress(true);
@@ -251,13 +297,13 @@ export default function IncidentsCommandHub() {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {incidents.map((inc) => {
+                {incidents.map((inc, iIdx) => {
                   const isSelected = selectedIncident?.incident_id === inc.incident_id;
                   const isP1 = inc.severity === "P1";
 
                   return (
                     <div
-                      key={inc.incident_id}
+                      key={`${inc.incident_id || 'inc'}-${iIdx}`}
                       onClick={() => setSelectedIncidentId(inc.incident_id)}
                       style={{
                         padding: "12px",
@@ -494,7 +540,7 @@ export default function IncidentsCommandHub() {
                 background: "#0A0F1D",
                 border: "1px solid #3B82F6",
                 borderRadius: 12,
-                maxWidth: 540,
+                maxWidth: 600,
                 width: "100%",
                 padding: 24,
                 boxShadow: "0 20px 60px rgba(0,0,0,0.9)",
@@ -510,31 +556,83 @@ export default function IncidentsCommandHub() {
                 </button>
               </div>
 
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
-                  SELECT VIDEO FILE
-                </label>
-                <select
-                  value={selectedVideoUrl}
-                  onChange={(e) => setSelectedVideoUrl(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    background: "var(--bg-elevated)",
-                    color: "white",
-                    border: "1px solid rgba(59,130,246,0.3)",
-                    borderRadius: 6,
-                    fontSize: "0.82rem",
-                  }}
-                >
-                  {availableVideos.map((v) => (
-                    <option key={v.id} value={v.video_url}>
-                      {v.original_filename} ({v.duration}s)
-                    </option>
-                  ))}
-                </select>
+              {/* Direct File Upload Section */}
+              <div
+                style={{
+                  border: "1px dashed rgba(59,130,246,0.5)",
+                  borderRadius: 8,
+                  padding: 16,
+                  textAlign: "center",
+                  background: "rgba(59,130,246,0.04)",
+                  marginBottom: 16,
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="video/*"
+                  onChange={handleFileUpload}
+                  style={{ display: "none" }}
+                />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                  <UploadIcon size={24} style={{ color: "#3B82F6" }} />
+                  <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#FFFFFF" }}>
+                    {uploadingVideo ? "Uploading Video..." : "Upload New CCTV Video (.mp4, .avi, .mov)"}
+                  </span>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingVideo}
+                    className="btn btn-secondary btn-sm"
+                    style={{ marginTop: 4, fontWeight: 800, color: "#60A5FA" }}
+                  >
+                    {uploadingVideo ? "Uploading..." : "Browse Local File"}
+                  </button>
+                </div>
               </div>
 
+              {/* Select from Available Videos */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>
+                  OR SELECT EXISTING INGESTED VIDEO ({availableVideos.length} Available)
+                </label>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 180, overflowY: "auto", paddingRight: 4 }}>
+                  {availableVideos.map((v, idx) => {
+                    const isSelected = selectedVideoUrl === v.video_url;
+                    return (
+                      <div
+                        key={`${v.id}-${idx}`}
+                        onClick={() => setSelectedVideoUrl(v.video_url)}
+                        style={{
+                          background: isSelected ? "rgba(59,130,246,0.18)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isSelected ? "#3B82F6" : "rgba(255,255,255,0.08)"}`,
+                          borderRadius: 6,
+                          padding: "8px 12px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 800, fontSize: "0.82rem", color: isSelected ? "#FFFFFF" : "#E2E8F0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {v.original_filename}
+                          </div>
+                          <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                            Duration: {v.duration}s · Path: {v.video_url}
+                          </div>
+                        </div>
+                        <span className={`badge ${isSelected ? "badge-blue" : "badge-green"}`} style={{ fontSize: "0.6rem", marginLeft: 8 }}>
+                          {isSelected ? "SELECTED" : "READY"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Hazard Type Selector */}
               <div style={{ marginBottom: 18 }}>
                 <label style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
                   HAZARD DETECTION TYPE
@@ -570,7 +668,7 @@ export default function IncidentsCommandHub() {
                 <button onClick={() => setScannerOpen(false)} className="btn btn-secondary">
                   Cancel
                 </button>
-                <button onClick={handleScanVideo} disabled={scanningInProgress} className="btn btn-primary" style={{ fontWeight: 900 }}>
+                <button onClick={handleScanVideo} disabled={scanningInProgress || !selectedVideoUrl} className="btn btn-primary" style={{ fontWeight: 900 }}>
                   {scanningInProgress ? "Analyzing Video..." : "Run Optical AI Hazard Scan"}
                 </button>
               </div>
