@@ -214,8 +214,20 @@ class CameraStream:
         with self._lock:
             return self.last_frame.copy() if self.last_frame is not None else None
 
+    def change_source(self, new_url_or_path: str, new_name: str = ""):
+        """Dynamically switch video source (e.g. trump_speech.mp4, subway.mp4) or RTSP feed."""
+        print(f"[camera_manager] Changing source for {self.camera_id} to: {new_url_or_path}")
+        self.disconnect()
+        self.url = str(new_url_or_path)
+        if new_name:
+            self.name = new_name
+        self.active_overlay_boxes = []
+        self.active_hud_banner = None
+        self.connect()
+        self.start_capture()
+
     def get_snapshot_jpeg(self, quality: int = 80) -> Optional[bytes]:
-        """Get latest frame as JPEG bytes."""
+        """Get latest frame with live AI HUD overlays as JPEG bytes."""
         frame = self.get_frame()
         if frame is None:
             # Try a direct capture if no background thread
@@ -225,6 +237,22 @@ class CameraStream:
                     return None
             else:
                 return None
+
+        # Burn active AI HUD overlays if detection is active
+        if hasattr(self, "active_overlay_boxes") and self.active_overlay_boxes:
+            from ai_pipeline.frame_extractor import draw_premium_hud_overlay
+            annotated = frame.copy()
+            for b in self.active_overlay_boxes:
+                annotated = draw_premium_hud_overlay(annotated, b, color_bgr=b.get("color_bgr", (246, 130, 59)))
+            frame = annotated
+
+        # If HUD banner is set (e.g. crowd counter, fall alert)
+        if hasattr(self, "active_hud_banner") and self.active_hud_banner:
+            banner_text = self.active_hud_banner.get("text", "")
+            banner_color = self.active_hud_banner.get("color", (40, 200, 80))
+            cv2.rectangle(frame, (10, 10), (frame.shape[1] - 10, 52), (10, 15, 29), -1)
+            cv2.rectangle(frame, (10, 10), (frame.shape[1] - 10, 52), banner_color, 2)
+            cv2.putText(frame, banner_text, (24, 38), cv2.FONT_HERSHEY_DUPLEX, 0.75, (255, 255, 255), 1, cv2.LINE_AA)
 
         ok, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, quality])
         if not ok:
@@ -237,13 +265,13 @@ class CameraStream:
         Each yield is a complete multipart frame boundary.
         """
         while self.is_running or self.is_connected:
-            jpeg = self.get_snapshot_jpeg(quality=70)
+            jpeg = self.get_snapshot_jpeg(quality=75)
             if jpeg:
                 yield (
                     b"--frame\r\n"
                     b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n"
                 )
-            time.sleep(1.0 / 15)  # ~15 fps MJPEG stream
+            time.sleep(1.0 / 25)  # Smooth 25 fps stream
 
     def get_status(self) -> dict:
         """Get camera status info."""
@@ -783,6 +811,33 @@ def start_live_detection(
 
             # Save Alert & HUD drawing
             if detections:
+                # Update stream active overlay boxes for live MJPEG burning
+                overlay_boxes = []
+                for det in detections:
+                    if "box" in det:
+                        col = (246, 130, 59)
+                        if det["type"] == "face" and det["label"] != "Unidentified Person":
+                            col = (60, 60, 245) # Crimson for target suspect
+                        elif det["type"] == "fall":
+                            col = (50, 50, 245) # Alert Crimson for fall
+                        elif det["type"] == "hazard":
+                            col = (40, 180, 255)
+                        elif det["type"] == "crowd":
+                            col = (60, 180, 255)
+                        elif "gun" in det["label"] or "knife" in det["label"] or "weapon" in det["label"]:
+                            col = (30, 30, 245)
+
+                        overlay_boxes.append({
+                            "x1": det["box"]["x1"],
+                            "y1": det["box"]["y1"],
+                            "x2": det["box"]["x2"],
+                            "y2": det["box"]["y2"],
+                            "label": det["label"],
+                            "confidence": det["confidence"],
+                            "color_bgr": col
+                        })
+                stream.active_overlay_boxes = overlay_boxes
+
                 snapshot_dir = CAMERAS_DIR / camera_id
                 snapshot_dir.mkdir(parents=True, exist_ok=True)
                 snapshot_filename = f"det_{int(time.time())}_{uuid.uuid4().hex[:4]}.jpg"
@@ -790,26 +845,22 @@ def start_live_detection(
 
                 annotated = frame.copy()
                 for det in detections:
-                    box = det["box"]
-                    col = (246, 130, 59)
-                    if det["type"] == "face" and det["label"] != "Unidentified Person":
-                        col = (60, 60, 245) # Alert Red for recognized target
-                    elif det["type"] == "face":
+                    box = det.get("box")
+                    if box:
                         col = (246, 130, 59)
-                    elif det["type"] == "crowd":
-                        col = (60, 180, 255)
-                    elif det.get("label") in ("knife", "gun", "weapon", "scissors"):
-                        col = (50, 50, 240)
-                    
-                    annotated = draw_premium_hud_overlay(
-                        annotated,
-                        {
+                        if det["type"] == "face" and det["label"] != "Unidentified Person":
+                            col = (60, 60, 245)
+                        elif det["type"] == "fall":
+                            col = (50, 50, 245)
+                        elif det["type"] == "crowd":
+                            col = (60, 180, 255)
+                        annotated = draw_premium_hud_overlay(annotated, {
                             "x1": box["x1"], "y1": box["y1"], "x2": box["x2"], "y2": box["y2"],
-                            "label": det["label"], "confidence": det["confidence"],
-                        },
-                        color_bgr=col
-                    )
-                cv2.imwrite(str(snapshot_path), annotated, [cv2.IMWRITE_JPEG_QUALITY, 92])
+                            "label": det["label"], "confidence": det["confidence"]
+                        }, color_bgr=col)
+
+                cv2.imwrite(str(snapshot_path), annotated, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                snapshot_url = f"/storage/cameras/{camera_id}/{snapshot_filename}"
 
                 alert = {
                     "id": str(uuid.uuid4())[:8],
@@ -818,12 +869,9 @@ def start_live_detection(
                     "timestamp": time.time(),
                     "timestamp_str": timestamp_str,
                     "detections": detections,
-                    "detection_count": len(detections),
-                    "snapshot_url": f"/storage/cameras/{camera_id}/{snapshot_filename}",
+                    "snapshot_url": snapshot_url,
                 }
 
-                if camera_id not in _detection_alerts:
-                    _detection_alerts[camera_id] = []
                 _detection_alerts[camera_id].append(alert)
                 _detection_alerts[camera_id] = _detection_alerts[camera_id][-100:]
 

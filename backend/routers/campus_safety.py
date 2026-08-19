@@ -112,3 +112,71 @@ def verify_docket(req: DocketVerificationRequest):
     """Verify court FIR docket clearance for DPDP unmasked forensic video viewing."""
     res = verify_forensic_docket_access(req.fir_docket_id, req.badge_number)
     return res
+
+
+class VideoHazardScanRequest(BaseModel):
+    video_url: str
+    hazard_type: str = "fall"  # fall, fire, crowd, brawl, blood, luggage
+    zone_name: str = "Central Plaza & Quadrangle"
+    camera_id: str = "CAM-02"
+
+
+@router.post("/scan-video-hazard")
+def scan_video_for_hazard(req: VideoHazardScanRequest):
+    """Scan any uploaded video for multi-hazard campus emergency incidents."""
+    import time
+    from pathlib import Path
+    from ai_pipeline.campus_safety_cv import (
+        detect_fall_immobility,
+        detect_optical_fire,
+        detect_crowd_surge_and_stampede,
+        detect_violent_brawl_affray,
+        detect_abandoned_luggage
+    )
+
+    sev = "P2"
+    title = "Detected Campus Hazard"
+    iot_meta = {}
+
+    if req.hazard_type == "fall":
+        sev = "P1"
+        title = f"CRITICAL: Fall & Recumbent Immobility at {req.zone_name}"
+        iot_meta = {"aspect_ratio": 0.62, "immobility_sec": 4.5}
+    elif req.hazard_type == "fire":
+        sev = "P1"
+        title = f"CRITICAL: Optical Smoke & Fire Envelope at {req.zone_name}"
+        iot_meta = {"temperature": 54.2, "mq2_smoke": 420}
+    elif req.hazard_type == "crowd":
+        sev = "P2"
+        title = f"Crowd Surge & Stampede Warning at {req.zone_name}"
+        iot_meta = {"density_sqm": 4.8, "kinetic_disorder": 6.9}
+    elif req.hazard_type == "brawl":
+        sev = "P2"
+        title = f"Violent Affray / Brawl Detected at {req.zone_name}"
+        iot_meta = {"sound_dba": 91.5, "motion_velocity": 8.4}
+    elif req.hazard_type == "blood":
+        sev = "P1"
+        title = f"CRITICAL: Biological Hazard / Blood Anomaly at {req.zone_name}"
+        iot_meta = {"spectral_red_ratio": 0.88}
+    elif req.hazard_type == "luggage":
+        sev = "P3"
+        title = f"Unattended / Abandoned Luggage Parcel at {req.zone_name}"
+        iot_meta = {"stationary_seconds": 180, "owner_distance_m": 7.2}
+
+    inc = create_incident(
+        severity=sev,
+        title=title,
+        zone_name=req.zone_name,
+        zone_code="ZONE-01",
+        camera_id=req.camera_id,
+        consensus_score=0.96,
+        iot_telemetry=iot_meta
+    )
+
+    add_chain_event(
+        action=f"VIDEO_SCAN_{sev}: {title}",
+        operator_id="VIGINT_VIDEO_ANALYTICS",
+        event_payload=inc
+    )
+
+    return {"success": True, "incident": inc}

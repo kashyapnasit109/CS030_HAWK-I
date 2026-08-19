@@ -7,10 +7,23 @@ import ToastProvider, { showToast } from "@/components/ToastProvider";
 import {
   listReferences, ReferenceMeta, resolveStorageUrl,
   listCameras, startCameraDetection, stopCameraDetection,
-  getCameraStreamUrl, getCameraSnapshotUrl, CameraInfo, DetectionAlert,
-  addCaseEvidence, getActiveCase
+  getCameraStreamUrl, getCameraSnapshotUrl, CameraInfo,
+  addCaseEvidence, getActiveCase, apiFetch
 } from "@/lib/api";
-import { SignalIcon, AlertIcon, UserIcon, LiveIcon, FolderIcon, ClockIcon } from "@/components/Icons";
+import {
+  SignalIcon,
+  AlertIcon,
+  UserIcon,
+  LiveIcon,
+  FolderIcon,
+  ClockIcon,
+  CameraIcon,
+  CheckIcon,
+  ShieldIcon,
+  ActivityIcon,
+  CloseIcon,
+  SearchIcon,
+} from "@/components/Icons";
 
 interface AlertItem {
   id: string;
@@ -20,620 +33,432 @@ interface AlertItem {
   label: string;
   confidence: number;
   frameUrl?: string;
-  tsSec?: number; // seconds-of-day, for jumping to the playback timeline
+  tsSec?: number;
+  type?: string;
 }
 
-// Convert an epoch-seconds instant to seconds-since-midnight (local).
-function secondsOfDay(epochSec: number): number {
-  const d = new Date(epochSec * 1000);
-  return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+interface AvailVideo {
+  id: string;
+  original_filename: string;
+  stored_filename: string;
+  duration?: number;
+  video_url: string;
+  thumbnail_url?: string;
 }
 
-export default function LivePage() {
+export default function LiveTacticalWallPage() {
+  const router = useRouter();
   const [refs, setRefs] = useState<ReferenceMeta[]>([]);
   const [selectedRef, setSelectedRef] = useState<ReferenceMeta | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [detectionMode, setDetectionMode] = useState<"face" | "object" | "crowd" | "motion">("face");
+  const [isScanning, setIsScanning] = useState(true);
+  const [detectionMode, setDetectionMode] = useState<"face" | "object" | "weapon" | "crowd" | "motion" | "fall" | "blood">("face");
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
-  const [activeCam, setActiveCam] = useState<string>("CAM-02");
-
-  // Real camera registry states
   const [cameras, setCameras] = useState<CameraInfo[]>([]);
-  const [loadingCams, setLoadingCams] = useState(true);
-
-  const canvasRef1 = useRef<HTMLCanvasElement>(null);
-  const canvasRef3 = useRef<HTMLCanvasElement>(null);
-  const canvasRef4 = useRef<HTMLCanvasElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const router = useRouter();
+  const [availableVideos, setAvailableVideos] = useState<AvailVideo[]>([]);
+  const [selectedCamSlot, setSelectedCamSlot] = useState<string | null>(null);
+  const [sourceModalOpen, setSourceModalOpen] = useState(false);
+  const [activeCamId, setActiveCamId] = useState<string>("");
   const [pinnedAlerts, setPinnedAlerts] = useState<Set<string>>(new Set());
 
-  // Cross-feature: jump from a live sighting to the playback timeline.
-  const alertToPlayback = useCallback((alert: AlertItem) => {
-    const t = alert.tsSec ?? secondsOfDay(Date.now() / 1000);
-    router.push(`/playback?camera=${encodeURIComponent(alert.cameraId)}&t=${t}`);
-  }, [router]);
-
-  // Cross-feature: pin a live sighting to the active case as evidence.
-  const alertToCase = useCallback(async (alert: AlertItem) => {
-    const ac = getActiveCase();
-    if (!ac.id) {
-      showToast("Select an active case first (top bar) to pin this sighting", "error");
-      return;
-    }
+  // 1. Load Reference Profiles (Suspects)
+  const loadRefs = async () => {
     try {
-      const pct = Math.round((alert.confidence || 0) * 100);
-      await addCaseEvidence(ac.id, {
-        kind: "face",
-        label: alert.label || "Live sighting",
-        summary: `LIVE sighting ${pct}% @ ${alert.time} on ${alert.cameraName || alert.cameraId}`,
-        source_label: alert.cameraName || alert.cameraId,
-        timestamp_seconds: alert.tsSec ?? null,
-        confidence: alert.confidence,
-        thumb_url: alert.frameUrl || null,
-        meta_json: JSON.stringify({ source: "live", camera_id: alert.cameraId }),
-      });
-      setPinnedAlerts((prev) => new Set(prev).add(alert.id));
-      showToast(`Sighting pinned to case ${ac.number || ac.id}`, "success");
-    } catch (err: any) {
-      showToast(err?.status === 404 ? "Active case no longer exists" : "Failed to pin sighting", "error");
-    }
-  }, []);
-
-  // Load suspects
-  useEffect(() => {
-    async function load() {
-      try {
-        const r = await listReferences();
-        const refs = Array.isArray(r?.references) ? r.references : [];
-        setRefs(refs);
-        if (refs.length > 0) {
-          setSelectedRef(refs[0]);
-        }
-      } catch {
-        showToast("Failed to load reference images", "error");
-        setRefs([]);
-      }
-    }
-    load();
-  }, []);
-
-  // Load registered cameras
-  const loadCams = useCallback(async () => {
-    try {
-      const res = await listCameras();
-      setCameras(res.cameras);
-      if (res.cameras.length > 0) {
-        // Automatically scan all cameras when scanning is toggled
-        const activeDetection = res.cameras.some(c => c.detection_active);
-        setIsScanning(activeDetection);
+      const r = await listReferences();
+      const refList = Array.isArray(r?.references) ? r.references : [];
+      setRefs(refList);
+      if (refList.length > 0 && !selectedRef) {
+        // Default to Trump or first suspect
+        const trump = refList.find((x) => x.label.toLowerCase().includes("trump") || x.id.includes("trump"));
+        setSelectedRef(trump || refList[0]);
       }
     } catch {
-      console.error("Failed to load real cameras");
-    } finally {
-      setLoadingCams(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadCams();
-  }, [loadCams]);
-
-  // Real backend alerts polling
-  useEffect(() => {
-    if (!isScanning) return;
-
-    const interval = setInterval(async () => {
-      try {
-        if (cameras.length > 0) {
-          // Fetch genuine alerts from backend
-          const since = Date.now() / 1000 - 15;
-          const res = await fetch(`http://localhost:8001/api/cameras/alerts/all?since=${since}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.alerts && data.alerts.length > 0) {
-              const newAlerts: AlertItem[] = data.alerts.map((a: DetectionAlert) => ({
-                id: a.id,
-                cameraId: a.camera_id,
-                cameraName: a.camera_name,
-                time: a.timestamp_str,
-                label: a.detections.map(d => d.label).join(", "),
-                confidence: a.detections[0]?.confidence || 0.8,
-                frameUrl: a.snapshot_url,
-                tsSec: a.timestamp ? secondsOfDay(a.timestamp) : undefined,
-              }));
-
-              setAlerts((prev) => {
-                const merged = [...newAlerts, ...prev];
-                return merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i).slice(0, 20);
-              });
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch live alerts:", err);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [isScanning, cameras]);
-
-  // Mock Canvas animations for fallback mode
-  useEffect(() => {
-    // Only run mock noise if we have no real cameras configured or less than 4
-    if (cameras.length >= 4) return;
-
-    const drawNoise = (canvas: HTMLCanvasElement | null, label: string) => {
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      canvas.width = 320;
-      canvas.height = 200;
-
-      let animId: number;
-
-      function render() {
-        if (!ctx || !canvas) return;
-        ctx.fillStyle = "#0C0C0C";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Simple scan grid
-        ctx.strokeStyle = "rgba(59, 130, 246, 0.1)";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
-
-        ctx.fillStyle = "rgba(255,255,255,0.7)";
-        ctx.font = "10px monospace";
-        ctx.fillText(label, 14, 24);
-        ctx.fillText(new Date().toLocaleTimeString(), 14, 40);
-
-        if (isScanning) {
-          ctx.fillStyle = "#10B981";
-          ctx.beginPath();
-          ctx.arc(canvas.width - 20, 20, 4, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        animId = requestAnimationFrame(render);
-      }
-      render();
-      return () => cancelAnimationFrame(animId);
-    };
-
-    const cleanup1 = drawNoise(canvasRef1.current, "CAM-01 (MAIN LOBBY)");
-    const cleanup3 = drawNoise(canvasRef3.current, "CAM-03 (PARKING LOT)");
-    const cleanup4 = drawNoise(canvasRef4.current, "CAM-04 (NORTH CORRIDOR)");
-
-    return () => {
-      cleanup1 && cleanup1();
-      cleanup3 && cleanup3();
-      cleanup4 && cleanup4();
-    };
-  }, [isScanning, cameras]);
-
-  // Mock Alert simulation triggers
-  const triggerMockAlert = useCallback(() => {
-    let alertLabel = selectedRef?.label || "Person of Interest";
-    if (detectionMode === "object") alertLabel = "Suspicious Package / Object";
-    if (detectionMode === "crowd") alertLabel = "Crowd Density Surge (5+ Persons)";
-    if (detectionMode === "motion") alertLabel = "Perimeter Motion Breach";
-
-    const newAlert: AlertItem = {
-      id: Math.random().toString(36).slice(2, 6).toUpperCase(),
-      cameraId: ["CAM-01", "CAM-02", "CAM-03", "CAM-04"][Math.floor(Math.random() * 4)],
-      cameraName: "Live Surveillance Grid",
-      time: new Date().toLocaleTimeString(),
-      label: alertLabel,
-      confidence: 0.84 + Math.random() * 0.14,
-      frameUrl: selectedRef?.image_url,
-      tsSec: secondsOfDay(Date.now() / 1000),
-    };
-
-    setAlerts((prev) => [newAlert, ...prev].slice(0, 15));
-    showToast(`Live sighting on ${newAlert.cameraId} [${detectionMode.toUpperCase()}]`, "info");
-  }, [selectedRef, detectionMode]);
-
-  // Simulated Alert timer (only runs when scanning and no real cameras exist)
-  useEffect(() => {
-    if (!isScanning || cameras.length > 0) return;
-    const timer = setInterval(() => {
-      if (Math.random() > 0.6) {
-        triggerMockAlert();
-      }
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [isScanning, triggerMockAlert, cameras]);
-
-  const toggleScan = async () => {
-    if (cameras.length > 0) {
-      // Toggle real live scan on connected cameras
-      const targetState = !isScanning;
-      setLoadingCams(true);
-      try {
-        for (const cam of cameras) {
-          if (targetState) {
-            const refIds = selectedRef ? [selectedRef.id] : undefined;
-            await startCameraDetection(cam.id, detectionMode, refIds);
-          } else {
-            await stopCameraDetection(cam.id);
-          }
-        }
-        setIsScanning(targetState);
-        showToast(targetState ? `Live AI scan active [${detectionMode.toUpperCase()}] across feeds.` : "Live scanning paused.", targetState ? "success" : "info");
-        await loadCams();
-      } catch {
-        showToast("Error configuring scan state on camera threads", "error");
-      } finally {
-        setLoadingCams(false);
-      }
-    } else {
-      // Fallback mock toggle
-      setIsScanning(!isScanning);
-      showToast(isScanning ? "Live scan stopped." : `Live scanning active [${detectionMode.toUpperCase()}]...`, isScanning ? "info" : "success");
+      setRefs([]);
     }
   };
 
-  const isDemoMode = !loadingCams && cameras.length === 0;
+  // 2. Load Cameras and Available Simulation Videos
+  const loadCamerasAndVideos = async () => {
+    try {
+      const camRes = await listCameras();
+      if (camRes?.cameras) {
+        setCameras(camRes.cameras);
+        if (camRes.cameras.length > 0 && !activeCamId) {
+          setActiveCamId(camRes.cameras[0].camera_id);
+        }
+      }
+
+      const vRes = await fetch("http://localhost:8001/api/cameras/videos/available").then((r) => r.json());
+      if (vRes?.videos) {
+        setAvailableVideos(vRes.videos);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    loadRefs();
+    loadCamerasAndVideos();
+  }, []);
+
+  // 3. Start Live AI Detection across active cameras
+  const triggerLiveDetection = useCallback(async (mode: string, refId?: string) => {
+    if (cameras.length === 0) return;
+    try {
+      for (const cam of cameras) {
+        await fetch(`http://localhost:8001/api/cameras/${cam.camera_id}/start-detection`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            detection_type: mode,
+            reference_ids: refId ? [refId] : selectedRef ? [selectedRef.id] : [],
+            interval_seconds: 0.8,
+          }),
+        });
+      }
+      setIsScanning(true);
+      showToast(`LIVE ${mode.toUpperCase()} SCAN ACTIVE. Optical AI HUD rendering directly in streams.`, "success");
+    } catch {
+      showToast("Error starting detection on camera feeds", "error");
+    }
+  }, [cameras, selectedRef]);
+
+  // Restart detection when mode or suspect changes
+  useEffect(() => {
+    if (cameras.length > 0 && isScanning) {
+      triggerLiveDetection(detectionMode, selectedRef?.id);
+    }
+  }, [detectionMode, selectedRef, cameras.length]);
+
+  // 4. Poll Live Alerts
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const res = await fetch("http://localhost:8001/api/cameras/alerts/all?since=0").then((r) => r.json());
+        if (res?.alerts && res.alerts.length > 0) {
+          const formatted = res.alerts.slice(-30).reverse().map((a: any) => ({
+            id: a.id,
+            cameraId: a.camera_id,
+            cameraName: a.camera_name || a.camera_id,
+            time: a.timestamp_str || "Now",
+            label: a.detections?.[0]?.label || "Live Target Sighting",
+            confidence: a.detections?.[0]?.confidence || 0.85,
+            frameUrl: a.snapshot_url,
+            type: a.detections?.[0]?.type || "detection",
+          }));
+          setAlerts(formatted);
+        }
+      } catch {}
+    };
+    poll();
+    const interval = setInterval(poll, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 5. Change Video Source / Simulate Video on a Camera Channel
+  const handleSetCameraSource = async (cameraId: string, videoUrl: string, videoName: string) => {
+    try {
+      await fetch(`http://localhost:8001/api/cameras/${cameraId}/set-source`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source_url: videoUrl, source_name: videoName }),
+      });
+      showToast(`Camera ${cameraId} source switched to: ${videoName}`, "success");
+      setSourceModalOpen(false);
+      loadCamerasAndVideos();
+      // Restart detection on this camera
+      triggerLiveDetection(detectionMode, selectedRef?.id);
+    } catch {
+      showToast("Failed to switch video source", "error");
+    }
+  };
+
+  const handleStopDetection = async () => {
+    for (const cam of cameras) {
+      try {
+        await fetch(`http://localhost:8001/api/cameras/${cam.camera_id}/stop-detection`, { method: "POST" });
+      } catch {}
+    }
+    setIsScanning(false);
+    showToast("Live detection paused across all channels", "info");
+  };
 
   return (
     <ToastProvider>
       <AppLayout>
-        <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-          <div>
-            <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <SignalIcon size={24} style={{ color: "var(--accent)" }} /> Live Surveillance Wall & Alert Feed
-              {isDemoMode && (
-                <span className="badge badge-yellow" style={{ fontSize: "0.65rem", letterSpacing: "0.05em" }}>
-                  SIMULATION MODE
-                </span>
-              )}
-            </h1>
-            <p className="page-subtitle">
-              Real-time multi-modal CCTV stream processing with instant automated forensic HUD alerts.
-            </p>
+        {/* PALANTIR GOTHAM TOP TACTICAL CONTROL BAR */}
+        <div
+          style={{
+            background: "linear-gradient(90deg, #0A0F1D 0%, #05080E 100%)",
+            border: "1px solid rgba(59,130,246,0.22)",
+            borderRadius: "10px",
+            padding: "12px 20px",
+            marginBottom: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "14px",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(59,130,246,0.06)",
+          }}
+        >
+          {/* Mode Selector Pill Bar */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#60A5FA", fontFamily: "JetBrains Mono, monospace", textTransform: "uppercase", marginRight: 6 }}>
+              AI SCAN MODE:
+            </span>
+
+            {[
+              { id: "face", label: "Face Re-ID" },
+              { id: "object", label: "Object & Vehicle" },
+              { id: "weapon", label: "Weapon & Threat" },
+              { id: "crowd", label: "Crowd Counter" },
+              { id: "motion", label: "Motion Tracking" },
+              { id: "fall", label: "Fall Detection" },
+              { id: "blood", label: "Hazard / Blood" },
+            ].map((m) => (
+              <button
+                key={m.id}
+                onClick={() => {
+                  setDetectionMode(m.id as any);
+                  triggerLiveDetection(m.id, selectedRef?.id);
+                }}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  fontFamily: "JetBrains Mono, monospace",
+                  cursor: "pointer",
+                  background: detectionMode === m.id ? "var(--accent)" : "rgba(255,255,255,0.04)",
+                  color: detectionMode === m.id ? "#FFFFFF" : "var(--text-muted)",
+                  border: `1px solid ${detectionMode === m.id ? "#3B82F6" : "rgba(255,255,255,0.08)"}`,
+                  transition: "all 0.15s ease",
+                  boxShadow: detectionMode === m.id ? "0 2px 12px rgba(59,130,246,0.4)" : "none",
+                }}
+              >
+                {m.label}
+              </button>
+            ))}
           </div>
 
-          {/* Mode Switcher & Scan Action */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <div style={{
-              display: "flex", background: "var(--bg-elevated)", padding: 4,
-              borderRadius: "var(--radius-md)", border: "1px solid var(--border)", gap: 4
-            }}>
-              {[
-                { id: "face", label: "Face Re-ID" },
-                { id: "object", label: "Object & Weapon" },
-                { id: "crowd", label: "Crowd Density" },
-                { id: "motion", label: "Motion Scan" },
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setDetectionMode(m.id as any)}
-                  style={{
-                    padding: "6px 12px", borderRadius: "var(--radius-sm)",
-                    fontSize: "0.75rem", fontWeight: 700, cursor: "pointer",
-                    background: detectionMode === m.id ? "var(--accent)" : "transparent",
-                    color: detectionMode === m.id ? "white" : "var(--text-muted)",
-                    border: "none", transition: "all 0.15s ease",
-                  }}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={toggleScan}
-              className={`btn ${isScanning ? "btn-secondary" : "btn-primary"}`}
-              style={{
-                background: isScanning ? "rgba(233, 94, 69, 0.2)" : "var(--accent)",
-                borderColor: isScanning ? "var(--accent)" : "none",
-                color: "white", fontWeight: 800,
-                boxShadow: isScanning ? "none" : "0 4px 20px rgba(59, 130, 246, 0.3)",
-              }}
-            >
-              {isScanning
-                ? <><AlertIcon size={16} /> Stop Live Scan</>
-                : <><SignalIcon size={16} /> Start Live Scan</>}
-            </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {isScanning ? (
+              <button
+                onClick={handleStopDetection}
+                className="btn btn-secondary btn-sm"
+                style={{ background: "rgba(239,68,68,0.15)", borderColor: "#EF4444", color: "#EF4444", fontWeight: 800 }}
+              >
+                <AlertIcon size={14} /> Pause Live AI Scan
+              </button>
+            ) : (
+              <button
+                onClick={() => triggerLiveDetection(detectionMode, selectedRef?.id)}
+                className="btn btn-primary btn-sm"
+                style={{ fontWeight: 800 }}
+              >
+                <LiveIcon size={14} /> Resume Live AI Scan
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="grid-2" style={{ gridTemplateColumns: "1fr 300px", gap: 24, alignItems: "start" }}>
-          {/* Main Grid: CCTV Feeds */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            {/* Feed 1 */}
-            <div
-              className="card"
-              style={{
-                padding: 10,
-                background: "#080808",
-                borderColor: activeCam === "CAM-01" ? "var(--accent)" : "var(--border)",
-                cursor: "pointer"
-              }}
-              onClick={() => setActiveCam("CAM-01")}
-            >
-              {cameras.length > 0 ? (
-                <div style={{ width: "100%", height: 210, borderRadius: 6, overflow: "hidden", background: "#000" }}>
-                  <img
-                    src={getCameraStreamUrl(cameras[0].id)}
-                    alt={cameras[0].name}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    onError={(e) => { (e.target as HTMLImageElement).src = getCameraSnapshotUrl(cameras[0].id); }}
-                  />
-                </div>
-              ) : (
-                <canvas ref={canvasRef1} style={{ width: "100%", height: 210, borderRadius: 6, display: "block" }} />
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, padding: "0 4px" }}>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>
-                  {cameras.length > 0 ? cameras[0].name : "CAM-01 · Lobby Lobby"}
-                </span>
-                <span className={`status-pill ${isScanning ? "status-running" : "status-queued"}`} style={{ fontSize: "0.6rem" }}>
-                  {isScanning ? "ACTIVE" : "STANDBY"}
-                </span>
-              </div>
-            </div>
+        {/* MAIN LAYOUT: 4-CAMERA GRID + RIGHT TACTICAL SIDEBAR */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: "16px", alignItems: "start" }}>
+          {/* CAMERA STREAMS GRID */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "14px" }}>
+            {cameras.map((cam, idx) => {
+              const streamUrl = `http://localhost:8001/api/cameras/${cam.camera_id}/stream`;
+              const isSelected = activeCamId === cam.camera_id;
 
-            {/* Feed 2 - Subway video or Camera 2 stream */}
-            <div
-              className="card"
-              style={{
-                padding: 10,
-                background: "#080808",
-                borderColor: activeCam === "CAM-02" ? "var(--accent)" : "var(--border)",
-                cursor: "pointer",
-                position: "relative"
-              }}
-              onClick={() => setActiveCam("CAM-02")}
-            >
-              <div style={{ position: "relative", width: "100%", height: 210, borderRadius: 6, overflow: "hidden", background: "#000" }}>
-                {cameras.length > 1 ? (
-                  <img
-                    src={getCameraStreamUrl(cameras[1].id)}
-                    alt={cameras[1].name}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                ) : (
-                  <video
-                    ref={videoRef}
-                    src="http://localhost:8001/storage/uploads/subway.mp4"
-                    autoPlay
-                    loop
-                    muted
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                )}
-                {isScanning && (
-                  <div style={{
-                    position: "absolute",
-                    border: "2px solid var(--accent)",
-                    boxShadow: "0 0 12px var(--accent)",
-                    top: "35%",
-                    left: "40%",
-                    width: "80px",
-                    height: "90px",
-                    borderRadius: 4,
-                    pointerEvents: "none",
-                    animation: "pulse 1.2s infinite"
-                  }}>
-                    <span style={{
-                      position: "absolute",
-                      top: -16,
-                      left: 0,
-                      background: "var(--accent)",
-                      color: "#fff",
-                      fontSize: "0.55rem",
-                      fontWeight: 800,
-                      padding: "1px 4px",
-                      borderRadius: 2,
-                      whiteSpace: "nowrap"
-                    }}>
-                      SUSPECT MATCH 91%
-                    </span>
-                  </div>
-                )}
-                {/* Overlay Text */}
-                <div style={{ position: "absolute", top: 12, left: 12, color: "rgba(0, 255, 136, 0.8)", font: "bold 10px monospace", zIndex: 1 }}>
-                  REC · {cameras.length > 1 ? cameras[1].name : "CAM-02 (SUBWAY PLATFORM)"}
-                </div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, padding: "0 4px" }}>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>
-                  {cameras.length > 1 ? cameras[1].name : "CAM-02 · Subway Entrance"}
-                </span>
-                <span className={`status-pill ${isScanning ? "status-running" : "status-queued"}`} style={{ fontSize: "0.6rem" }}>
-                  {isScanning ? "ACTIVE" : "STANDBY"}
-                </span>
-              </div>
-            </div>
-
-            {/* Feed 3 */}
-            <div
-              className="card"
-              style={{
-                padding: 10,
-                background: "#080808",
-                borderColor: activeCam === "CAM-03" ? "var(--accent)" : "var(--border)",
-                cursor: "pointer"
-              }}
-              onClick={() => setActiveCam("CAM-03")}
-            >
-              {cameras.length > 2 ? (
-                <div style={{ width: "100%", height: 210, borderRadius: 6, overflow: "hidden", background: "#000" }}>
-                  <img
-                    src={getCameraStreamUrl(cameras[2].id)}
-                    alt={cameras[2].name}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                </div>
-              ) : (
-                <canvas ref={canvasRef3} style={{ width: "100%", height: 210, borderRadius: 6, display: "block" }} />
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, padding: "0 4px" }}>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>
-                  {cameras.length > 2 ? cameras[2].name : "CAM-03 · Parking Lot A"}
-                </span>
-                <span className={`status-pill ${isScanning ? "status-running" : "status-queued"}`} style={{ fontSize: "0.6rem" }}>
-                  {isScanning ? "ACTIVE" : "STANDBY"}
-                </span>
-              </div>
-            </div>
-
-            {/* Feed 4 */}
-            <div
-              className="card"
-              style={{
-                padding: 10,
-                background: "#080808",
-                borderColor: activeCam === "CAM-04" ? "var(--accent)" : "var(--border)",
-                cursor: "pointer"
-              }}
-              onClick={() => setActiveCam("CAM-04")}
-            >
-              {cameras.length > 3 ? (
-                <div style={{ width: "100%", height: 210, borderRadius: 6, overflow: "hidden", background: "#000" }}>
-                  <img
-                    src={getCameraStreamUrl(cameras[3].id)}
-                    alt={cameras[3].name}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                </div>
-              ) : (
-                <canvas ref={canvasRef4} style={{ width: "100%", height: 210, borderRadius: 6, display: "block" }} />
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, padding: "0 4px" }}>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 700 }}>
-                  {cameras.length > 3 ? cameras[3].name : "CAM-04 · North Corridor"}
-                </span>
-                <span className={`status-pill ${isScanning ? "status-running" : "status-queued"}`} style={{ fontSize: "0.6rem" }}>
-                  {isScanning ? "ACTIVE" : "STANDBY"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Panel: Settings + Alert Feed */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            {/* Target Select */}
-            <div className="card">
-              <div className="section-title">Scan Target</div>
-              {refs.length === 0 ? (
-                <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                  No suspects in database. Please add reference images first.
-                </div>
-              ) : (
-                <div className="input-group" style={{ marginBottom: 0 }}>
-                  <label className="input-label">Select Suspect</label>
-                  <select
-                    className="input-field"
-                    value={selectedRef?.id || ""}
-                    onChange={(e) => {
-                      const found = refs.find((r) => r.id === e.target.value);
-                      if (found) setSelectedRef(found);
+              return (
+                <div
+                  key={cam.camera_id}
+                  onClick={() => setActiveCamId(cam.camera_id)}
+                  style={{
+                    background: "#080C16",
+                    border: `1px solid ${isSelected ? "#3B82F6" : "rgba(59,130,246,0.18)"}`,
+                    borderRadius: "10px",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                    boxShadow: isSelected ? "0 8px 30px rgba(59,130,246,0.18)" : "0 4px 20px rgba(0,0,0,0.6)",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {/* Camera Header Bar */}
+                  <div
+                    style={{
+                      padding: "8px 14px",
+                      background: "rgba(10,15,29,0.9)",
+                      borderBottom: "1px solid rgba(255,255,255,0.06)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
                     }}
                   >
-                    {refs.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.label} ({r.id})
-                      </option>
-                    ))}
-                  </select>
-                  {selectedRef && selectedRef.image_url && (
-                    <div style={{ marginTop: 12, borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }}>
-                      <img
-                        src={`http://localhost:8001${selectedRef.image_url}`}
-                        alt={selectedRef.label}
-                        style={{ width: "100%", height: 100, objectFit: "cover" }}
-                      />
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", animation: "pulse 1.5s infinite" }} />
+                      <span style={{ fontWeight: 800, fontSize: "0.82rem", color: "#FFFFFF" }}>{cam.name}</span>
                     </div>
-                  )}
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {/* Video Simulation Switcher Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCamSlot(cam.camera_id);
+                          setSourceModalOpen(true);
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: "0.68rem", padding: "2px 8px", color: "#60A5FA" }}
+                        title="Simulate video or switch RTSP source"
+                      >
+                        Source: {cam.url.includes("trump") ? "Trump Speech" : cam.url.includes("subway") ? "Subway Feed" : "CCTV Feed"} ▾
+                      </button>
+                      <span className="badge badge-green" style={{ fontSize: "0.6rem" }}>LIVE</span>
+                    </div>
+                  </div>
+
+                  {/* Video Stream Container */}
+                  <div style={{ position: "relative", width: "100%", height: 260, background: "#000000" }}>
+                    <img
+                      src={streamUrl}
+                      alt={cam.name}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      onError={(e) => {
+                        // Fallback snapshot if stream reconnecting
+                        (e.target as HTMLImageElement).src = `http://localhost:8001/api/cameras/${cam.camera_id}/snapshot`;
+                      }}
+                    />
+
+                    {/* HUD Tactical Watermark */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: 8,
+                        left: 10,
+                        fontSize: "0.65rem",
+                        fontFamily: "JetBrains Mono, monospace",
+                        color: "rgba(255,255,255,0.7)",
+                        background: "rgba(0,0,0,0.6)",
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                      }}
+                    >
+                      OPTICAL AI ENGINE · {detectionMode.toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* RIGHT TACTICAL SIDEBAR: SUSPECT TARGET SELECTOR & REAL-TIME ALERTS */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {/* 1. SUSPECT TARGET SELECTOR CARD */}
+            <div className="card" style={{ padding: 16, background: "#080C16" }}>
+              <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#60A5FA", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
+                Target Suspect Dossier (Face Re-ID)
+              </div>
+
+              {/* Suspect Dropdown */}
+              <div style={{ marginBottom: 12 }}>
+                <select
+                  value={selectedRef?.id || ""}
+                  onChange={(e) => {
+                    const r = refs.find((x) => x.id === e.target.value);
+                    if (r) {
+                      setSelectedRef(r);
+                      triggerLiveDetection(detectionMode, r.id);
+                      showToast(`Active Target switched to: ${r.label}`, "info");
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    background: "var(--bg-elevated)",
+                    color: "#FFFFFF",
+                    border: "1px solid rgba(59,130,246,0.3)",
+                    borderRadius: 6,
+                    fontSize: "0.82rem",
+                    fontWeight: 700,
+                    outline: "none",
+                  }}
+                >
+                  {refs.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Suspect Photo & Vector Info */}
+              {selectedRef && (
+                <div style={{ display: "flex", gap: 12, alignItems: "center", background: "rgba(0,0,0,0.4)", padding: 10, borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div style={{ position: "relative", width: 68, height: 68, borderRadius: 6, overflow: "hidden", border: "1px solid #3B82F6", flexShrink: 0 }}>
+                    <img
+                      src={resolveStorageUrl(selectedRef.image_url)}
+                      alt={selectedRef.label}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "#FFFFFF" }}>{selectedRef.label}</div>
+                    <div style={{ fontSize: "0.68rem", color: "#94A3B8", marginTop: 2 }}>512-D FaceNet Embedding Active</div>
+                    <div style={{ fontSize: "0.68rem", color: "var(--green)", marginTop: 4, fontWeight: 700 }}>● MATCH THRESHOLD: 0.45</div>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Alert List */}
-            <div className="card" style={{ flex: 1, maxHeight: 400, overflowY: "auto", display: "flex", flexDirection: "column" }}>
-              <div className="section-title" style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Real-Time Alert Feed</span>
-                {isScanning && <span style={{ color: "var(--accent)", animation: "pulse 1s infinite" }}>● LIVE</span>}
+            {/* 2. REAL-TIME TACTICAL ALERTS FEED */}
+            <div className="card" style={{ padding: 16, background: "#080C16", display: "flex", flexDirection: "column", gap: 10, maxHeight: 440, overflowY: "auto" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "0.72rem", fontWeight: 800, color: "#60A5FA", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  Live Sightings & Alert Feed ({alerts.length})
+                </span>
+                <span className="badge badge-red" style={{ fontSize: "0.6rem" }}>STREAMING</span>
               </div>
 
               {alerts.length === 0 ? (
-                <div style={{
-                  flex: 1, display: "flex", flexDirection: "column",
-                  alignItems: "center", justifyContent: "center",
-                  padding: "40px 10px", color: "var(--text-muted)",
-                  textAlign: "center"
-                }}>
-                  <SignalIcon size={28} style={{ color: "var(--text-muted)", marginBottom: 8 }} />
-                  <div style={{ fontSize: "0.8rem", fontWeight: 600 }}>Scanning inactive or no matches yet</div>
+                <div style={{ textAlign: "center", padding: "30px 0", color: "var(--text-muted)", fontSize: "0.78rem" }}>
+                  Scanning live feeds. Sightings will appear here instantly.
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {alerts.map((alert) => (
+                  {alerts.map((al) => (
                     <div
-                      key={alert.id}
+                      key={al.id}
                       style={{
-                        padding: "8px 12px",
-                        background: "rgba(233,69,96,0.06)",
-                        border: "1px solid rgba(233,69,96,0.25)",
-                        borderRadius: 8,
+                        background: "rgba(255,255,255,0.02)",
+                        border: "1px solid rgba(239,68,68,0.3)",
+                        borderRadius: 6,
+                        padding: "8px 10px",
                         display: "flex",
                         gap: 10,
-                        alignItems: "center"
+                        alignItems: "center",
                       }}
                     >
-                      {alert.frameUrl ? (
+                      {al.frameUrl && (
                         <img
-                          src={alert.frameUrl.startsWith("http") ? alert.frameUrl : `http://localhost:8001${alert.frameUrl}`}
-                          alt=""
-                          style={{ width: 44, height: 44, borderRadius: 4, objectFit: "cover", flexShrink: 0 }}
+                          src={al.frameUrl}
+                          alt="alert snapshot"
+                          style={{ width: 44, height: 44, borderRadius: 4, objectFit: "cover", border: "1px solid rgba(255,255,255,0.1)" }}
                         />
-                      ) : (
-                        <div style={{ width: 44, height: 44, background: "var(--bg-elevated)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <UserIcon size={20} style={{ color: "var(--text-muted)" }} />
-                        </div>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-                          <span style={{ fontWeight: 800, fontSize: "0.75rem", color: "var(--accent)" }}>MATCH DETECTED</span>
-                          <span style={{ fontSize: "0.6rem", color: "var(--text-muted)" }}>{alert.time}</span>
+                        <div style={{ fontWeight: 800, fontSize: "0.78rem", color: "#FFFFFF", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {al.label}
                         </div>
-                        <div style={{ fontSize: "0.7rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {alert.label} on {alert.cameraName || alert.cameraId}
-                        </div>
-                        <div style={{ fontSize: "0.65rem", color: "var(--green)" }}>
-                          Confidence: {(alert.confidence * 100).toFixed(1)}%
-                        </div>
-                        <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                          <button
-                            onClick={() => alertToPlayback(alert)}
-                            style={{
-                              display: "flex", alignItems: "center", gap: 4,
-                              fontSize: "0.62rem", fontWeight: 700, cursor: "pointer",
-                              padding: "3px 7px", borderRadius: 5,
-                              background: "rgba(59,130,246,0.14)", color: "var(--accent)",
-                              border: "1px solid rgba(59,130,246,0.32)",
-                            }}
-                            title="Open the playback timeline at this camera & time"
-                          ><ClockIcon size={11} /> Playback</button>
-                          <button
-                            onClick={() => alertToCase(alert)}
-                            disabled={pinnedAlerts.has(alert.id)}
-                            style={{
-                              display: "flex", alignItems: "center", gap: 4,
-                              fontSize: "0.62rem", fontWeight: 700,
-                              cursor: pinnedAlerts.has(alert.id) ? "default" : "pointer",
-                              padding: "3px 7px", borderRadius: 5,
-                              background: pinnedAlerts.has(alert.id) ? "rgba(34,197,94,0.14)" : "rgba(59,130,246,0.14)",
-                              color: pinnedAlerts.has(alert.id) ? "var(--green)" : "var(--accent)",
-                              border: `1px solid ${pinnedAlerts.has(alert.id) ? "rgba(34,197,94,0.32)" : "rgba(59,130,246,0.32)"}`,
-                            }}
-                            title="Pin this sighting as evidence to the active case"
-                          ><FolderIcon size={11} /> {pinnedAlerts.has(alert.id) ? "Pinned" : "Add to Case"}</button>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                          {al.cameraName} · {al.time}
                         </div>
                       </div>
+                      <span className="badge badge-green" style={{ fontSize: "0.65rem", fontWeight: 800 }}>
+                        {(al.confidence * 100).toFixed(0)}%
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -642,14 +467,81 @@ export default function LivePage() {
           </div>
         </div>
 
-        <style>{`
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-          }
-        `}</style>
+        {/* SIMULATE VIDEO SOURCE SELECTOR MODAL */}
+        {sourceModalOpen && selectedCamSlot && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.85)",
+              zIndex: 1000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 20,
+            }}
+          >
+            <div
+              style={{
+                background: "#0A0F1D",
+                border: "1px solid #3B82F6",
+                borderRadius: 12,
+                maxWidth: 520,
+                width: "100%",
+                padding: 24,
+                boxShadow: "0 20px 60px rgba(0,0,0,0.9)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <h3 style={{ fontSize: "1.1rem", fontWeight: 800, margin: 0, color: "white" }}>
+                  Select Video Simulation Source for Channel {selectedCamSlot}
+                </h3>
+                <button onClick={() => setSourceModalOpen(false)} className="btn btn-ghost btn-sm">
+                  <CloseIcon size={16} />
+                </button>
+              </div>
+
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 16 }}>
+                Choose any uploaded video or camera feed to simulate live optical AI scans in real-time.
+              </p>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 300, overflowY: "auto", marginBottom: 18 }}>
+                {availableVideos.map((v) => (
+                  <div
+                    key={v.id}
+                    onClick={() => handleSetCameraSource(selectedCamSlot, v.video_url, v.original_filename)}
+                    style={{
+                      background: "var(--bg-elevated)",
+                      border: "1px solid rgba(59,130,246,0.2)",
+                      borderRadius: 6,
+                      padding: "10px 14px",
+                      cursor: "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(59,130,246,0.2)")}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: "0.85rem", color: "#FFFFFF" }}>{v.original_filename}</div>
+                      <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Duration: {v.duration}s · File ID: {v.id}</div>
+                    </div>
+                    <span className="badge badge-blue">SELECT</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={() => setSourceModalOpen(false)} className="btn btn-secondary">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </AppLayout>
     </ToastProvider>
   );
 }
-

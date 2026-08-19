@@ -270,32 +270,48 @@ def delete_camera_zone(camera_id: str, zone_id: str, db: sqlite3.Connection = De
     return {"success": True}
 
 
-# ─── SSE Event Stream ───────────────────────────────────────────────────
+# ─── Dynamic Source Switching & Simulation Videos ────────────────────────
 
-@router.get("/{camera_id}/detections/stream")
-async def api_detection_stream(camera_id: str):
-    """
-    Server-Sent Events (SSE) stream for real-time detection alerts.
-    Connect with: new EventSource('/api/cameras/{id}/detections/stream')
-    """
-    from ai_pipeline.camera_manager import get_detection_alerts  # noqa: PLC0415
+class SetSourceRequest(BaseModel):
+    source_url: str
+    source_name: Optional[str] = None
 
-    async def event_generator():
-        last_seen = time.time()
-        while True:
-            alerts = get_detection_alerts(camera_id, since=last_seen)
-            for alert in alerts:
-                yield f"data: {json.dumps(alert)}\n\n"
-                last_seen = max(last_seen, alert["timestamp"])
-            await asyncio.sleep(1)
 
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+@router.post("/{camera_id}/set-source")
+def set_camera_source(camera_id: str, req: SetSourceRequest):
+    """Switch camera source to any uploaded video or RTSP URL."""
+    from ai_pipeline.camera_manager import get_camera_stream  # noqa: PLC0415
+    stream = get_camera_stream(camera_id)
+    if not stream:
+        raise HTTPException(status_code=404, detail=f"Camera {camera_id} not found")
+
+    # Resolve local path if filename or storage URL given
+    src = req.source_url
+    if src.startswith("/storage/uploads/"):
+        from pathlib import Path
+        from ai_pipeline.camera_manager import STORAGE_DIR
+        filename = src.replace("/storage/uploads/", "")
+        resolved = STORAGE_DIR / "uploads" / filename
+        if resolved.exists():
+            src = str(resolved)
+
+    stream.change_source(src, req.source_name or stream.name)
+    return {"success": True, "camera_id": camera_id, "new_source": src}
+
+
+@router.get("/videos/available")
+def get_available_simulation_videos():
+    """List all uploaded videos available for camera simulation."""
+    from ai_pipeline.camera_manager import STORAGE_DIR
+    import json
+    uploads_dir = STORAGE_DIR / "uploads"
+    videos = []
+    if uploads_dir.exists():
+        for meta_file in uploads_dir.glob("*.meta.json"):
+            try:
+                data = json.loads(meta_file.read_text())
+                videos.append(data)
+            except Exception:
+                pass
+    return {"success": True, "count": len(videos), "videos": videos}
 
