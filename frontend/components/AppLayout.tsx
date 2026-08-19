@@ -33,12 +33,18 @@ interface NavItem {
   roles: string[];
 }
 
+const campusSafetyItems: NavItem[] = [
+  { href: "/campus-map", icon: ShieldIcon,  label: "2.5D Campus Map",  roles: ["admin", "supervisor", "investigator", "operator"] },
+  { href: "/incidents",  icon: AlertIcon,   label: "Emergency Hub",    roles: ["admin", "supervisor", "investigator", "operator"] },
+  { href: "/iot-monitor",icon: SignalIcon,  label: "IoT Sensor Matrix",roles: ["admin", "supervisor", "investigator", "operator"] },
+];
+
 const monitorItems: NavItem[] = [
   { href: "/",         icon: DashboardIcon, label: "Dashboard",   roles: ["admin", "supervisor", "investigator", "operator"] },
-  { href: "/analytics",icon: ResultsIcon,   label: "VMS Analytics", roles: ["admin", "supervisor", "investigator", "operator"] },
   { href: "/live",     icon: LiveIcon,      label: "Live Wall",   roles: ["admin", "supervisor", "operator"] },
   { href: "/playback", icon: CameraIcon,    label: "Recordings",  roles: ["admin", "supervisor", "operator"] },
   { href: "/cameras",  icon: CameraIcon,    label: "CCTV Streams", roles: ["admin", "supervisor", "investigator", "operator"] },
+  { href: "/analytics",icon: ResultsIcon,   label: "VMS Analytics", roles: ["admin", "supervisor", "investigator", "operator"] },
 ];
 
 const investigateItems: NavItem[] = [
@@ -491,12 +497,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     if (!user) return false;
     return item.roles.includes(user.role);
   };
-
+  const allowedCampusSafetyItems = campusSafetyItems.filter(isRoleAllowed);
   const allowedMonitorItems = monitorItems.filter(isRoleAllowed);
   const allowedInvestigateItems = investigateItems.filter(isRoleAllowed);
   const allowedSystemItems = systemItems.filter(isRoleAllowed);
 
-  const allAllowedItems = [...allowedMonitorItems, ...allowedInvestigateItems, ...allowedSystemItems];
+  const allAllowedItems = [...allowedCampusSafetyItems, ...allowedMonitorItems, ...allowedInvestigateItems, ...allowedSystemItems];
   const filteredItems = allAllowedItems.filter(item => 
     item.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -510,7 +516,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   // Access check for the current page — memoized to avoid re-running on every render
   const isPageAuthorized = useMemo(() => {
     if (!user) return false;
-    const currentItem = [...monitorItems, ...investigateItems, ...systemItems].find(item => item.href === pathname);
+    const currentItem = [...campusSafetyItems, ...monitorItems, ...investigateItems, ...systemItems].find(item => item.href === pathname);
     if (!currentItem) return true; // Unlisted sub-pages are passed through
     return currentItem.roles.includes(user.role);
   }, [user, pathname]);
@@ -537,10 +543,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div style={{ width: "100%", maxWidth: "420px", background: "#080808", border: "1px solid rgba(59,130,246,0.18)", borderRadius: "20px", padding: "32px", boxShadow: "0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(59,130,246,0.08)" }}>
           <div style={{ textAlign: "center", marginBottom: "24px" }}>
             <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "52px", height: "52px", background: "var(--accent)", borderRadius: "14px", marginBottom: "12px", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}>
-              <EyeIcon size={26} style={{ color: "white" }} />
+              <ShieldIcon size={26} style={{ color: "white" }} />
             </div>
-            <h1 style={{ color: "#F1F5F9", fontSize: "1.6rem", fontWeight: 700, margin: 0, letterSpacing: "-0.5px" }}>Sentinel<span style={{ color: "#60A5FA" }}>Vision</span></h1>
-            <p style={{ color: "#475569", fontSize: "0.85rem", marginTop: "6px" }}>Law Enforcement CCTV Intelligence Portal</p>
+            <h1 style={{ color: "#F1F5F9", fontSize: "1.7rem", fontWeight: 800, margin: 0, letterSpacing: "-0.5px" }}>VIG<span style={{ color: "#60A5FA" }}>INT</span></h1>
+            <p style={{ color: "#475569", fontSize: "0.82rem", marginTop: "6px" }}>Intelligent Campus Safety & Emergency Platform (SIH Edition)</p>
           </div>
 
           {/* Mode Switcher Tabs */}
@@ -757,9 +763,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
           <div className="topbar-logo" style={{ cursor: "pointer" }} onClick={() => router.push("/")}>
             <div className="icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "30px", height: "30px", background: "var(--accent)", borderRadius: "7px", boxShadow: "0 2px 8px rgba(59,130,246,0.25)" }}>
-              <EyeIcon size={16} style={{ color: "white" }} />
+              <ShieldIcon size={16} style={{ color: "white" }} />
             </div>
-            <span>Sentinel<span className="accent">Vision</span></span>
+            <span>VIG<span className="accent">INT</span></span>
+            <span className="badge badge-blue" style={{ fontSize: "0.6rem", marginLeft: 6, letterSpacing: "0.05em" }}>SIH CAMPUS SAFETY</span>
           </div>
           
           {/* Active Case Selector */}
@@ -1021,7 +1028,23 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <nav className="sidebar" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
         <div>
-          {allowedMonitorItems.length > 0 && <div className="nav-section-label">Monitor</div>}
+          {allowedCampusSafetyItems.length > 0 && <div className="nav-section-label">Campus Safety & Emergency</div>}
+          {allowedCampusSafetyItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch={true}
+                className={`nav-item ${pathname === item.href ? "active" : ""}`}
+              >
+                <Icon size={16} />
+                {item.label}
+              </Link>
+            );
+          })}
+
+          {allowedMonitorItems.length > 0 && <div className="nav-section-label">Monitor & Surveillance</div>}
           {allowedMonitorItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -1037,7 +1060,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             );
           })}
 
-          {allowedInvestigateItems.length > 0 && <div className="nav-section-label">Investigate</div>}
+          {allowedInvestigateItems.length > 0 && <div className="nav-section-label">AI Investigation</div>}
           {allowedInvestigateItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -1053,7 +1076,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             );
           })}
 
-          {allowedSystemItems.length > 0 && <div className="nav-section-label">System</div>}
+          {allowedSystemItems.length > 0 && <div className="nav-section-label">System & Audit</div>}
           {allowedSystemItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -1081,9 +1104,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
           {/* Branding */}
           <div className="sidebar-branding" style={{ marginTop: "12px" }}>
-            <div className="branding-label">SentinelVision Platform</div>
+            <div className="branding-label">VIGINT Platform (SIH Edition)</div>
             <div className="branding-members">
-              <span style={{ color: "var(--accent)", fontWeight: 600 }}>Active Database Connected</span>
+              <span style={{ color: "var(--accent)", fontWeight: 600 }}>Multi-Sensor Consensus Active</span>
             </div>
           </div>
         </div>

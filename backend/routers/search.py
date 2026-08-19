@@ -29,8 +29,8 @@ _jobs: dict[str, dict[str, Any]] = {}
 class ImageSearchRequest(BaseModel):
     video_ids: list[str] = Field(..., description="List of uploaded video IDs to search")
     reference_ids: list[str] = Field(..., description="List of reference image IDs")
-    confidence_threshold: float = Field(0.65, ge=0.0, le=1.0)
-    similarity_threshold: float = Field(0.70, ge=0.0, le=1.0)
+    confidence_threshold: float = Field(0.40, ge=0.0, le=1.0)
+    similarity_threshold: float = Field(0.45, ge=0.0, le=1.0)
     sample_fps: float = Field(1.0, ge=0.1, le=10.0)
     start_time: float | None = Field(None, description="Start time filter in seconds")
     end_time: float | None = Field(None, description="End time filter in seconds")
@@ -228,6 +228,7 @@ def _update_progress(job_id: str, frames_processed: int, frames_matched: int):
             raise InterruptedError("Search job cancelled by user")
         _jobs[job_id]["frames_processed"] = frames_processed
         _jobs[job_id]["frames_matched"] = frames_matched
+        _jobs[job_id]["match_count"] = frames_matched
 
 
 @router.post("/cancel/{job_id}")

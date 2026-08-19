@@ -3,10 +3,10 @@ import "./globals.css";
 import AppLayout from "@/components/AppLayout";
 
 export const metadata: Metadata = {
-  title: "VisionCCTV — AI-Powered CCTV Analysis Tool",
+  title: "VIGINT — Intelligent Campus Safety & Emergency Response Platform",
   description:
-    "AI-powered forensic video analysis: locate critical moments from CCTV footage using face recognition and natural-language keyword search.",
-  keywords: ["CCTV", "AI", "face recognition", "video analysis", "forensic", "investigation"],
+    "End-to-end autonomous smart campus safety platform with multi-modal CCTV analytics, IoT sensor grid consensus, Dempster-Shafer evidential fusion, and P1-P4 emergency incident escalation.",
+  keywords: ["VIGINT", "Campus Safety", "SIH", "AI CCTV", "IoT Sensor Fusion", "Dempster-Shafer", "Face Re-ID", "Emergency Dispatch"],
 };
 
 export default function RootLayout({

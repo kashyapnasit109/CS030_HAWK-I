@@ -79,12 +79,12 @@ if ORIGINAL_VIDEO.exists() and not any(UPLOADS_DIR.glob("*.meta.json")):
     (UPLOADS_DIR / "subway.meta.json").write_text(json.dumps(meta, indent=2))
 
 # Register routers
-from routers import videos, search, export, references, cameras, auth, cases, watchlists, audit, settings, enhance, ai_gateway  # noqa: E402
+from routers import videos, search, export, references, cameras, auth, cases, watchlists, audit, settings, enhance, ai_gateway, iot, campus_safety  # noqa: E402
 
 app = FastAPI(
-    title="VisionCCTV API",
-    description="AI-powered CCTV analysis: face re-identification and keyword search",
-    version="1.0.0",
+    title="VIGINT API",
+    description="VIGINT: Intelligent Campus Safety & Emergency Response Platform (SIH Edition)",
+    version="2.0.0",
 )
 
 app.add_middleware(
@@ -110,6 +110,8 @@ app.include_router(audit.router, prefix="/api/audit", tags=["Audit"])
 app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
 app.include_router(enhance.router, prefix="/api/enhance", tags=["Enhance"])
 app.include_router(ai_gateway.router, prefix="/api/ai-gateway", tags=["AI Gateway"])
+app.include_router(iot.router, tags=["IoT & Sensor Grid"])
+app.include_router(campus_safety.router, tags=["Campus Safety & Escalation"])
 
 
 @app.on_event("startup")

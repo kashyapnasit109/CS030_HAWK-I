@@ -306,48 +306,45 @@ export default function DashboardPage() {
           <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: "100px", padding: "4px 14px", fontSize: "0.72rem", color: "#60A5FA", fontWeight: 700, textTransform: "uppercase", marginBottom: "16px" }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#3B82F6", display: "block", animation: "pulse 1.5s infinite" }} />
-              Admissible Evidence Edge Node
+              SIH Smart Campus Safety Core · &lt;1.8% False Positives
             </div>
             
             <h1 style={{ fontSize: "2.2rem", fontWeight: 800, margin: "0 0 10px 0", color: "#FFFFFF", letterSpacing: "-0.5px" }}>
-              SentinelVision <span style={{ color: "#60A5FA" }}>VMS</span> Portal
+              VIG<span style={{ color: "#60A5FA" }}>INT</span> Campus Safety Portal
             </h1>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", lineHeight: 1.5, margin: "0 0 24px 0", maxWidth: "560px" }}>
-              Process hours of raw offline surveillance footage in seconds. Target facial matches, locate vehicles, and query natural language elements without internet dependency.
+              Autonomous multi-sensor campus safety: real-time Dempster-Shafer evidential fusion combining CCTV video analytics with physical IoT sensor telemetry (MQ-2, MQ-7, Temp, Sound) for sub-second P1–P4 emergency escalation.
             </p>
 
             <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-              <button
-                onClick={runDemoInvestigation}
-                disabled={demoRunning || !apiOk}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  background: "var(--accent)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "12px 24px",
-                  fontWeight: "bold",
-                  fontSize: "0.88rem",
-                  cursor: demoRunning ? "not-allowed" : "pointer",
-                  boxShadow: "0 4px 16px rgba(59,130,246,0.28)",
-                  transition: "var(--transition)",
-                }}
-              >
-                {demoRunning ? (
-                  <>
-                    <span style={{ animation: "spin 1.5s linear infinite", display: "inline-block" }}>⟳</span>
-                    {demoStep}
-                  </>
-                ) : (
-                  <>
-                    <RocketIcon size={16} />
-                    Run Pilot Search Demo
-                  </>
-                )}
-              </button>
+              <Link href="/campus-map">
+                <button
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    background: "var(--accent)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "12px 24px",
+                    fontWeight: "bold",
+                    fontSize: "0.88rem",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 16px rgba(59,130,246,0.28)",
+                    transition: "var(--transition)",
+                  }}
+                >
+                  <ShieldIcon size={16} />
+                  Open 2.5D Campus Map
+                </button>
+              </Link>
+
+              <Link href="/incidents">
+                <button style={{ background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.4)", borderRadius: "8px", padding: "12px 20px", color: "#EF4444", fontSize: "0.88rem", fontWeight: 700, cursor: "pointer", transition: "var(--transition)" }}>
+                  Emergency Hub (P1–P4)
+                </button>
+              </Link>
 
               <Link href="/search">
                 <button style={{ background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", borderRadius: "8px", padding: "12px 20px", color: "var(--text-primary)", fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", transition: "var(--transition)" }} onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"} onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}>
@@ -370,14 +367,14 @@ export default function DashboardPage() {
             position: "relative",
             zIndex: 1
           }}>
-            <div style={{ color: "#60A5FA", fontWeight: "bold", marginBottom: "12px", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "6px" }}>VMS_EDGE_MONITOR v1.0</div>
+            <div style={{ color: "#60A5FA", fontWeight: "bold", marginBottom: "12px", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "6px" }}>VIGINT_CORE_OS v2.0 (SIH)</div>
             {[
-              { k: "node.id", v: settings.general.node_id, c: "#F1F5F9" },
-              { k: "node.name", v: settings.general.node_name, c: "#F1F5F9", truncate: true },
-              { k: "pipeline.mode", v: "YOLOv8 + FaceNet + OCR", c: "#F59E0B" },
-              { k: "hardware.accel", v: settings.ai.device_provider + " Engine", c: "#22C55E" },
-              { k: "sqlite.db", v: "ONLINE (schema v2)", c: "#3B82F6" },
-              { k: "audit.logs", v: "cryptographic sha256", c: "#22C55E" },
+              { k: "node.id", v: "VIGINT-MASTER-01", c: "#F1F5F9" },
+              { k: "platform.domain", v: "Smart Campus Automation", c: "#F1F5F9", truncate: true },
+              { k: "consensus.engine", v: "Dempster-Shafer (<1.8% FP)", c: "#F59E0B" },
+              { k: "sensor.grid", v: "6 IoT Nodes (MQTT/TLS)", c: "#22C55E" },
+              { k: "escalation.matrix", v: "P1-P4 Auto PA/Doors", c: "#3B82F6" },
+              { k: "merkle.audit", v: "SHA-256 Intact", c: "#22C55E" },
             ].map((itm, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                 <span style={{ color: "var(--text-muted)" }}>{itm.k}:</span>

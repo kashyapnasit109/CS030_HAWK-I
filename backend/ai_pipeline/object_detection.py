@@ -318,6 +318,7 @@ def run_object_detection(
             use_yolo = False
 
     matches = []
+    clip_tasks = []
     cap = cv2.VideoCapture(str(video_path))
     video_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
     frame_interval = max(1, int(video_fps / sample_fps))
@@ -409,41 +410,44 @@ def run_object_detection(
                 frame_idx += 1
                 continue
 
-            # Group detections per frame and create a single result entry
-            # Draw all bounding boxes on the frame
+            # Draw all bounding boxes on the frame using premium HUD overlays
             annotated = frame.copy()
             labels_found = []
+            from ai_pipeline.frame_extractor import draw_premium_hud_overlay
+
             for det in frame_detections:
                 box = det["box"]
-                label = f"{det['class_name']} {det['confidence']:.0%}"
                 labels_found.append(det["class_name"])
-
-                # Color coding by category
-                color = (0, 255, 100)  # default green
+                # Color code
+                col = (246, 130, 59) # cobalt blue
                 if det["class_name"] in POLICE_CATEGORIES.get("weapons", []):
-                    color = (0, 0, 255)  # red for weapons
+                    col = (60, 60, 235) # red for weapons
                 elif det["class_name"] in POLICE_CATEGORIES.get("vehicles", []):
-                    color = (255, 200, 0)  # cyan for vehicles
+                    col = (250, 200, 50) # amber for vehicles
                 elif det["class_name"] == "person":
-                    color = (0, 255, 255)  # yellow for persons
+                    col = (90, 220, 120) # emerald for persons
 
-                cv2.rectangle(annotated, (box["x1"], box["y1"]), (box["x2"], box["y2"]), color, 2)
-                (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-                cv2.rectangle(annotated, (box["x1"], box["y1"] - th - 8),
-                            (box["x1"] + tw + 4, box["y1"]), color, -1)
-                cv2.putText(annotated, label, (box["x1"] + 2, box["y1"] - 4),
-                          cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+                annotated = draw_premium_hud_overlay(
+                    annotated,
+                    {
+                        "x1": box["x1"],
+                        "y1": box["y1"],
+                        "x2": box["x2"],
+                        "y2": box["y2"],
+                        "label": det["class_name"],
+                        "confidence": det["confidence"]
+                    },
+                    color_bgr=col
+                )
 
             # Save annotated frame
             frame_filename = f"obj_{job_id}_{frame_idx:06d}.jpg"
             frame_path = job_dir / frame_filename
-            cv2.imwrite(str(frame_path), annotated)
+            cv2.imwrite(str(frame_path), annotated, [cv2.IMWRITE_JPEG_QUALITY, 95])
 
-            # Extract clip with burned bounding box overlay!
-            clip_filename: str | None = f"clip_{job_id}_{frame_idx:06d}.mp4"
+            clip_filename = f"clip_{job_id}_{frame_idx:06d}.mp4"
             clip_path = job_dir / clip_filename
             
-            # Select the main matching detection to burn into the clip overlay
             first_det = frame_detections[0] if frame_detections else None
             draw_box_param = None
             if first_det:
@@ -455,13 +459,16 @@ def run_object_detection(
                     "label": first_det["class_name"],
                     "confidence": first_det["confidence"]
                 }
-            try:
-                extract_clip(video_path, clip_path, timestamp, window_seconds=5.0, draw_box=draw_box_param)
-            except Exception:
-                clip_filename = None
+            
+            clip_tasks.append({
+                "video_path": video_path,
+                "output_path": clip_path,
+                "center_timestamp": timestamp,
+                "window_seconds": 4.0,
+                "draw_box": draw_box_param,
+            })
 
             frame_hash = _sha256_file(frame_path)
-            clip_hash = _sha256_file(job_dir / clip_filename) if clip_filename else "N/A"
 
             # Summary of detected objects
             from collections import Counter
@@ -474,19 +481,24 @@ def run_object_detection(
                 "timestamp": timestamp,
                 "timestamp_str": format_timestamp(timestamp),
                 "frame_url": f"/storage/results/{job_id}/{frame_filename}",
-                "clip_url": f"/storage/results/{job_id}/{clip_filename}" if clip_filename else None,
+                "clip_url": f"/storage/results/{job_id}/{clip_filename}",
                 "confidence": round(avg_conf, 4),
                 "label": summary_label,
+                "box": {"x1": first_det["box"]["x1"], "y1": first_det["box"]["y1"], "x2": first_det["box"]["x2"], "y2": first_det["box"]["y2"]} if first_det else None,
                 "search_type": "object_detection",
                 "detections": frame_detections,
                 "object_count": len(frame_detections),
                 "frame_hash": frame_hash,
-                "clip_hash": clip_hash,
+                "clip_hash": "N/A",
             })
 
             frame_idx += 1
     finally:
         cap.release()
+
+    if clip_tasks:
+        from ai_pipeline.frame_extractor import extract_clips_parallel
+        extract_clips_parallel(clip_tasks, max_workers=3)
 
     manifest = {
         "job_id": job_id,

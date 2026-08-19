@@ -598,13 +598,29 @@ def start_live_detection(
     _detection_alerts[camera_id] = []
 
     def detection_loop():
-        from ai_pipeline.frame_extractor import format_timestamp  # noqa: PLC0415
+        from ai_pipeline.frame_extractor import format_timestamp, draw_premium_hud_overlay
         from database import DB_PATH
         import sqlite3
         import hashlib
 
-        # Initialize motion check variables
         detection_loop._motion_prev_gray = None
+
+        # Pre-load face references if face mode
+        db_tensor = None
+        db_labels = []
+        if detection_type == "face":
+            try:
+                from ai_pipeline.face_recognition import build_reference_embeddings
+                ref_paths = []
+                if reference_ids:
+                    from routers.search import _resolve_reference
+                    ref_paths = [_resolve_reference(rid) for rid in reference_ids]
+                else:
+                    ref_paths = list((STORAGE_DIR / "references").glob("*.jpg"))
+                if ref_paths:
+                    db_tensor, db_labels = build_reference_embeddings(ref_paths)
+            except Exception as e:
+                print(f"[live_detection] Face reference setup: {e}")
 
         while _detection_running.get(camera_id, False):
             frame = stream.get_frame()
@@ -612,7 +628,7 @@ def start_live_detection(
                 time.sleep(0.5)
                 continue
 
-            # ─── Motion Detection Filter (CPU Overhead Reduction) ───────────
+            # Motion Check
             gray_for_motion = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             gray_for_motion = cv2.GaussianBlur(gray_for_motion, (15, 15), 0)
             
@@ -624,8 +640,7 @@ def start_live_detection(
             motion_ratio = float(np.sum(thresh_m > 0)) / thresh_m.size
             detection_loop._motion_prev_gray = gray_for_motion
 
-            # Skip frame if static (motion ratio < 0.5%) - except in motion detection mode itself
-            if motion_ratio < 0.005 and detection_type != "motion":
+            if motion_ratio < 0.003 and detection_type not in ("motion", "crowd"):
                 time.sleep(interval_seconds)
                 continue
 
@@ -634,37 +649,63 @@ def start_live_detection(
 
             try:
                 if detection_type == "face":
-                    # Face detection using Haar cascade (optimized/offline)
-                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                    face_cascade = cv2.CascadeClassifier(
-                        cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-                    )
-                    faces = face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(30, 30))
+                    from ai_pipeline.face_recognition import detect_faces, _embed_face_crop, _TORCH_AVAILABLE as FACE_TORCH
+                    faces = detect_faces(frame, min_size=(25, 25))
+                    
                     for (x, y, w, h) in faces:
+                        matched_label = "Unidentified Person"
+                        matched_conf = 0.72
+
+                        if FACE_TORCH and db_tensor is not None:
+                            try:
+                                import torch
+                                from ai_pipeline.face_recognition import _get_device
+                                pad_x, pad_y = int(w * 0.1), int(h * 0.1)
+                                y1, y2 = max(0, y - pad_y), min(frame.shape[0], y + h + pad_y)
+                                x1, x2 = max(0, x - pad_x), min(frame.shape[1], x + w + pad_x)
+                                crop = frame[y1:y2, x1:x2]
+                                if crop.size > 0:
+                                    emb_np = _embed_face_crop(crop)
+                                    emb = torch.from_numpy(emb_np).to(_get_device())
+                                    sims = torch.nn.functional.cosine_similarity(db_tensor, emb.expand_as(db_tensor), dim=1)
+                                    max_idx = int(torch.argmax(sims).item())
+                                    max_sim = float(sims[max_idx].item())
+                                    if max_sim >= 0.45:
+                                        matched_label = db_labels[max_idx]
+                                        matched_conf = max_sim
+                            except Exception:
+                                pass
+
                         detections.append({
                             "type": "face",
-                            "label": "Person detected",
-                            "confidence": 0.75,
+                            "label": matched_label,
+                            "confidence": round(matched_conf, 3),
                             "box": {"x1": int(x), "y1": int(y), "x2": int(x+w), "y2": int(y+h)},
                         })
 
-                elif detection_type == "object":
-                    # Object detection using YOLOv8 COCO
+                elif detection_type in ("object", "crowd"):
                     try:
-                        from ai_pipeline.object_detection import _get_yolo_detector, COCO_CLASSES, _TORCH_AVAILABLE as OBJ_TORCH
+                        from ai_pipeline.object_detection import _get_yolo_detector, COCO_CLASSES, POLICE_CATEGORIES, _TORCH_AVAILABLE as OBJ_TORCH
                         if OBJ_TORCH:
-                            from ai_pipeline.device_manager import get_torch_device  # noqa: PLC0415
+                            from ai_pipeline.device_manager import get_torch_device
                             detector = _get_yolo_detector()
                             device = get_torch_device()
                             results = detector(frame, device=device, verbose=False)
+                            person_count = 0
+
                             for r in results[0].boxes:
                                 conf = float(r.conf.item())
-                                if conf < 0.4:
+                                if conf < 0.35:
                                     continue
                                 cls_id = int(r.cls.item())
                                 cls_name = COCO_CLASSES[cls_id] if cls_id < len(COCO_CLASSES) else f"class_{cls_id}"
-                                if target_classes and cls_name not in target_classes:
+                                
+                                if cls_name == "person":
+                                    person_count += 1
+
+                                if target_classes and cls_name not in target_classes and cls_name not in [POLICE_CATEGORIES.get(tc, []) for tc in target_classes]:
                                     continue
+
                                 x1, y1, x2, y2 = r.xyxy.cpu().numpy()[0]
                                 detections.append({
                                     "type": "object",
@@ -672,11 +713,18 @@ def start_live_detection(
                                     "confidence": round(conf, 3),
                                     "box": {"x1": int(x1), "y1": int(y1), "x2": int(x2), "y2": int(y2)},
                                 })
+
+                            if detection_type == "crowd" and person_count >= 3:
+                                detections.insert(0, {
+                                    "type": "crowd",
+                                    "label": f"Crowd Gathering ({person_count} Persons)",
+                                    "confidence": min(1.0, 0.5 + person_count * 0.1),
+                                    "box": {"x1": 20, "y1": 20, "x2": frame.shape[1] - 20, "y2": frame.shape[0] - 20},
+                                })
                     except Exception as e:
                         print(f"[live_detection] Object detection error: {e}")
 
                 elif detection_type == "motion":
-                    # Simple motion detection
                     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                     gray = cv2.GaussianBlur(gray, (21, 21), 0)
                     if hasattr(detection_loop, '_prev_gray') and detection_loop._prev_gray is not None:
@@ -684,11 +732,11 @@ def start_live_detection(
                         _, thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
                         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                         for c in contours:
-                            if cv2.contourArea(c) > 1000:  # Minimum area
+                            if cv2.contourArea(c) > 1200:
                                 x, y, w, h = cv2.boundingRect(c)
                                 detections.append({
                                     "type": "motion",
-                                    "label": "Motion detected",
+                                    "label": "Motion Activity",
                                     "confidence": min(1.0, cv2.contourArea(c) / 10000),
                                     "box": {"x1": int(x), "y1": int(y), "x2": int(x+w), "y2": int(y+h)},
                                 })
@@ -697,7 +745,7 @@ def start_live_detection(
             except Exception as e:
                 print(f"[live_detection] Error on {camera_id}: {e}")
 
-            # ─── Region of Interest (ROI) Polygon Filtering ─────────────────
+            # Zone Filtering
             zones_list = []
             try:
                 conn = sqlite3.connect(str(DB_PATH))
@@ -706,8 +754,8 @@ def start_live_detection(
                 cursor.execute("SELECT points, name, zone_type FROM zones WHERE camera_id = ?;", (camera_id,))
                 zones_list = [dict(row) for row in cursor.fetchall()]
                 conn.close()
-            except Exception as e:
-                print(f"[live_detection] Failed to load camera zones: {e}")
+            except Exception:
+                pass
 
             if zones_list and detections:
                 filtered_detections = []
@@ -715,7 +763,6 @@ def start_live_detection(
                     box = det["box"]
                     cx = int((box["x1"] + box["x2"]) / 2)
                     cy = int((box["y1"] + box["y2"]) / 2)
-                    
                     inside_zone = False
                     for zone in zones_list:
                         try:
@@ -723,33 +770,46 @@ def start_live_detection(
                             if not points:
                                 continue
                             poly_np = np.array(points, dtype=np.int32).reshape((-1, 1, 2))
-                            # Check if center point lies inside polygon (>= 0 is inside/edge)
                             dist = cv2.pointPolygonTest(poly_np, (cx, cy), False)
                             if dist >= 0:
                                 inside_zone = True
-                                det["label"] = f"{det['label']} (Zone: {zone['name']})"
+                                det["label"] = f"{det['label']} [{zone['name']}]"
                                 break
-                        except Exception as e:
-                            print(f"[live_detection] Error checking zone: {e}")
+                        except Exception:
+                            pass
                     if inside_zone:
                         filtered_detections.append(det)
                 detections = filtered_detections
 
-            # ─── Save Alert, Draw bounding boxes, write to SQLite DB ──────────
+            # Save Alert & HUD drawing
             if detections:
                 snapshot_dir = CAMERAS_DIR / camera_id
                 snapshot_dir.mkdir(parents=True, exist_ok=True)
-                snapshot_filename = f"det_{int(time.time())}.jpg"
+                snapshot_filename = f"det_{int(time.time())}_{uuid.uuid4().hex[:4]}.jpg"
                 snapshot_path = snapshot_dir / snapshot_filename
 
                 annotated = frame.copy()
                 for det in detections:
                     box = det["box"]
-                    color = (0, 0, 255) if det["type"] == "face" else (0, 255, 0)
-                    cv2.rectangle(annotated, (box["x1"], box["y1"]), (box["x2"], box["y2"]), color, 2)
-                    cv2.putText(annotated, f"{det['label']} {det['confidence']:.0%}",
-                              (box["x1"], box["y1"] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
-                cv2.imwrite(str(snapshot_path), annotated)
+                    col = (246, 130, 59)
+                    if det["type"] == "face" and det["label"] != "Unidentified Person":
+                        col = (60, 60, 245) # Alert Red for recognized target
+                    elif det["type"] == "face":
+                        col = (246, 130, 59)
+                    elif det["type"] == "crowd":
+                        col = (60, 180, 255)
+                    elif det.get("label") in ("knife", "gun", "weapon", "scissors"):
+                        col = (50, 50, 240)
+                    
+                    annotated = draw_premium_hud_overlay(
+                        annotated,
+                        {
+                            "x1": box["x1"], "y1": box["y1"], "x2": box["x2"], "y2": box["y2"],
+                            "label": det["label"], "confidence": det["confidence"],
+                        },
+                        color_bgr=col
+                    )
+                cv2.imwrite(str(snapshot_path), annotated, [cv2.IMWRITE_JPEG_QUALITY, 92])
 
                 alert = {
                     "id": str(uuid.uuid4())[:8],
@@ -772,10 +832,8 @@ def start_live_detection(
                     conn = sqlite3.connect(str(DB_PATH))
                     conn.row_factory = sqlite3.Row
                     cursor = conn.cursor()
-                    
                     frame_hash = hashlib.sha256(open(snapshot_path, "rb").read()).hexdigest()
                     
-                    # Find matching open case
                     cursor.execute("SELECT case_id FROM cases WHERE status = 'open' LIMIT 1;")
                     case_row = cursor.fetchone()
                     case_id = case_row["case_id"] if case_row else 1
@@ -791,7 +849,7 @@ def start_live_detection(
                                 f"live_{detection_type}",
                                 det["type"],
                                 det["label"],
-                                "high" if det["type"] == "face" else "medium",
+                                "high" if det["type"] == "face" and det["label"] != "Unidentified Person" else "medium",
                                 f"Live sighting: {det['label']} on {stream.name}",
                                 det["label"].lower(),
                                 time.time(),
@@ -800,8 +858,6 @@ def start_live_detection(
                             )
                         )
                         event_id = cursor.lastrowid
-                        
-                        # Add chain of custody entry
                         cursor.execute(
                             """INSERT INTO chain_of_custody (media_id, event_id, action, user_id, hash_value, notes, created_at)
                                VALUES (?, ?, ?, ?, ?, ?, ?);""",
@@ -810,7 +866,7 @@ def start_live_detection(
                     conn.commit()
                     conn.close()
                 except Exception as db_err:
-                    print(f"[live_detection] SQLite insert error: {db_err}")
+                    print(f"[live_detection] DB insert error: {db_err}")
 
             time.sleep(interval_seconds)
 

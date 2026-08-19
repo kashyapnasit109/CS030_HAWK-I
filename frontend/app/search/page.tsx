@@ -73,8 +73,8 @@ export default function SearchPage() {
   const [startTimeStr, setStartTimeStr] = useState("");
   const [endTimeStr, setEndTimeStr] = useState("");
   const [sampleFps, setSampleFps] = useState(1.0);
-  const [confidenceThreshold, setConfidenceThreshold] = useState(0.65);
-  const [similarityThreshold, setSimilarityThreshold] = useState(0.70);
+  const [confidenceThreshold, setConfidenceThreshold] = useState(0.40);
+  const [similarityThreshold, setSimilarityThreshold] = useState(0.45);
   const [jobId, setJobId] = useState<string | null>(null);
   const [job, setJob] = useState<SearchJob | null>(null);
   const [polling, setPolling] = useState(false);
@@ -142,8 +142,8 @@ export default function SearchPage() {
   // Update similarity/confidence threshold default based on mode
   useEffect(() => {
     if (mode === "image") {
-      setSimilarityThreshold(0.70);
-      setConfidenceThreshold(0.65);
+      setSimilarityThreshold(0.45);
+      setConfidenceThreshold(0.40);
     } else if (mode === "keyword") {
       setSimilarityThreshold(0.25);
     } else if (mode === "lpr") {

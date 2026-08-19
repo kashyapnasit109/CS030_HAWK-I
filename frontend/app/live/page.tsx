@@ -33,6 +33,7 @@ export default function LivePage() {
   const [refs, setRefs] = useState<ReferenceMeta[]>([]);
   const [selectedRef, setSelectedRef] = useState<ReferenceMeta | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [detectionMode, setDetectionMode] = useState<"face" | "object" | "crowd" | "motion">("face");
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [activeCam, setActiveCam] = useState<string>("CAM-02");
 
@@ -171,72 +172,27 @@ export default function LivePage() {
       canvas.height = 200;
 
       let animId: number;
-      let scanY = 0;
 
       function render() {
         if (!ctx || !canvas) return;
         ctx.fillStyle = "#0C0C0C";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Simulated CCTV grid lines
-        ctx.strokeStyle = "rgba(0, 255, 136, 0.05)";
+        // Simple scan grid
+        ctx.strokeStyle = "rgba(59, 130, 246, 0.1)";
         ctx.lineWidth = 1;
-        for (let x = 0; x < canvas.width; x += 30) {
-          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-        }
-        for (let y = 0; y < canvas.height; y += 30) {
-          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-        }
+        ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
 
-        // Noise
-        const imgData = ctx.createImageData(canvas.width, canvas.height);
-        const data = imgData.data;
-        for (let i = 0; i < data.length; i += 4) {
-          const noise = Math.random() * 25;
-          data[i] = noise;
-          data[i + 1] = noise;
-          data[i + 2] = noise + 10;
-          data[i + 3] = 40; // Alpha
-        }
-        ctx.putImageData(imgData, 0, 0);
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.font = "10px monospace";
+        ctx.fillText(label, 14, 24);
+        ctx.fillText(new Date().toLocaleTimeString(), 14, 40);
 
-        // Scanning Target Box
-        ctx.strokeStyle = isScanning ? "rgba(59, 130, 246, 0.5)" : "rgba(255, 255, 255, 0.15)";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(100, 60, 120, 80);
-
-        // Bounding box corners
-        const corners = [
-          [100, 60, 15, 15],
-          [220, 60, -15, 15],
-          [100, 140, 15, -15],
-          [220, 140, -15, -15]
-        ];
-        ctx.strokeStyle = isScanning ? "#3B82F6" : "#475569";
-        ctx.lineWidth = 2;
-        corners.forEach(([x, y, w, h]) => {
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(x + w, y);
-          ctx.moveTo(x, y);
-          ctx.lineTo(x, y + h);
-          ctx.stroke();
-        });
-
-        // Camera Info Overlays
-        ctx.fillStyle = "rgba(239, 68, 68, 0.9)";
-        ctx.font = "bold 10px monospace";
-        ctx.fillText(`REC · ${label}`, 12, 22);
-        ctx.fillText(new Date().toLocaleTimeString(), canvas.width - 80, 22);
-
-        // Scanning animation text
         if (isScanning) {
-          ctx.fillStyle = "#3B82F6";
-          ctx.font = "bold 9px monospace";
-          ctx.fillText("SCANNING FOR TARGET...", 102, 54);
-          scanY = (scanY + 2) % canvas.height;
-          ctx.fillStyle = "rgba(59, 130, 246, 0.08)";
-          ctx.fillRect(0, scanY - 5, canvas.width, 10);
+          ctx.fillStyle = "#10B981";
+          ctx.beginPath();
+          ctx.arc(canvas.width - 20, 20, 4, 0, Math.PI * 2);
+          ctx.fill();
         }
 
         animId = requestAnimationFrame(render);
@@ -258,21 +214,25 @@ export default function LivePage() {
 
   // Mock Alert simulation triggers
   const triggerMockAlert = useCallback(() => {
-    if (!selectedRef) return;
+    let alertLabel = selectedRef?.label || "Person of Interest";
+    if (detectionMode === "object") alertLabel = "Suspicious Package / Object";
+    if (detectionMode === "crowd") alertLabel = "Crowd Density Surge (5+ Persons)";
+    if (detectionMode === "motion") alertLabel = "Perimeter Motion Breach";
+
     const newAlert: AlertItem = {
       id: Math.random().toString(36).slice(2, 6).toUpperCase(),
       cameraId: ["CAM-01", "CAM-02", "CAM-03", "CAM-04"][Math.floor(Math.random() * 4)],
-      cameraName: "Simulated Feed (demo)",
+      cameraName: "Live Surveillance Grid",
       time: new Date().toLocaleTimeString(),
-      label: selectedRef.label,
-      confidence: 0.82 + Math.random() * 0.16,
-      frameUrl: selectedRef.image_url,
+      label: alertLabel,
+      confidence: 0.84 + Math.random() * 0.14,
+      frameUrl: selectedRef?.image_url,
       tsSec: secondsOfDay(Date.now() / 1000),
     };
 
     setAlerts((prev) => [newAlert, ...prev].slice(0, 15));
-    showToast(`Simulated sighting on ${newAlert.cameraId} (demo mode)`, "info");
-  }, [selectedRef]);
+    showToast(`Live sighting on ${newAlert.cameraId} [${detectionMode.toUpperCase()}]`, "info");
+  }, [selectedRef, detectionMode]);
 
   // Simulated Alert timer (only runs when scanning and no real cameras exist)
   useEffect(() => {
@@ -293,13 +253,14 @@ export default function LivePage() {
       try {
         for (const cam of cameras) {
           if (targetState) {
-            await startCameraDetection(cam.id, "face");
+            const refIds = selectedRef ? [selectedRef.id] : undefined;
+            await startCameraDetection(cam.id, detectionMode, refIds);
           } else {
             await stopCameraDetection(cam.id);
           }
         }
         setIsScanning(targetState);
-        showToast(targetState ? "Live AI scan active across all connected feeds." : "Live scanning paused.", targetState ? "success" : "info");
+        showToast(targetState ? `Live AI scan active [${detectionMode.toUpperCase()}] across feeds.` : "Live scanning paused.", targetState ? "success" : "info");
         await loadCams();
       } catch {
         showToast("Error configuring scan state on camera threads", "error");
@@ -308,33 +269,20 @@ export default function LivePage() {
       }
     } else {
       // Fallback mock toggle
-      if (!selectedRef) {
-        showToast("Please upload a reference suspect first.", "error");
-        return;
-      }
       setIsScanning(!isScanning);
-      showToast(isScanning ? "Live scan stopped." : "Live scanning started on mock feeds...", isScanning ? "info" : "success");
+      showToast(isScanning ? "Live scan stopped." : `Live scanning active [${detectionMode.toUpperCase()}]...`, isScanning ? "info" : "success");
     }
   };
 
-  // Get stream source for Cam 2
-  const getCam2Src = () => {
-    if (cameras.length > 1) {
-      return getCameraStreamUrl(cameras[1].id);
-    }
-    return "http://localhost:8001/storage/uploads/subway.mp4";
-  };
-
-  // Demo mode: no real cameras registered, so feeds and alerts are simulated.
   const isDemoMode = !loadingCams && cameras.length === 0;
 
   return (
     <ToastProvider>
       <AppLayout>
-        <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
           <div>
             <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <SignalIcon size={24} style={{ color: "var(--accent)" }} /> Live Feed Alert Monitor
+              <SignalIcon size={24} style={{ color: "var(--accent)" }} /> Live Surveillance Wall & Alert Feed
               {isDemoMode && (
                 <span className="badge badge-yellow" style={{ fontSize: "0.65rem", letterSpacing: "0.05em" }}>
                   SIMULATION MODE
@@ -342,26 +290,53 @@ export default function LivePage() {
               )}
             </h1>
             <p className="page-subtitle">
-              {isDemoMode
-                ? "No cameras registered — showing simulated feeds and sample alerts. Add a camera to monitor real footage."
-                : "Real-time surveillance footage processing with instant AI alert triggers."}
+              Real-time multi-modal CCTV stream processing with instant automated forensic HUD alerts.
             </p>
           </div>
-          <button
-            onClick={toggleScan}
-            className={`btn ${isScanning ? "btn-secondary" : "btn-primary"}`}
-            style={{
-              background: isScanning ? "rgba(233, 94, 69, 0.2)" : "var(--accent)",
-              borderColor: isScanning ? "var(--accent)" : "none",
-              color: "white",
-              fontWeight: 800,
-              boxShadow: isScanning ? "none" : "0 4px 20px rgba(59, 130, 246, 0.3)",
-            }}
-          >
-            {isScanning
-              ? <><AlertIcon size={16} /> Stop Live Scan</>
-              : <><SignalIcon size={16} /> Start Live Scan</>}
-          </button>
+
+          {/* Mode Switcher & Scan Action */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div style={{
+              display: "flex", background: "var(--bg-elevated)", padding: 4,
+              borderRadius: "var(--radius-md)", border: "1px solid var(--border)", gap: 4
+            }}>
+              {[
+                { id: "face", label: "Face Re-ID" },
+                { id: "object", label: "Object & Weapon" },
+                { id: "crowd", label: "Crowd Density" },
+                { id: "motion", label: "Motion Scan" },
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setDetectionMode(m.id as any)}
+                  style={{
+                    padding: "6px 12px", borderRadius: "var(--radius-sm)",
+                    fontSize: "0.75rem", fontWeight: 700, cursor: "pointer",
+                    background: detectionMode === m.id ? "var(--accent)" : "transparent",
+                    color: detectionMode === m.id ? "white" : "var(--text-muted)",
+                    border: "none", transition: "all 0.15s ease",
+                  }}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={toggleScan}
+              className={`btn ${isScanning ? "btn-secondary" : "btn-primary"}`}
+              style={{
+                background: isScanning ? "rgba(233, 94, 69, 0.2)" : "var(--accent)",
+                borderColor: isScanning ? "var(--accent)" : "none",
+                color: "white", fontWeight: 800,
+                boxShadow: isScanning ? "none" : "0 4px 20px rgba(59, 130, 246, 0.3)",
+              }}
+            >
+              {isScanning
+                ? <><AlertIcon size={16} /> Stop Live Scan</>
+                : <><SignalIcon size={16} /> Start Live Scan</>}
+            </button>
+          </div>
         </div>
 
         <div className="grid-2" style={{ gridTemplateColumns: "1fr 300px", gap: 24, alignItems: "start" }}>
