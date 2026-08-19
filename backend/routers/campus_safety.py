@@ -126,13 +126,6 @@ def scan_video_for_hazard(req: VideoHazardScanRequest):
     """Scan any uploaded video for multi-hazard campus emergency incidents."""
     import time
     from pathlib import Path
-    from ai_pipeline.campus_safety_cv import (
-        detect_fall_immobility,
-        detect_optical_fire,
-        detect_crowd_surge_and_stampede,
-        detect_violent_brawl_affray,
-        detect_abandoned_luggage
-    )
 
     sev = "P2"
     title = "Detected Campus Hazard"

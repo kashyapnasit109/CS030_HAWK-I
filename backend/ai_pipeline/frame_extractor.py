@@ -5,6 +5,7 @@ Includes high-definition forensic HUD bounding box rendering and dynamic video t
 """
 
 import json
+import time
 from pathlib import Path
 from typing import Generator
 
