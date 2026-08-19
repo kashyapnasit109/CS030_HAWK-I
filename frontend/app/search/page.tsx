@@ -142,8 +142,8 @@ export default function SearchPage() {
   // Update similarity/confidence threshold default based on mode
   useEffect(() => {
     if (mode === "image") {
-      setSimilarityThreshold(0.45);
-      setConfidenceThreshold(0.40);
+      setSimilarityThreshold(0.58);
+      setConfidenceThreshold(0.60);
     } else if (mode === "keyword") {
       setSimilarityThreshold(0.25);
     } else if (mode === "lpr") {

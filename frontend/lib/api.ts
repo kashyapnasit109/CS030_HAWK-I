@@ -82,7 +82,9 @@ export interface MatchResult {
   clip_url?: string;
   confidence: number;
   label: string;
-  search_type: "face_recognition" | "keyword" | "lpr" | "object_detection" | "activity_analysis";
+  severity?: "P1" | "P2" | "P3" | "P4" | string;
+  incident_type?: string;
+  search_type: "face_recognition" | "keyword" | "lpr" | "object_detection" | "activity_analysis" | "emergency_hazard" | "campus_safety";
   box?: { x1: number; y1: number; x2: number; y2: number };
   frame_hash?: string;
   clip_hash?: string;
@@ -118,6 +120,7 @@ export interface SearchJob {
 
 export interface CameraInfo {
   id: string;
+  camera_id?: string;
   name: string;
   url: string;
   brand: string;
@@ -725,6 +728,69 @@ export async function gatewayChat(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, system }),
+  });
+}
+
+// ─── Emergency Campus Safety Hazard Search ──────────────────────────────
+
+export interface HazardSearchJob {
+  job_id: string;
+  status: "queued" | "running" | "completed" | "failed" | "cancelled";
+  hazard_types: string[];
+  match_count: number;
+  frames_processed: number;
+  frames_matched: number;
+  video_count: number;
+  matches?: MatchResult[];
+  error?: string;
+}
+
+export async function startHazardSearch(
+  videoIds: string[],
+  hazardTypes: string[] = ["fall", "fire", "smoke"],
+  confidenceThreshold: number = 0.60,
+  sampleFps: number = 2.0,
+  startTime?: number | null,
+  endTime?: number | null
+): Promise<{ success: boolean; job_id: string; status: string }> {
+  return apiFetch("/api/safety/search-hazard", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      video_ids: videoIds,
+      hazard_types: hazardTypes,
+      confidence_threshold: confidenceThreshold,
+      sample_fps: sampleFps,
+      start_time: startTime ?? null,
+      end_time: endTime ?? null,
+    }),
+  });
+}
+
+export async function getHazardJobStatus(jobId: string): Promise<HazardSearchJob> {
+  return apiFetch(`/api/safety/hazard-job/${jobId}`);
+}
+
+export async function cancelHazardJob(jobId: string): Promise<{ success: boolean; message: string }> {
+  return apiFetch(`/api/safety/cancel-hazard/${jobId}`, { method: "POST" });
+}
+
+export async function escalateHazardFromSearch(payload: {
+  title: string;
+  severity?: string;
+  zone_name?: string;
+  camera_id?: string;
+  confidence?: number;
+  hazard_type?: string;
+  video_url?: string | null;
+  frame_url?: string | null;
+  frame_hash?: string | null;
+  iot_telemetry?: Record<string, any>;
+}): Promise<{ success: boolean; incident: any; message: string }> {
+  return apiFetch("/api/safety/escalate-from-search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 }
 

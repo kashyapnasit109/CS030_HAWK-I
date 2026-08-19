@@ -4,7 +4,7 @@ import { useEffect, useCallback, ReactNode } from "react";
 
 interface Toast {
   id: string;
-  type: "success" | "error" | "info";
+  type: "success" | "error" | "info" | "warning";
   message: string;
 }
 

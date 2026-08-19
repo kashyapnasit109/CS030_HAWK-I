@@ -133,7 +133,7 @@ export default function IotMonitorPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ node_id: selectedNode.node_id, overrides }),
       });
-      showToast(`ANOMALY INJECTED on ${selectedNode.node_id}. Dempster-Shafer consensus evaluating.`, "warning");
+      showToast(`ANOMALY INJECTED on ${selectedNode.node_id}. Dempster-Shafer consensus evaluating.`, "info");
       loadTelemetry();
     } catch {
       showToast("Error triggering anomaly", "error");

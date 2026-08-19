@@ -24,6 +24,8 @@ import {
   CloseIcon,
   SearchIcon,
   UploadIcon,
+  VideoIcon,
+  FilmIcon,
 } from "@/components/Icons";
 
 interface AlertItem {
@@ -85,7 +87,7 @@ export default function LiveTacticalWallPage() {
       if (camRes?.cameras) {
         setCameras(camRes.cameras);
         if (camRes.cameras.length > 0 && !activeCamId) {
-          setActiveCamId(camRes.cameras[0].camera_id);
+          setActiveCamId(camRes.cameras[0].id || (camRes.cameras[0] as any).camera_id);
         }
       }
 
@@ -309,13 +311,14 @@ export default function LiveTacticalWallPage() {
           {/* CAMERA STREAMS GRID */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "14px" }}>
             {cameras.map((cam, idx) => {
-              const streamUrl = `http://localhost:8001/api/cameras/${cam.camera_id}/stream`;
-              const isSelected = activeCamId === cam.camera_id;
+              const camId = cam.id || (cam as any).camera_id || `cam-${idx}`;
+              const streamUrl = `http://localhost:8001/api/cameras/${camId}/stream`;
+              const isSelected = activeCamId === camId;
 
               return (
                 <div
-                  key={`${cam.camera_id || 'cam'}-${idx}`}
-                  onClick={() => setActiveCamId(cam.camera_id)}
+                  key={`${camId}-${idx}`}
+                  onClick={() => setActiveCamId(camId)}
                   style={{
                     background: "#080C16",
                     border: `1px solid ${isSelected ? "#3B82F6" : "rgba(59,130,246,0.18)"}`,
@@ -348,7 +351,7 @@ export default function LiveTacticalWallPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedCamSlot(cam.camera_id);
+                          setSelectedCamSlot(camId);
                           setSourceModalOpen(true);
                         }}
                         className="btn btn-secondary btn-sm"
@@ -439,7 +442,7 @@ export default function LiveTacticalWallPage() {
                 <div style={{ display: "flex", gap: 12, alignItems: "center", background: "rgba(0,0,0,0.4)", padding: 10, borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)" }}>
                   <div style={{ position: "relative", width: 68, height: 68, borderRadius: 6, overflow: "hidden", border: "1px solid #3B82F6", flexShrink: 0 }}>
                     <img
-                      src={resolveStorageUrl(selectedRef.image_url)}
+                      src={resolveStorageUrl(selectedRef.image_url || "")}
                       alt={selectedRef.label}
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     />
