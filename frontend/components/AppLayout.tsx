@@ -22,7 +22,8 @@ import {
   SignalIcon,
   TrendingUpIcon,
   CheckIcon,
-  ScienceIcon
+  ScienceIcon,
+  CloseIcon
 } from "./Icons";
 
 interface NavItem {
@@ -376,7 +377,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/auth/login", {
+      const res = await fetch("http://localhost:8001/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: usernameInput, password: passwordInput })
@@ -413,7 +414,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/auth/register", {
+      const res = await fetch("http://localhost:8001/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -450,7 +451,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/auth/mfa-verify", {
+      const res = await fetch("http://localhost:8001/api/auth/mfa-verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: usernameInput, code: mfaCode })
@@ -834,7 +835,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                     <button 
                       onClick={() => setTasksOpen(false)}
                       style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "0.85rem" }}
-                    >✕</button>
+                    ><CloseIcon size={15} /></button>
                   </div>
                 </div>
 
@@ -867,7 +868,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                                 localStorage.setItem("visioncctv_background_jobs", JSON.stringify(updated));
                               }}
                               style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}
-                            >✕</button>
+                            ><CloseIcon size={15} /></button>
                           </div>
                         </div>
 
@@ -959,7 +960,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   <button 
                     onClick={() => setAlertsOpen(false)}
                     style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "0.85rem" }}
-                  >✕</button>
+                  ><CloseIcon size={15} /></button>
                 </div>
 
                 {alerts.length === 0 ? (
@@ -981,7 +982,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                       >
                         <div style={{ width: "40px", height: "40px", borderRadius: "4px", background: "#000", overflow: "hidden", flexShrink: 0 }}>
                           {alert.snapshot_url ? (
-                            <img src={`http://localhost:8000${alert.snapshot_url}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <img src={`http://localhost:8001${alert.snapshot_url}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           ) : (
                             <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><AlertIcon size={18} style={{ color: "var(--text-muted)" }} /></div>
                           )}
@@ -1071,7 +1072,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
         {/* Dynamic Legacy / Offline status */}
         <div style={{ marginTop: "auto", borderTop: "1px solid var(--border)", paddingTop: "12px" }}>
-          <a href="http://localhost:8000/docs" target="_blank" rel="noopener">
+          <a href="http://localhost:8001/docs" target="_blank" rel="noopener">
             <div className="nav-item">
               <SignalIcon size={16} />
               Swagger API Docs
@@ -1194,7 +1195,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <button 
               onClick={() => setCompletedJobPopup(null)}
               style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "0.85rem" }}
-            >✕</button>
+            ><CloseIcon size={15} /></button>
           </div>
           <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
             Job <span className="mono" style={{ color: "var(--text-primary)" }}>#{completedJobPopup.id}</span> ({completedJobPopup.type.replace("_", " ")}) has completed scanning all target video footage.
@@ -1244,3 +1245,4 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     </ShellContext.Provider>
   );
 }
+

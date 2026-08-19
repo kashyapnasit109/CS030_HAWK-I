@@ -66,9 +66,8 @@ export const ResultsIcon = ({ size = 18, ...props }: IconProps) =>
     size,
     (
       <>
-        <circle cx="12" cy="12" r="10" />
-        <circle cx="12" cy="12" r="6" />
-        <circle cx="12" cy="12" r="2" />
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="m7 12 3 3 7-7" />
       </>
     ),
     props
@@ -164,11 +163,9 @@ export const ExportIcon = ({ size = 18, ...props }: IconProps) =>
     size,
     (
       <>
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-        <polyline points="10 9 9 9 8 9" />
+        <path d="M14 3h7v7" />
+        <path d="M10 14 21 3" />
+        <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
       </>
     ),
     props
@@ -203,9 +200,9 @@ export const WarningIcon = ({ size = 18, ...props }: IconProps) =>
     size,
     (
       <>
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-        <line x1="12" y1="9" x2="12" y2="13" />
-        <line x1="12" y1="17" x2="12.01" y2="17" />
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
       </>
     ),
     props
@@ -892,6 +889,38 @@ export const LayersIcon = ({ size = 18, ...props }: IconProps) =>
     ),
     props
   );
+
+// Custom AI Gateway — router/hub device with an antenna arc (used only by the
+// AI Gateway settings tab; distinct from SignalIcon and CpuIcon).
+export const RouterIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <rect x="2" y="13" width="20" height="9" rx="2" />
+        <path d="M7 13V8a5 5 0 0 1 10 0v5" />
+        <line x1="6.5" y1="17.5" x2="6.51" y2="17.5" />
+        <line x1="10.5" y1="17.5" x2="10.51" y2="17.5" />
+      </>
+    ),
+    props
+  );
+
+// Sync / refresh — two circular arrows (used only for "Sync Models").
+export const RefreshIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <path d="M3 12a9 9 0 0 1 15.36-6.36L21 8" />
+        <path d="M21 3v5h-5" />
+        <path d="M21 12a9 9 0 0 1-15.36 6.36L3 16" />
+        <path d="M3 21v-5h5" />
+      </>
+    ),
+    props
+  );
+
 
 
 

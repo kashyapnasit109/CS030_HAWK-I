@@ -301,7 +301,7 @@ export default function SearchPage() {
         const token = localStorage.getItem("visioncctv_token");
         const bagVal = bagPresent === "yes" ? true : bagPresent === "no" ? false : null;
         
-        const res = await fetch("http://localhost:8000/api/search/by-attributes", {
+        const res = await fetch("http://localhost:8001/api/search/by-attributes", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -493,7 +493,7 @@ export default function SearchPage() {
                         >
                           {ref.image_url ? (
                             <img
-                              src={`http://localhost:8000${ref.image_url}`}
+                              src={`http://localhost:8001${ref.image_url}`}
                               alt={ref.label}
                               style={{ width: "100%", height: 70, objectFit: "cover" }}
                             />
@@ -781,7 +781,7 @@ export default function SearchPage() {
                       />
                       <div className="video-thumb">
                         {v.thumbnail_url ? (
-                          <img src={`http://localhost:8000${v.thumbnail_url}`} alt="" />
+                          <img src={`http://localhost:8001${v.thumbnail_url}`} alt="" />
                         ) : <FilmIcon size={24} style={{ color: "var(--text-muted)" }} />}
                       </div>
                       <div className="video-info">
@@ -912,7 +912,7 @@ export default function SearchPage() {
                 <button 
                   onClick={() => setAddModalOpen(false)}
                   style={{ background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "1rem" }}
-                >✕</button>
+                ><CloseIcon size={15} /></button>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -993,3 +993,4 @@ export default function SearchPage() {
     </ToastProvider>
   );
 }
+

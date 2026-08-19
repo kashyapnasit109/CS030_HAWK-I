@@ -201,7 +201,7 @@ def _embed_face_crop(face_bgr: np.ndarray, model_info: tuple | None = None) -> n
         if _facenet_session is None or _loaded_facenet_onnx_path != actual_path:
             import onnxruntime as ort  # noqa: PLC0415
             print(f"[face_recognition] Loading ONNX FaceNet model from {actual_path}...")
-            # ✅ Fix Bug 3: use CUDA provider when GPU is selected
+            # Fix Bug 3: use CUDA provider when GPU is selected
             try:
                 from ai_pipeline.device_manager import get_torch_device  # noqa: PLC0415
                 import torch  # noqa: PLC0415
@@ -678,7 +678,7 @@ def run_face_recognition_search(
 
                     results = detector(frame, device=device, verbose=False)
 
-                    # ✅ Report progress after each sampled frame
+                    # Report progress after each sampled frame
                     if progress_cb:
                         try:
                             frames_processed = frame_idx // frame_interval + 1

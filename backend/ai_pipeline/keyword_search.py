@@ -71,7 +71,7 @@ def _get_clip():
         _clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
         _clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
         _clip_model.eval()
-        # ✅ Fix Bug 1: move model to user-selected GPU
+        # Fix Bug 1: move model to user-selected GPU
         device = _get_clip_device()
         if device is not None:
             _clip_model = _clip_model.to(device)
@@ -428,7 +428,7 @@ def run_keyword_search(
 
         model, processor = _get_clip()
         matches = []
-        # ✅ Fix Bug 4: collect clip extraction tasks to run in parallel after scan
+        # Fix Bug 4: collect clip extraction tasks to run in parallel after scan
         clip_tasks: list[dict] = []
 
         # Build rich visual prompts for weapons and target queries
@@ -489,7 +489,7 @@ def run_keyword_search(
                         return_tensors="pt",
                         padding=True,
                     )
-                    # ✅ Fix Bug 1: move input tensors to the same device as model
+                    # Fix Bug 1: move input tensors to the same device as model
                     clip_dev = _get_clip_device()
                     if clip_dev is not None:
                         inputs = {k: v.to(clip_dev) if hasattr(v, "to") else v for k, v in inputs.items()}
@@ -544,7 +544,7 @@ def run_keyword_search(
         finally:
             cap.release()
 
-        # ✅ Fix Bug 4: extract all clips in parallel AFTER the GPU scan loop finishes
+        # Fix Bug 4: extract all clips in parallel AFTER the GPU scan loop finishes
         if clip_tasks:
             print(f"[keyword_search] Extracting {len(clip_tasks)} clip(s) in parallel...")
             extract_clips_parallel(clip_tasks, max_workers=4)

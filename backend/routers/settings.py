@@ -149,13 +149,22 @@ def save_settings(payload: SettingsPayload):
     """Save the updated admin system settings."""
     try:
         settings_dict = payload.model_dump()
-        current = load_settings_dict()
-        
-        # Merge key sections that might not be in payload (like ai_models)
+
+        # Merge over the RAW saved file (not load_settings_dict, which strips any
+        # section not present in DEFAULT_SETTINGS). This preserves sections the
+        # strict payload doesn't model — e.g. ai_models and ai_gateway — instead
+        # of silently wiping them on every generic save.
+        current: dict = {}
+        if SETTINGS_FILE.exists():
+            try:
+                with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                    current = json.load(f) or {}
+            except Exception:
+                current = {}
         for k, v in current.items():
             if k not in settings_dict:
                 settings_dict[k] = v
-                
+
         STORAGE_DIR.mkdir(parents=True, exist_ok=True)
         with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
             json.dump(settings_dict, f, indent=2)

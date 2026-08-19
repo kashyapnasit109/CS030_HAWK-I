@@ -3,10 +3,17 @@
 import { useEffect, useState, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
-import { LockIcon, ShieldIcon, FileTextIcon, CheckIcon, CloseIcon, CameraIcon, SearchIcon, ActivityIcon, SignalIcon, PackageIcon, TrashIcon, DownloadIcon } from "@/components/Icons";
+import { LockIcon, ShieldIcon, FileTextIcon, CheckIcon, CloseIcon, CameraIcon, SearchIcon, ActivityIcon, SignalIcon, PackageIcon, TrashIcon, DownloadIcon, RouterIcon, RefreshIcon, GlobeIcon, KeyIcon, SparklesIcon, CpuIcon, ZapIcon } from "@/components/Icons";
+import { getGatewayConfig, saveGatewayConfig, testGatewayConnection, syncGatewayModels, selectGatewayModel, getGatewayRequirements, type GatewayConfig, type GatewayModel, type GatewayRequirements } from "@/lib/api";
+
+const CAP_LABELS: Record<string, string> = {
+  chat: "Chat", instruct: "Instruct", multilingual: "Multilingual",
+  vision: "Vision", long_context: "Long context", flagship: "Flagship-tier",
+  fast: "Fast", specialized: "Specialized",
+};
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<"general" | "ai" | "ai_models" | "network" | "forensic" | "security">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "ai" | "ai_gateway" | "ai_models" | "network" | "forensic" | "security">("general");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -97,9 +104,105 @@ export default function SettingsPage() {
   const [gpuDevices, setGpuDevices] = useState<any[]>([]);
   const [gpuLoading, setGpuLoading] = useState(false);
 
+  // ─── AI Gateway state ─────────────────────────────────────────────
+  const [gw, setGw] = useState<GatewayConfig | null>(null);
+  const [gwReq, setGwReq] = useState<GatewayRequirements | null>(null);
+  const [gwBaseUrl, setGwBaseUrl] = useState("");
+  const [gwApiKey, setGwApiKey] = useState("");
+  const [gwTesting, setGwTesting] = useState(false);
+  const [gwSyncing, setGwSyncing] = useState(false);
+  const [gwSavingCreds, setGwSavingCreds] = useState(false);
+  const [gwTest, setGwTest] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const loadGateway = async () => {
+    try {
+      const [cfg, req] = await Promise.all([getGatewayConfig(), getGatewayRequirements()]);
+      setGw(cfg);
+      setGwReq(req);
+      setGwBaseUrl(cfg.base_url || "");
+    } catch {
+      /* backend offline — gateway panel will show a connect prompt */
+    }
+  };
+
+  const handleGwTest = async () => {
+    if (!gwBaseUrl.trim()) return showToast("Enter the gateway base URL first", "info");
+    setGwTesting(true);
+    setGwTest(null);
+    try {
+      const r = await testGatewayConnection({ base_url: gwBaseUrl.trim(), api_key: gwApiKey || undefined });
+      if (r.ok) {
+        setGwTest({ ok: true, msg: `Reachable — ${r.model_count ?? 0} models visible at ${r.prefix}` });
+        showToast("Gateway is reachable", "success");
+      } else {
+        setGwTest({ ok: false, msg: r.error || "Connection failed" });
+        showToast("Gateway unreachable", "error");
+      }
+    } catch (e: any) {
+      setGwTest({ ok: false, msg: e?.message || "Connection failed" });
+      showToast("Gateway test failed", "error");
+    } finally {
+      setGwTesting(false);
+    }
+  };
+
+  const handleGwSync = async () => {
+    if (!gwBaseUrl.trim()) return showToast("Enter the gateway base URL first", "info");
+    setGwSyncing(true);
+    try {
+      const r = await syncGatewayModels({ base_url: gwBaseUrl.trim(), api_key: gwApiKey || undefined });
+      await loadGateway();
+      setGwApiKey(""); // key is now persisted server-side; clear the plaintext field
+      const rec = r.recommended_model ? ` Recommended: ${r.recommended_model}.` : "";
+      showToast(`Synced ${r.total_count} models (${r.compatible_count} compatible).${rec}`, "success");
+    } catch (e: any) {
+      showToast(e?.message || "Model sync failed", "error");
+    } finally {
+      setGwSyncing(false);
+    }
+  };
+
+  const handleGwSelect = async (modelId: string) => {
+    try {
+      await selectGatewayModel(modelId);
+      await loadGateway();
+      showToast(`Model '${modelId}' is now active for AI tasks`, "success");
+    } catch (e: any) {
+      showToast(e?.message || "Failed to select model", "error");
+    }
+  };
+
+  const handleGwSaveCreds = async () => {
+    setGwSavingCreds(true);
+    try {
+      await saveGatewayConfig({
+        base_url: gwBaseUrl.trim(),
+        api_key: gwApiKey || undefined,
+      });
+      await loadGateway();
+      setGwApiKey("");
+      showToast("Gateway credentials saved", "success");
+    } catch (e: any) {
+      showToast(e?.message || "Failed to save credentials", "error");
+    } finally {
+      setGwSavingCreds(false);
+    }
+  };
+
+  const handleGwPatch = async (patch: Partial<GatewayConfig>) => {
+    // optimistic local update, then persist
+    setGw((prev) => (prev ? { ...prev, ...patch } : prev));
+    try {
+      await saveGatewayConfig(patch as any);
+    } catch (e: any) {
+      showToast(e?.message || "Failed to update gateway", "error");
+      await loadGateway();
+    }
+  };
+
   const refetchSettings = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/settings");
+      const res = await fetch("http://localhost:8001/api/settings");
       if (res.ok) {
         const data = await res.json();
         setSettings(data);
@@ -111,7 +214,7 @@ export default function SettingsPage() {
 
   const handleActivateModel = async (modelId: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/settings/models/activate/${modelId}`, {
+      const res = await fetch(`http://localhost:8001/api/settings/models/activate/${modelId}`, {
         method: "POST"
       });
       if (!res.ok) throw new Error("Failed to activate model");
@@ -125,7 +228,7 @@ export default function SettingsPage() {
   const handleDeleteModel = async (modelId: string) => {
     if (!confirm("Are you sure you want to delete this custom model and delete its weights file from disk?")) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/settings/models/${modelId}`, {
+      const res = await fetch(`http://localhost:8001/api/settings/models/${modelId}`, {
         method: "DELETE"
       });
       if (!res.ok) throw new Error("Failed to delete model");
@@ -142,7 +245,7 @@ export default function SettingsPage() {
     if (!downloadName) return showToast("Please provide a model name", "info");
     setDownloading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/settings/models/download", {
+      const res = await fetch("http://localhost:8001/api/settings/models/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: downloadUrl, name: downloadName, type: downloadType })
@@ -174,7 +277,7 @@ export default function SettingsPage() {
       fd.append("type", uploadType);
       fd.append("file", uploadFile);
       
-      const res = await fetch("http://localhost:8000/api/settings/models/upload", {
+      const res = await fetch("http://localhost:8001/api/settings/models/upload", {
         method: "POST",
         body: fd
       });
@@ -198,7 +301,7 @@ export default function SettingsPage() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const res = await fetch("http://localhost:8000/api/settings");
+        const res = await fetch("http://localhost:8001/api/settings");
         if (res.ok) {
           const data = await res.json();
           setSettings(data);
@@ -214,7 +317,7 @@ export default function SettingsPage() {
     async function fetchGpuInfo() {
       setGpuLoading(true);
       try {
-        const res = await fetch("http://localhost:8000/api/settings/gpu-info");
+        const res = await fetch("http://localhost:8001/api/settings/gpu-info");
         if (res.ok) {
           const data = await res.json();
           setGpuDevices(data.devices || []);
@@ -227,6 +330,7 @@ export default function SettingsPage() {
     }
     fetchSettings();
     fetchGpuInfo();
+    loadGateway();
   }, []);
 
   // Save settings via POST
@@ -234,7 +338,7 @@ export default function SettingsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:8000/api/settings", {
+      const res = await fetch("http://localhost:8001/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings)
@@ -266,7 +370,7 @@ export default function SettingsPage() {
     setEnrolling(true);
     try {
       const token = localStorage.getItem("visioncctv_token");
-      const res = await fetch("http://localhost:8000/api/auth/mfa/enroll", {
+      const res = await fetch("http://localhost:8001/api/auth/mfa/enroll", {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -296,7 +400,7 @@ export default function SettingsPage() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:8000/api/export/verify", {
+      const res = await fetch("http://localhost:8001/api/export/verify", {
         method: "POST",
         body: formData
       });
@@ -330,6 +434,7 @@ export default function SettingsPage() {
           {[
             { id: "general", label: "General & Storage", Icon: ActivityIcon },
             { id: "ai", label: "AI Calibration", Icon: SignalIcon },
+            { id: "ai_gateway", label: "AI Gateway", Icon: RouterIcon },
             { id: "ai_models", label: "AI Models Manager", Icon: PackageIcon },
             { id: "network", label: "LAN & CCTV Discovery", Icon: CameraIcon },
             { id: "forensic", label: "Forensic Integrity", Icon: ShieldIcon },
@@ -453,14 +558,14 @@ export default function SettingsPage() {
 
                     <div className="input-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
                       <label className="input-label" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontSize: "0.9rem" }}>⚡</span> AI Inference Hardware — Select Compute Device
+                        <CpuIcon size={15} style={{ color: "var(--accent)" }} /> AI Inference Hardware — Select Compute Device
                       </label>
                       <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "4px 0 12px 0" }}>
                         Choose which processor runs all AI models (YOLO, FaceNet, LPR). Select your dedicated NVIDIA GPU for maximum speed.
                       </p>
 
                       {gpuLoading ? (
-                        <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", padding: "12px 0" }}>🔍 Enumerating compute devices...</div>
+                        <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", padding: "12px 0" }}>Enumerating compute devices...</div>
                       ) : (
                         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                           {(gpuDevices.length > 0 ? gpuDevices : [
@@ -507,7 +612,7 @@ export default function SettingsPage() {
                                   display: "flex", alignItems: "center", justifyContent: "center",
                                   fontSize: "1.4rem", flexShrink: 0
                                 }}>
-                                  {isCudaDevice ? "🎮" : "🖥️"}
+                                  <CpuIcon size={22} style={{ color: isCudaDevice ? "var(--accent)" : "var(--text-muted)" }} />
                                 </div>
 
                                 {/* Device Info */}
@@ -520,7 +625,7 @@ export default function SettingsPage() {
                                       <span style={{ fontSize: "0.65rem", background: "rgba(59,130,246,0.15)", color: "var(--accent)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: "4px", padding: "1px 6px", fontWeight: 700, flexShrink: 0 }}>CUDA</span>
                                     )}
                                     {isSelected && (
-                                      <span style={{ fontSize: "0.65rem", background: isCudaDevice ? "rgba(59,130,246,0.2)" : "rgba(34,197,94,0.15)", color: isCudaDevice ? "var(--accent)" : "var(--green)", border: `1px solid ${isCudaDevice ? "rgba(59,130,246,0.4)" : "rgba(34,197,94,0.3)"}`, borderRadius: "4px", padding: "1px 8px", fontWeight: 700, flexShrink: 0 }}>🟢 Active</span>
+                                      <span style={{ fontSize: "0.65rem", background: isCudaDevice ? "rgba(59,130,246,0.2)" : "rgba(34,197,94,0.15)", color: isCudaDevice ? "var(--accent)" : "var(--green)", border: `1px solid ${isCudaDevice ? "rgba(59,130,246,0.4)" : "rgba(34,197,94,0.3)"}`, borderRadius: "4px", padding: "1px 8px", fontWeight: 700, flexShrink: 0 }}>Active</span>
                                     )}
                                   </div>
 
@@ -555,7 +660,7 @@ export default function SettingsPage() {
                           {/* RTX performance tip */}
                           {settings.ai.device_provider === "CUDA" && (
                             <div style={{ padding: "10px 14px", background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.15)", borderRadius: "8px", fontSize: "0.78rem", color: "var(--text-secondary)", display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                              <span style={{ fontSize: "1rem", flexShrink: 0 }}>⚡</span>
+                              <ZapIcon size={15} style={{ flexShrink: 0, color: "var(--accent)", marginTop: "1px" }} />
                               <span><strong style={{ color: "var(--accent)" }}>GPU acceleration active.</strong> YOLO, FaceNet, and LPR inference will run on your dedicated GPU — expect 5–15× faster analysis compared to CPU mode. Make sure your PyTorch installation includes CUDA support.</span>
                             </div>
                           )}
@@ -563,6 +668,195 @@ export default function SettingsPage() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* AI Gateway tab */}
+              {activeTab === "ai_gateway" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
+                  <div>
+                    <h2 style={{ color: "var(--text-primary)", fontSize: "1.2rem", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                      <RouterIcon size={20} style={{ color: "var(--accent)" }} /> Custom AI Router Gateway
+                    </h2>
+                    <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "6px 0 0 0", maxWidth: "680px" }}>
+                      Connect any OpenAI-compatible gateway (OpenAI, OpenRouter, LM Studio, Ollama, vLLM, LiteLLM, Groq…). SentinelVision uses it as a reasoning layer for natural-language query understanding, multi-language translation, and forensic report narratives — the local vision pipeline keeps running with or without it.
+                    </p>
+                  </div>
+
+                  {/* Live status strip */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", padding: "12px 16px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                    {(() => {
+                      const active = !!(gw?.enabled && gw?.selected_model);
+                      return (
+                        <>
+                          <span style={{ width: 9, height: 9, borderRadius: "50%", background: active ? "var(--green)" : "var(--text-muted)", boxShadow: active ? "0 0 8px var(--green)" : "none", flexShrink: 0 }} />
+                          <span style={{ fontSize: "0.85rem", fontWeight: 600, color: active ? "var(--green)" : "var(--text-muted)" }}>
+                            {active ? "Gateway active" : gw?.base_url ? "Configured — not enabled" : "Not configured"}
+                          </span>
+                          {gw?.selected_model && (
+                            <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                              · Active model: <span className="mono" style={{ color: "var(--accent)" }}>{gw.selected_model}</span>
+                            </span>
+                          )}
+                          {typeof gw?.models?.length === "number" && gw.models.length > 0 && (
+                            <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>· {gw.models.length} models synced</span>
+                          )}
+                          <label style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px", fontSize: "0.8rem", color: "var(--text-secondary)", cursor: gw ? "pointer" : "default" }}>
+                            <input type="checkbox" disabled={!gw || !gw.selected_model} checked={!!gw?.enabled} onChange={(e) => handleGwPatch({ enabled: e.target.checked })} />
+                            Enable gateway
+                          </label>
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Requirements — what a good model needs */}
+                  {gwReq && (
+                    <div style={{ padding: "16px 18px", background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.16)", borderRadius: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                        <SparklesIcon size={15} style={{ color: "var(--accent)" }} />
+                        <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-primary)" }}>What SentinelVision needs from a model</span>
+                      </div>
+                      <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", margin: "0 0 10px 0", lineHeight: 1.5 }}>{gwReq.summary}</p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                        {gwReq.tasks.map((t) => (
+                          <div key={t.key} title={t.detail} style={{ fontSize: "0.72rem", color: "var(--text-secondary)", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "6px", padding: "4px 9px" }}>
+                            {t.title}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Connection card */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "18px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label" style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                        <GlobeIcon size={14} style={{ color: "var(--text-muted)" }} /> Gateway Base URL
+                      </label>
+                      <input className="input-field" placeholder="https://openrouter.ai/api/v1  or  http://localhost:11434" value={gwBaseUrl} onChange={(e) => setGwBaseUrl(e.target.value)} />
+                      <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>The <span className="mono">/v1</span> suffix is added automatically if you omit it.</span>
+                    </div>
+
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label" style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                        <KeyIcon size={14} style={{ color: "var(--text-muted)" }} /> API Key / Auth Token
+                      </label>
+                      <input className="input-field" type="password" autoComplete="off"
+                        placeholder={gw?.has_api_key ? `Saved (${gw.api_key_masked}) — leave blank to keep` : "sk-…  (leave blank for keyless local gateways)"}
+                        value={gwApiKey} onChange={(e) => setGwApiKey(e.target.value)} />
+                      <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Stored locally on this edge node; never returned to the browser once saved.</span>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+                      <button type="button" className="btn btn-secondary" onClick={handleGwTest} disabled={gwTesting} style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                        <SignalIcon size={15} /> {gwTesting ? "Testing…" : "Test Connection"}
+                      </button>
+                      <button type="button" className="btn btn-secondary" onClick={handleGwSaveCreds} disabled={gwSavingCreds} style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                        <CheckIcon size={15} /> {gwSavingCreds ? "Saving…" : "Save Credentials"}
+                      </button>
+                      <button type="button" className="btn btn-primary" onClick={handleGwSync} disabled={gwSyncing} style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                        <RefreshIcon size={15} /> {gwSyncing ? "Syncing models…" : "Sync Models"}
+                      </button>
+                      {gwTest && (
+                        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.78rem", color: gwTest.ok ? "var(--green)" : "#ef4444" }}>
+                          {gwTest.ok ? <CheckIcon size={14} /> : <CloseIcon size={14} />} {gwTest.msg}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Model catalogue with intelligent recommendation */}
+                  {gw && gw.models && gw.models.length > 0 && (
+                    <div>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "12px" }}>
+                        <h3 style={{ color: "var(--text-primary)", fontSize: "0.95rem", fontWeight: 700, margin: 0 }}>Available Models</h3>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                          Scored for SentinelVision's tasks — the recommended model is the best all-rounder.
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "440px", overflowY: "auto", paddingRight: "4px" }}>
+                        {gw.models.map((m: GatewayModel) => {
+                          const isSelected = gw.selected_model === m.id;
+                          const disabled = !m.compatible;
+                          return (
+                            <div key={m.id} style={{
+                              display: "flex", alignItems: "center", gap: "14px", padding: "13px 16px", borderRadius: "10px",
+                              border: isSelected ? "2px solid var(--accent)" : m.recommended ? "1px solid rgba(59,130,246,0.4)" : "1px solid var(--border)",
+                              background: isSelected ? "rgba(59,130,246,0.07)" : m.recommended ? "rgba(59,130,246,0.03)" : "var(--bg-elevated)",
+                              opacity: disabled ? 0.55 : 1,
+                              boxShadow: isSelected ? "0 0 18px rgba(59,130,246,0.12)" : "none",
+                              transition: "all 0.18s ease",
+                            }}>
+                              {/* score dial */}
+                              <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: "10px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: m.compatible ? "rgba(59,130,246,0.1)" : "rgba(160,160,160,0.08)" }}>
+                                <span style={{ fontSize: "0.95rem", fontWeight: 800, color: m.compatible ? "var(--accent)" : "var(--text-muted)", lineHeight: 1 }}>{m.score}</span>
+                                <span style={{ fontSize: "0.55rem", color: "var(--text-muted)", marginTop: "2px", letterSpacing: "0.03em" }}>SCORE</span>
+                              </div>
+
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "4px" }}>
+                                  <span className="mono" style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis" }}>{m.id}</span>
+                                  {m.recommended && (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.62rem", fontWeight: 700, color: "var(--accent)", background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.4)", borderRadius: "4px", padding: "1px 7px" }}>
+                                      <SparklesIcon size={11} /> RECOMMENDED
+                                    </span>
+                                  )}
+                                  {!m.compatible && (
+                                    <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-muted)", background: "rgba(160,160,160,0.1)", border: "1px solid var(--border)", borderRadius: "4px", padding: "1px 7px" }}>INCOMPATIBLE</span>
+                                  )}
+                                </div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "5px" }}>
+                                  {m.capabilities.filter((c) => c !== "chat" || m.capabilities.length === 1).map((c) => (
+                                    <span key={c} style={{ fontSize: "0.63rem", color: "var(--text-secondary)", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "4px", padding: "1px 6px" }}>{CAP_LABELS[c] || c}</span>
+                                  ))}
+                                </div>
+                                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.4 }}>{m.reason}</span>
+                              </div>
+
+                              <div style={{ flexShrink: 0 }}>
+                                {isSelected ? (
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.72rem", fontWeight: 700, color: "var(--green)" }}>
+                                    <CheckIcon size={14} /> Active
+                                  </span>
+                                ) : (
+                                  <button type="button" className="btn btn-secondary" disabled={disabled} onClick={() => handleGwSelect(m.id)} style={{ fontSize: "0.75rem", padding: "6px 14px" }}>
+                                    Use model
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Feature toggles */}
+                  {gw && (
+                    <div>
+                      <h3 style={{ color: "var(--text-primary)", fontSize: "0.95rem", fontWeight: 700, margin: "0 0 12px 0" }}>Where to use the gateway</h3>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
+                        {([
+                          { key: "use_for_query", Icon: SearchIcon, title: "Query understanding", desc: "Turn messy, natural-language searches into clean visual search terms + object hints." },
+                          { key: "use_for_translation", Icon: GlobeIcon, title: "Multi-language translation", desc: "Translate Hindi / Gujarati / mixed queries to English for the vision models." },
+                          { key: "use_for_reports", Icon: FileTextIcon, title: "Forensic report narratives", desc: "Write the executive summary paragraph in exported PDF evidence reports." },
+                        ] as const).map(({ key, Icon, title, desc }) => (
+                          <label key={key} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 15px", borderRadius: "10px", border: "1px solid var(--border)", background: "var(--bg-elevated)", cursor: "pointer" }}>
+                            <Icon size={17} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: "0.83rem", fontWeight: 600, color: "var(--text-primary)" }}>{title}</div>
+                              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{desc}</div>
+                            </div>
+                            <input type="checkbox" checked={!!(gw as any)[key]} onChange={(e) => handleGwPatch({ [key]: e.target.checked } as any)} style={{ flexShrink: 0 }} />
+                          </label>
+                        ))}
+                      </div>
+                      <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "10px 0 0 0" }}>
+                        If the gateway is unavailable at run time, SentinelVision automatically falls back to its built-in offline logic — searches never fail because of a gateway outage.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1087,3 +1381,4 @@ export default function SettingsPage() {
     </ToastProvider>
   );
 }
+

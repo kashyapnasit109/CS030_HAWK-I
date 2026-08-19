@@ -33,7 +33,8 @@ import {
   SettingsIcon,
   PaletteIcon,
   MailIcon,
-  VideoIcon
+  VideoIcon,
+  RocketIcon
 } from "@/components/Icons";
 
 
@@ -58,6 +59,10 @@ const BLUE = "#3B82F6";
 const BLUE_DIM = "rgba(59,130,246,0.12)";
 const BLUE_BORDER = "rgba(59,130,246,0.25)";
 
+// Investor relations contact. Set this to your real address before deploying —
+// it is the only place the pitch/demo CTAs read from.
+const CONTACT_EMAIL = "investors@sentinelvision.ai";
+
 function formatINR(val: number): string {
   if (val >= 10000000) {
     return `₹${(val / 10000000).toFixed(2)} Cr`;
@@ -73,6 +78,10 @@ export default function InvestorsPage() {
   const [roiCameras, setRoiCameras] = useState(50);
   const [roiOfficers, setRoiOfficers] = useState(10);
   const [animateKPIs, setAnimateKPIs] = useState(false);
+
+  // Contact CTA modal: null (closed) | "pitch" | "demo"
+  const [contactIntent, setContactIntent] = useState<null | "pitch" | "demo">(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimateKPIs(true), 300);
@@ -424,8 +433,8 @@ export default function InvestorsPage() {
             </div>
 
             <div style={{ ...cardStyle, background: "var(--bg-card)" }}>
-              <h3 style={{ color: "#F1F5F9", fontWeight: 800, marginBottom: "16px", fontSize: "1.05rem" }}>
-                🚀 Latest Features &amp; Platform Innovations
+              <h3 style={{ color: "#F1F5F9", fontWeight: 800, marginBottom: "16px", fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "9px" }}>
+                <RocketIcon size={19} style={{ color: "var(--accent)" }} /> Latest Features &amp; Platform Innovations
               </h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
                 {[
@@ -787,10 +796,10 @@ export default function InvestorsPage() {
                 SentinelVision is production-ready, with real investigative workflows, AI pipelines, and a platform built for the courtroom. Every rupee invested goes directly to expansion and adoption.
               </div>
               <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
-                <div style={{ padding: "12px 28px", background: BLUE, color: "white", borderRadius: "8px", fontWeight: 700, boxShadow: "0 4px 16px rgba(59,130,246,0.28)", fontSize: "0.9rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <div role="button" tabIndex={0} onClick={() => setContactIntent("pitch")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setContactIntent("pitch"); } }} style={{ padding: "12px 28px", background: BLUE, color: "white", borderRadius: "8px", fontWeight: 700, boxShadow: "0 4px 16px rgba(59,130,246,0.28)", fontSize: "0.9rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
                   <MailIcon size={16} /> Request Full Pitch Pack
                 </div>
-                <div style={{ padding: "12px 28px", background: "rgba(255,255,255,0.05)", color: "#F1F5F9", borderRadius: "8px", fontWeight: 700, border: "1px solid rgba(255,255,255,0.12)", fontSize: "0.9rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <div role="button" tabIndex={0} onClick={() => setContactIntent("demo")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setContactIntent("demo"); } }} style={{ padding: "12px 28px", background: "rgba(255,255,255,0.05)", color: "#F1F5F9", borderRadius: "8px", fontWeight: 700, border: "1px solid rgba(255,255,255,0.12)", fontSize: "0.9rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
                   <VideoIcon size={16} /> Schedule Live Demo
                 </div>
               </div>
@@ -798,8 +807,84 @@ export default function InvestorsPage() {
           </div>
         )}
 
+        {contactIntent && (() => {
+          const isPitch = contactIntent === "pitch";
+          const subject = isPitch
+            ? "SentinelVision — Full Investor Pitch Pack Request"
+            : "SentinelVision — Live Demo Request";
+          const body = isPitch
+            ? "Hi SentinelVision team,\n\nI'd like to receive the full investor pitch pack (financial model, roadmap, and deployment references).\n\nOrganisation:\nRole:\nBest time to connect:\n\nThank you."
+            : "Hi SentinelVision team,\n\nI'd like to schedule a live demo of the SentinelVision platform.\n\nOrganisation:\nRole:\nPreferred date / time & timezone:\n\nThank you.";
+          const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+          const bullets = isPitch
+            ? ["Financial model & 3-year projections", "Deployment architecture & security posture", "Reference deployments and case outcomes"]
+            : ["45-minute guided walkthrough on live footage", "Q&A with the engineering team", "On-premise deployment & data-sovereignty review"];
+          const copyEmail = () => {
+            try {
+              navigator.clipboard?.writeText(CONTACT_EMAIL);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            } catch { /* clipboard unavailable */ }
+          };
+          return (
+            <div
+              onClick={() => setContactIntent(null)}
+              style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.72)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", animation: "fadeIn 0.18s ease" }}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{ width: "100%", maxWidth: "480px", background: "var(--bg-card)", border: `1px solid ${BLUE_BORDER}`, borderRadius: "16px", padding: "28px", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
+                    <div style={{ width: 42, height: 42, borderRadius: "11px", background: BLUE_DIM, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {isPitch ? <MailIcon size={20} style={{ color: BLUE }} /> : <VideoIcon size={20} style={{ color: BLUE }} />}
+                    </div>
+                    <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "#F1F5F9" }}>
+                      {isPitch ? "Request Full Pitch Pack" : "Schedule a Live Demo"}
+                    </div>
+                  </div>
+                  <div role="button" tabIndex={0} aria-label="Close" onClick={() => setContactIntent(null)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setContactIntent(null); } }} style={{ cursor: "pointer", color: "#94A3B8", padding: "4px", display: "flex", flexShrink: 0 }}>
+                    <CloseIcon size={18} />
+                  </div>
+                </div>
+
+                <p style={{ fontSize: "0.85rem", color: "#94A3B8", lineHeight: 1.5, margin: "0 0 16px 0" }}>
+                  {isPitch
+                    ? "We'll send the complete investor package within one business day."
+                    : "Tell us your availability and we'll confirm a session that fits your team."}
+                </p>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
+                  {bullets.map((b, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "9px", fontSize: "0.82rem", color: "#CBD5E1" }}>
+                      <CheckIcon size={15} style={{ color: "#22C55E", flexShrink: 0 }} /> {b}
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "11px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", marginBottom: "16px" }}>
+                  <MailIcon size={15} style={{ color: "#64748B", flexShrink: 0 }} />
+                  <span style={{ fontSize: "0.82rem", color: "#E2E8F0", fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{CONTACT_EMAIL}</span>
+                  <div role="button" tabIndex={0} onClick={copyEmail} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); copyEmail(); } }} style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.74rem", fontWeight: 700, color: copied ? "#22C55E" : BLUE, flexShrink: 0 }}>
+                    {copied ? <><CheckIcon size={14} /> Copied</> : <><ClipboardIcon size={14} /> Copy</>}
+                  </div>
+                </div>
+
+                <a
+                  href={mailto}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "9px", width: "100%", padding: "13px", background: BLUE, color: "white", borderRadius: "10px", fontWeight: 700, fontSize: "0.9rem", textDecoration: "none", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}
+                >
+                  <MailIcon size={17} /> Open Pre-Filled Email Draft
+                </a>
+              </div>
+            </div>
+          );
+        })()}
+
         <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       </div>
     </AppLayout>
   );
 }
+

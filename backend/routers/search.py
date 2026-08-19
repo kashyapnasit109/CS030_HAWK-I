@@ -264,11 +264,28 @@ def _run_keyword_search_task(job_id: str, request: KeywordSearchRequest):
     _jobs[job_id]["started_at"] = time.time()
     all_matches = []
 
-    # Translate Gujarati/Hindi to English if applicable
-    search_keyword, translated = translate_query_to_english(request.keyword)
-    if translated:
-        print(f"[nlp_translation] Translated '{request.keyword}' -> '{search_keyword}'")
+    # Language-aware query understanding, best-available strategy:
+    #   1) Custom AI gateway (if configured) turns a messy, possibly non-English
+    #      query into a clean English visual phrase + COCO object hints.
+    #   2) Otherwise, the built-in Hindi/Gujarati dictionary translation.
+    search_keyword = request.keyword
+    try:
+        import ai_gateway  # noqa: PLC0415
+        understood = ai_gateway.understand_query(request.keyword)
+    except Exception:
+        understood = None
+
+    if understood and understood.get("english"):
+        search_keyword = understood["english"]
         _jobs[job_id]["translated_query"] = search_keyword
+        _jobs[job_id]["gateway_understanding"] = understood
+        print(f"[ai_gateway] Understood '{request.keyword}' -> '{search_keyword}' "
+              f"objects={understood.get('objects')}")
+    else:
+        search_keyword, translated = translate_query_to_english(request.keyword)
+        if translated:
+            print(f"[nlp_translation] Translated '{request.keyword}' -> '{search_keyword}'")
+            _jobs[job_id]["translated_query"] = search_keyword
 
     try:
         for vid_id in request.video_ids:
@@ -351,7 +368,7 @@ def search_by_image(
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Face Re-ID: {', '.join(request.reference_ids)}"
     }
-    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    # Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
     t = threading.Thread(target=_run_face_search_task, args=(job_id, request), daemon=True)
     t.start()
     return {"job_id": job_id, "status": "queued"}
@@ -370,7 +387,7 @@ def search_by_keyword(
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Keyword: \"{request.keyword}\""
     }
-    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    # Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
     t = threading.Thread(target=_run_keyword_search_task, args=(job_id, request), daemon=True)
     t.start()
     return {"job_id": job_id, "status": "queued"}
@@ -389,7 +406,7 @@ def search_by_lpr(
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Plate: \"{request.plate_text}\""
     }
-    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    # Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
     t = threading.Thread(target=_run_lpr_search_task, args=(job_id, request), daemon=True)
     t.start()
     return {"job_id": job_id, "status": "queued"}
@@ -624,7 +641,7 @@ def search_by_object(request: ObjectSearchRequest, background_tasks: BackgroundT
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Object: {', '.join(request.target_classes)}" if request.target_classes else "Object: All"
     }
-    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    # Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
     t = threading.Thread(target=_run_object_search_task, args=(job_id, request), daemon=True)
     t.start()
     return {"job_id": job_id, "status": "queued"}
@@ -639,7 +656,7 @@ def search_activity(request: ActivityAnalysisRequest, background_tasks: Backgrou
         "frames_processed": 0, "frames_matched": 0,
         "query": f"Activity: Crowd >= {request.crowd_threshold}"
     }
-    # ✅ Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
+    # Fix Bug 5: run in a true OS thread so the FastAPI event loop stays free
     t = threading.Thread(target=_run_activity_analysis_task, args=(job_id, request), daemon=True)
     t.start()
     return {"job_id": job_id, "status": "queued"}

@@ -327,7 +327,7 @@ export default function UploadPage() {
                 <div className="video-item" key={v.id}>
                   <div className="video-thumb">
                     {v.thumbnail_url
-                      ? <img src={`http://localhost:8000${v.thumbnail_url}`} alt={v.camera_id} />
+                      ? <img src={`http://localhost:8001${v.thumbnail_url}`} alt={v.camera_id} />
                       : <VideoIcon size={24} style={{ color: "var(--text-muted)" }} />}
                   </div>
                   <div className="video-info">
@@ -368,3 +368,4 @@ export default function UploadPage() {
     </ToastProvider>
   );
 }
+

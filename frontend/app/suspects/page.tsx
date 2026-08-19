@@ -175,7 +175,7 @@ export default function SuspectsPage() {
                     </button>
                     {ref.image_url ? (
                       <img
-                        src={`http://localhost:8000${ref.image_url}`}
+                        src={`http://localhost:8001${ref.image_url}`}
                         alt={ref.label}
                         style={{
                           width: "100%", height: 100,
@@ -204,3 +204,4 @@ export default function SuspectsPage() {
     </ToastProvider>
   );
 }
+

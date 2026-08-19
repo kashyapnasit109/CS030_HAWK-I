@@ -7,9 +7,9 @@ import { VideoIcon, PlayIcon, PauseIcon, ClockIcon } from "@/components/Icons";
 
 // Mock video segments
 const videoSegments = [
-  { id: "seg1", label: "00:00 - 04:00 (Continuous Archive)", url: "http://localhost:8000/storage/uploads/subway.mp4" },
-  { id: "seg2", label: "08:30 - 10:00 (Morning Rush)", url: "http://localhost:8000/storage/uploads/subway.mp4" },
-  { id: "seg3", label: "13:00 - 15:30 (Afternoon Shift)", url: "http://localhost:8000/storage/uploads/subway.mp4" },
+  { id: "seg1", label: "00:00 - 04:00 (Continuous Archive)", url: "http://localhost:8001/storage/uploads/subway.mp4" },
+  { id: "seg2", label: "08:30 - 10:00 (Morning Rush)", url: "http://localhost:8001/storage/uploads/subway.mp4" },
+  { id: "seg3", label: "13:00 - 15:30 (Afternoon Shift)", url: "http://localhost:8001/storage/uploads/subway.mp4" },
 ];
 
 // Generate motion activity values (0-100) for 24 hours (24 bars)
@@ -209,7 +209,7 @@ export default function PlaybackPage() {
               <div style={{ width: "100%", height: "400px", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
                 {isTimeRecorded(currentTimeSec) ? (
                   <video
-                    src="http://localhost:8000/storage/uploads/subway.mp4"
+                    src="http://localhost:8001/storage/uploads/subway.mp4"
                     autoPlay={isPlaying}
                     muted
                     loop
@@ -392,3 +392,4 @@ export default function PlaybackPage() {
     </ToastProvider>
   );
 }
+

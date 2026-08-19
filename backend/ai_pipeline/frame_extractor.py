@@ -181,7 +181,7 @@ def extract_clips_parallel(
     max_workers: int = 4,
 ) -> None:
     """
-    ✅ Fix Bug 4: Extract multiple clips concurrently using a thread pool
+    Fix Bug 4: Extract multiple clips concurrently using a thread pool
     instead of blocking the scan loop with serial ffmpeg calls.
 
     Each task dict must have keys:

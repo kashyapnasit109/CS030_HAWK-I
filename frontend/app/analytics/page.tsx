@@ -164,7 +164,7 @@ export default function AnalyticsPage() {
                     >
                       <div style={{ width: 48, height: 48, background: "#000", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}>
                         {alert.snapshot_url ? (
-                          <img src={`http://localhost:8000${alert.snapshot_url}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <img src={`http://localhost:8001${alert.snapshot_url}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         ) : (
                           <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <AlertIcon size={18} style={{ color: "var(--text-muted)" }} />
@@ -311,3 +311,4 @@ export default function AnalyticsPage() {
     </ToastProvider>
   );
 }
+

@@ -127,7 +127,7 @@ export default function LivePage() {
         if (cameras.length > 0) {
           // Fetch genuine alerts from backend
           const since = Date.now() / 1000 - 15;
-          const res = await fetch(`http://localhost:8000/api/cameras/alerts/all?since=${since}`);
+          const res = await fetch(`http://localhost:8001/api/cameras/alerts/all?since=${since}`);
           if (res.ok) {
             const data = await res.json();
             if (data.alerts && data.alerts.length > 0) {
@@ -322,7 +322,7 @@ export default function LivePage() {
     if (cameras.length > 1) {
       return getCameraStreamUrl(cameras[1].id);
     }
-    return "http://localhost:8000/storage/uploads/subway.mp4";
+    return "http://localhost:8001/storage/uploads/subway.mp4";
   };
 
   // Demo mode: no real cameras registered, so feeds and alerts are simulated.
@@ -422,7 +422,7 @@ export default function LivePage() {
                 ) : (
                   <video
                     ref={videoRef}
-                    src="http://localhost:8000/storage/uploads/subway.mp4"
+                    src="http://localhost:8001/storage/uploads/subway.mp4"
                     autoPlay
                     loop
                     muted
@@ -567,7 +567,7 @@ export default function LivePage() {
                   {selectedRef && selectedRef.image_url && (
                     <div style={{ marginTop: 12, borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }}>
                       <img
-                        src={`http://localhost:8000${selectedRef.image_url}`}
+                        src={`http://localhost:8001${selectedRef.image_url}`}
                         alt={selectedRef.label}
                         style={{ width: "100%", height: 100, objectFit: "cover" }}
                       />
@@ -611,7 +611,7 @@ export default function LivePage() {
                     >
                       {alert.frameUrl ? (
                         <img
-                          src={alert.frameUrl.startsWith("http") ? alert.frameUrl : `http://localhost:8000${alert.frameUrl}`}
+                          src={alert.frameUrl.startsWith("http") ? alert.frameUrl : `http://localhost:8001${alert.frameUrl}`}
                           alt=""
                           style={{ width: 44, height: 44, borderRadius: 4, objectFit: "cover", flexShrink: 0 }}
                         />
@@ -677,3 +677,4 @@ export default function LivePage() {
     </ToastProvider>
   );
 }
+

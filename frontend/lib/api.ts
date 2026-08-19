@@ -1,9 +1,9 @@
 /**
  * VisionCCTV API client
- * All calls go to http://localhost:8000
+ * All calls go to http://localhost:8001
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 export type ApiError = Error & { status: number; isNetworkError?: boolean };
 
@@ -601,4 +601,131 @@ export function getActiveCase(): ActiveCase {
     number: localStorage.getItem("visioncctv_active_case_number"),
   };
 }
+
+// ─── Custom AI Gateway ───────────────────────────────────────────────
+// Connect any OpenAI-compatible router (OpenAI, OpenRouter, LM Studio,
+// Ollama, vLLM, LiteLLM, Groq, …). Sync models, get an intelligent
+// recommendation, and select one for SentinelVision's AI tasks.
+
+export interface GatewayModel {
+  id: string;
+  score: number;
+  compatible: boolean;
+  capabilities: string[];
+  reason: string;
+  recommended: boolean;
+  context_length?: number;
+  owned_by?: string;
+}
+
+export interface GatewayConfig {
+  enabled: boolean;
+  base_url: string;
+  api_key_masked: string;
+  has_api_key: boolean;
+  selected_model: string;
+  recommended_model: string;
+  temperature: number;
+  max_tokens: number;
+  timeout_seconds: number;
+  models: GatewayModel[];
+  last_synced: number;
+  last_status: string;
+  use_for_query: boolean;
+  use_for_translation: boolean;
+  use_for_reports: boolean;
+}
+
+export interface GatewayRequirementTask {
+  key: string;
+  title: string;
+  detail: string;
+  needs: string[];
+}
+
+export interface GatewayRequirements {
+  summary: string;
+  tasks: GatewayRequirementTask[];
+  priorities: Record<string, string>;
+}
+
+export async function getGatewayConfig(): Promise<GatewayConfig> {
+  return apiFetch<GatewayConfig>("/api/ai-gateway/config");
+}
+
+export async function saveGatewayConfig(
+  patch: Partial<{
+    base_url: string;
+    api_key: string;
+    enabled: boolean;
+    selected_model: string;
+    temperature: number;
+    max_tokens: number;
+    timeout_seconds: number;
+    use_for_query: boolean;
+    use_for_translation: boolean;
+    use_for_reports: boolean;
+  }>
+): Promise<{ success: boolean; config: GatewayConfig }> {
+  return apiFetch("/api/ai-gateway/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+}
+
+export async function testGatewayConnection(creds?: {
+  base_url?: string;
+  api_key?: string;
+}): Promise<{ ok: boolean; model_count?: number; error?: string; prefix?: string }> {
+  return apiFetch("/api/ai-gateway/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(creds || {}),
+  });
+}
+
+export async function syncGatewayModels(creds?: {
+  base_url?: string;
+  api_key?: string;
+}): Promise<{
+  success: boolean;
+  models: GatewayModel[];
+  recommended_model: string;
+  compatible_count: number;
+  total_count: number;
+  selected_model: string;
+}> {
+  return apiFetch("/api/ai-gateway/sync-models", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(creds || {}),
+  });
+}
+
+export async function selectGatewayModel(
+  model: string
+): Promise<{ success: boolean; selected_model: string }> {
+  return apiFetch("/api/ai-gateway/select-model", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model }),
+  });
+}
+
+export async function getGatewayRequirements(): Promise<GatewayRequirements> {
+  return apiFetch<GatewayRequirements>("/api/ai-gateway/requirements");
+}
+
+export async function gatewayChat(
+  message: string,
+  system?: string
+): Promise<{ success: boolean; reply: string; model: string }> {
+  return apiFetch("/api/ai-gateway/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, system }),
+  });
+}
+
 

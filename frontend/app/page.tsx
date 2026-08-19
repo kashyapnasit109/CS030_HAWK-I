@@ -167,7 +167,7 @@ export default function DashboardPage() {
     // Fetch settings parameters
     async function loadSettings() {
       try {
-        const res = await fetch("http://localhost:8000/api/settings");
+        const res = await fetch("http://localhost:8001/api/settings");
         if (res.ok) {
           const data = await res.json();
           setSettings(data);
@@ -184,7 +184,7 @@ export default function DashboardPage() {
     const interval = setInterval(async () => {
       try {
         const since = Date.now() / 1000 - 60; // Fetch alerts in the last minute
-        const res = await fetch(`http://localhost:8000/api/cameras/alerts/all?since=${since}`);
+        const res = await fetch(`http://localhost:8001/api/cameras/alerts/all?since=${since}`);
         if (res.ok) {
           const data = await res.json();
           if (data.alerts && data.alerts.length > 0) {
@@ -483,7 +483,7 @@ export default function DashboardPage() {
                     >
                       <div style={{ width: "60px", height: "40px", borderRadius: "4px", overflow: "hidden", background: "#000000", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {v.thumbnail_url ? (
-                          <img src={`http://localhost:8000${v.thumbnail_url}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <img src={`http://localhost:8001${v.thumbnail_url}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         ) : (
                           <FilmIcon size={18} style={{ color: "var(--text-muted)" }} />
                         )}
@@ -551,7 +551,7 @@ export default function DashboardPage() {
                       }}
                     >
                       <div style={{ width: "32px", height: "32px", borderRadius: "4px", overflow: "hidden", flexShrink: 0 }}>
-                        <img src={`http://localhost:8000${alt.snapshot_url}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <img src={`http://localhost:8001${alt.snapshot_url}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", fontWeight: "bold", color: "var(--accent)", marginBottom: "1px" }}>
@@ -624,3 +624,4 @@ export default function DashboardPage() {
     </ToastProvider>
   );
 }
+

@@ -79,7 +79,7 @@ if ORIGINAL_VIDEO.exists() and not any(UPLOADS_DIR.glob("*.meta.json")):
     (UPLOADS_DIR / "subway.meta.json").write_text(json.dumps(meta, indent=2))
 
 # Register routers
-from routers import videos, search, export, references, cameras, auth, cases, watchlists, audit, settings, enhance  # noqa: E402
+from routers import videos, search, export, references, cameras, auth, cases, watchlists, audit, settings, enhance, ai_gateway  # noqa: E402
 
 app = FastAPI(
     title="VisionCCTV API",
@@ -109,6 +109,7 @@ app.include_router(watchlists.router, prefix="/api/watchlists", tags=["Watchlist
 app.include_router(audit.router, prefix="/api/audit", tags=["Audit"])
 app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
 app.include_router(enhance.router, prefix="/api/enhance", tags=["Enhance"])
+app.include_router(ai_gateway.router, prefix="/api/ai-gateway", tags=["AI Gateway"])
 
 
 @app.on_event("startup")
