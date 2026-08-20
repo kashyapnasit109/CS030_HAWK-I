@@ -19,3 +19,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 20, 2026 09:05:48]` **perf(detector): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Aug 20, 2026 09:43:29]` **refactor(wall): isolate optical hazard detectors into standalone inference module** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Aug 20, 2026 10:05:45]` **feat(evidence): add Section 65B statutory evidence SHA-256 seal verification** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
+- `[Aug 20, 2026 10:57:09]` **perf(wall): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
