@@ -315,128 +315,167 @@ class HazardDetectionSuite:
                 cv2.rectangle(annotated, (bx["x1"], max(0, bx["y1"] - 18)), (bx["x1"] + tw + 6, max(18, bx["y1"])), (0, 200, 255), -1)
                 cv2.putText(annotated, tag, (bx["x1"] + 3, max(14, bx["y1"] - 4)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 1, cv2.LINE_AA)
 
-        # ── 2. Fall Detection with YOLO-Pose Keypoint Engine ───────────────────
+        # ── 2. Fall & Slip Immobility Detection (Multi-Keypoint + Aspect Ratio + Height Dynamics) ──
         if "fall" in active:
             pose_model = load_cached_model("fall_pose")
+            person_model = load_cached_model("person_crowd")
+
+            candidate_boxes = []
+            candidate_kpts = []
+
+            # 1. Pose Model Run
             if pose_model is not None:
                 try:
-                    pose_res = pose_model(frame, conf=0.35, device=self.device, verbose=False)
-                    if pose_res and pose_res[0].keypoints is not None and pose_res[0].boxes is not None:
-                        kpts = pose_res[0].keypoints.xy.cpu().numpy()  # (N, 17, 2)
-                        k_confs = pose_res[0].keypoints.conf.cpu().numpy() if pose_res[0].keypoints.conf is not None else None
-                        boxes = pose_res[0].boxes.xyxy.cpu().numpy()
-
-                        # Skeletons connections for drawing
-                        skeleton_pairs = [
-                            (5, 6), (5, 7), (7, 9), (6, 8), (8, 10), # Arms
-                            (5, 11), (6, 12), (11, 12),              # Torso
-                            (11, 13), (13, 15), (12, 14), (14, 16),  # Legs
-                            (0, 1), (0, 2), (1, 3), (2, 4)           # Face
-                        ]
-
-                        for p_idx in range(len(boxes)):
-                            x1, y1, x2, y2 = [int(v) for v in boxes[p_idx]]
-                            bw, bh = max(1, x2 - x1), max(1, y2 - y1)
-                            aspect_ratio = round(bw / bh, 2)
-                            pts = kpts[p_idx]  # 17 keypoints
-
-                            # Keypoints of interest
-                            # 0: nose, 5: left_shoulder, 6: right_shoulder, 11: left_hip, 12: right_hip, 15: left_ankle, 16: right_ankle
-                            has_shoulders = (pts[5][0] > 0 and pts[6][0] > 0)
-                            has_hips = (pts[11][0] > 0 and pts[12][0] > 0)
-                            
-                            torso_angle = 0.0
-                            is_horizontal = False
-
-                            if has_shoulders and has_hips:
-                                shoulder_mid = ((pts[5][0] + pts[6][0]) / 2.0, (pts[5][1] + pts[6][1]) / 2.0)
-                                hip_mid = ((pts[11][0] + pts[12][0]) / 2.0, (pts[11][1] + pts[12][1]) / 2.0)
-                                dx = hip_mid[0] - shoulder_mid[0]
-                                dy = hip_mid[1] - shoulder_mid[1]
-                                # Angle from vertical axis (0 deg = standing vertical, 90 deg = horizontal fall)
-                                torso_angle = math.degrees(math.atan2(abs(dx), max(1e-4, abs(dy))))
-                                if torso_angle > 50.0:
-                                    is_horizontal = True
-
-                            # Fall condition: Torso angle horizontal OR severe aspect ratio flip near floor
-                            y_center = (y1 + y2) / 2.0
-                            is_low_in_frame = y_center > (frame_h * 0.35)
-                            
-                            is_fall_candidate = (is_horizontal and aspect_ratio > 0.85) or (aspect_ratio >= 1.25 and is_low_in_frame)
-
-                            # Associate with tracked person ID
-                            matched_tid = p_idx + 1
-                            for tp in tracked_people:
-                                tbx = tp["box"]
-                                if abs(tbx["x1"] - x1) < 40 and abs(tbx["y1"] - y1) < 40:
-                                    matched_tid = tp["id"]
-                                    break
-
-                            # Multi-frame confirmation queue for this person
-                            hist = self.track_buffer.person_pose_history[matched_tid]
-                            hist.append({
-                                "is_fall": is_fall_candidate,
-                                "aspect_ratio": aspect_ratio,
-                                "torso_angle": torso_angle,
-                                "timestamp": timestamp_sec
-                            })
-
-                            # Calculate confirmation ratio over recent frames
-                            recent = list(hist)[-8:]
-                            fall_frames = sum(1 for h in recent if h["is_fall"])
-                            total_frames = len(recent)
-                            conf_score = fall_frames / max(1, total_frames)
-
-                            # Determine status and color
-                            if fall_frames >= 4 and conf_score >= 0.60:
-                                status = "FALL CONFIRMED"
-                                state_color = (20, 20, 240)  # Red
-                                is_confirmed_incident = True
-                            elif is_fall_candidate:
-                                status = f"Possible Fall ({fall_frames}/{total_frames}f)"
-                                state_color = (30, 210, 255)  # Yellow / Orange
-                                is_confirmed_incident = False
-                            else:
-                                status = "Normal Upright"
-                                state_color = (0, 220, 80)   # Green
-                                is_confirmed_incident = False
-
-                            # Draw skeleton bones
-                            for p1, p2 in skeleton_pairs:
-                                pt1, pt2 = pts[p1], pts[p2]
-                                if pt1[0] > 0 and pt1[1] > 0 and pt2[0] > 0 and pt2[1] > 0:
-                                    cv2.line(annotated, (int(pt1[0]), int(pt1[1])), (int(pt2[0]), int(pt2[1])), state_color, 2)
-                            # Draw joints
-                            for pt in pts:
-                                if pt[0] > 0 and pt[1] > 0:
-                                    cv2.circle(annotated, (int(pt[0]), int(pt[1])), 3, (255, 255, 255), -1)
-
-                            # Bounding box & HUD label
-                            cv2.rectangle(annotated, (x1, y1), (x2, y2), state_color, 2)
-                            lbl = f"ID #{matched_tid}: {status} | AR:{aspect_ratio} Angle:{int(torso_angle)}deg"
-                            (lw, lh), _ = cv2.getTextSize(lbl, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
-                            cv2.rectangle(annotated, (x1, max(0, y1 - 20)), (x1 + lw + 6, max(20, y1)), state_color, -1)
-                            cv2.putText(annotated, lbl, (x1 + 3, max(15, y1 - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
-
-                            if is_confirmed_incident:
-                                module_stats["fall"] += 1
-                                incidents.append({
-                                    "incident_type": "fall_detected",
-                                    "severity": "P1",
-                                    "label": f"Slip & Fall Immobility (Person #{matched_tid}, Confirmed {fall_frames}/{total_frames} frames)",
-                                    "confidence": min(0.98, 0.70 + conf_score * 0.28),
-                                    "box": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
-                                    "color_bgr": state_color,
-                                    "iot_telemetry": {
-                                        "person_id": matched_tid,
-                                        "aspect_ratio": aspect_ratio,
-                                        "torso_angle": torso_angle,
-                                        "confirmed_frames": fall_frames,
-                                        "window_frames": total_frames,
-                                    }
-                                })
+                    pose_res = pose_model(frame, conf=0.08, device=self.device, verbose=False)
+                    if pose_res and pose_res[0].boxes is not None and len(pose_res[0].boxes) > 0:
+                        b_arr = pose_res[0].boxes.xyxy.cpu().numpy()
+                        k_arr = pose_res[0].keypoints.xy.cpu().numpy() if pose_res[0].keypoints is not None else None
+                        for p_idx in range(len(b_arr)):
+                            candidate_boxes.append(b_arr[p_idx])
+                            candidate_kpts.append(k_arr[p_idx] if k_arr is not None and p_idx < len(k_arr) else None)
                 except Exception as e:
-                    print(f"[hazard_engine] Pose detection error: {e}")
+                    print(f"[hazard_engine] Pose detection warning: {e}")
+
+            # 2. General Person Detector Fallback if pose missed low-light/recumbent person
+            if len(candidate_boxes) == 0 and person_model is not None:
+                try:
+                    p_res = person_model(frame, conf=0.10, classes=[0], device=self.device, verbose=False)
+                    if p_res and p_res[0].boxes is not None and len(p_res[0].boxes) > 0:
+                        for pb in p_res[0].boxes.xyxy.cpu().numpy():
+                            candidate_boxes.append(pb)
+                            candidate_kpts.append(None)
+                except Exception:
+                    pass
+
+            skeleton_pairs = [
+                (5, 6), (5, 7), (7, 9), (6, 8), (8, 10), # Arms
+                (5, 11), (6, 12), (11, 12),              # Torso
+                (11, 13), (13, 15), (12, 14), (14, 16),  # Legs
+                (0, 1), (0, 2), (1, 3), (2, 4)           # Face
+            ]
+
+            for p_idx, b_coords in enumerate(candidate_boxes):
+                x1, y1, x2, y2 = [int(v) for v in b_coords]
+                bw, bh = max(1, x2 - x1), max(1, y2 - y1)
+                aspect_ratio = round(bw / bh, 2)  # Width / Height
+                pts = candidate_kpts[p_idx]
+
+                # Keypoint Analysis
+                torso_angle = 0.0
+                kpt_fall = False
+
+                if pts is not None and len(pts) >= 17:
+                    sh_pts = [pts[i] for i in [5, 6] if pts[i][0] > 0 and pts[i][1] > 0]
+                    hip_pts = [pts[i] for i in [11, 12] if pts[i][0] > 0 and pts[i][1] > 0]
+                    head_pts = [pts[i] for i in [0, 1, 2] if pts[i][0] > 0 and pts[i][1] > 0]
+
+                    if sh_pts and hip_pts:
+                        dx = abs(float(np.mean(hip_pts, axis=0)[0]) - float(np.mean(sh_pts, axis=0)[0]))
+                        dy = abs(float(np.mean(hip_pts, axis=0)[1]) - float(np.mean(sh_pts, axis=0)[1]))
+                        torso_angle = math.degrees(math.atan2(dx, max(1e-4, dy)))
+                    elif head_pts and hip_pts:
+                        dx = abs(float(np.mean(hip_pts, axis=0)[0]) - float(np.mean(head_pts, axis=0)[0]))
+                        dy = abs(float(np.mean(hip_pts, axis=0)[1]) - float(np.mean(head_pts, axis=0)[1]))
+                        torso_angle = math.degrees(math.atan2(dx, max(1e-4, dy)))
+
+                    if torso_angle > 35.0:
+                        kpt_fall = True
+
+                    if head_pts and hip_pts:
+                        y_head = float(np.mean([p[1] for p in head_pts]))
+                        y_hip = float(np.mean([p[1] for p in hip_pts]))
+                        if y_head >= (y_hip - 15):
+                            kpt_fall = True
+
+                # Associate with tracked person ID
+                matched_tid = p_idx + 1
+                for tp in tracked_people:
+                    tbx = tp["box"]
+                    if abs(tbx["x1"] - x1) < 45 and abs(tbx["y1"] - y1) < 45:
+                        matched_tid = tp["id"]
+                        break
+
+                # Historical height tracking for sudden collapse
+                hist = self.track_buffer.person_pose_history[matched_tid]
+                past_h = [s["bh"] for s in list(hist)[-8:] if s.get("bh", 0) > 20]
+                baseline_h = max(past_h) if past_h else bh
+
+                height_collapse = (bh <= 0.82 * baseline_h) and (baseline_h >= 40)
+                horizontal_body = (aspect_ratio >= 0.42)
+
+                is_fall_candidate = horizontal_body or kpt_fall or height_collapse or (torso_angle > 30.0)
+
+                hist.append({
+                    "is_fall": is_fall_candidate,
+                    "aspect_ratio": aspect_ratio,
+                    "torso_angle": torso_angle,
+                    "bh": bh,
+                    "timestamp": timestamp_sec
+                })
+
+                recent = list(hist)[-6:]
+                fall_frames = sum(1 for h in recent if h["is_fall"])
+                total_frames = len(recent)
+
+                # Calibrated confidence scoring
+                if kpt_fall and (horizontal_body or height_collapse):
+                    conf = min(0.96, 0.78 + (aspect_ratio - 0.42) * 0.4)
+                elif aspect_ratio >= 0.60 or torso_angle > 45.0:
+                    conf = min(0.95, 0.80 + (aspect_ratio - 0.60) * 0.3)
+                elif aspect_ratio >= 0.42:
+                    conf = min(0.90, 0.74 + (aspect_ratio - 0.42) * 0.5)
+                elif is_fall_candidate:
+                    conf = 0.75
+                else:
+                    conf = 0.15
+
+                is_confirmed_incident = is_fall_candidate and (conf >= 0.65)
+
+                if is_confirmed_incident:
+                    status = "FALL CONFIRMED"
+                    state_color = (20, 20, 240)  # Alert Red
+                elif is_fall_candidate:
+                    status = "Possible Fall"
+                    state_color = (30, 210, 255)  # Amber
+                else:
+                    status = "Normal Upright"
+                    state_color = (0, 220, 80)   # Green
+
+                # Draw skeleton if keypoints available
+                if pts is not None and len(pts) >= 17:
+                    for p1, p2 in skeleton_pairs:
+                        pt1, pt2 = pts[p1], pts[p2]
+                        if pt1[0] > 0 and pt1[1] > 0 and pt2[0] > 0 and pt2[1] > 0:
+                            cv2.line(annotated, (int(pt1[0]), int(pt1[1])), (int(pt2[0]), int(pt2[1])), state_color, 2)
+                    for pt in pts:
+                        if pt[0] > 0 and pt[1] > 0:
+                            cv2.circle(annotated, (int(pt[0]), int(pt[1])), 3, (255, 255, 255), -1)
+
+                # Bounding box & HUD label
+                cv2.rectangle(annotated, (x1, y1), (x2, y2), state_color, 2)
+                lbl = f"ID #{matched_tid}: {status} | AR:{aspect_ratio} Angle:{int(torso_angle)}deg"
+                (lw, lh), _ = cv2.getTextSize(lbl, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+                cv2.rectangle(annotated, (x1, max(0, y1 - 20)), (x1 + lw + 6, max(20, y1)), state_color, -1)
+                cv2.putText(annotated, lbl, (x1 + 3, max(15, y1 - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+
+                if is_confirmed_incident:
+                    module_stats["fall"] += 1
+                    incidents.append({
+                        "incident_type": "fall_detected",
+                        "severity": "P1",
+                        "label": f"Slip & Fall Immobility (Person #{matched_tid}, AR:{aspect_ratio}, Angle:{int(torso_angle)}deg)",
+                        "confidence": round(conf, 3),
+                        "box": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+                        "color_bgr": state_color,
+                        "iot_telemetry": {
+                            "person_id": matched_tid,
+                            "aspect_ratio": aspect_ratio,
+                            "torso_angle": torso_angle,
+                            "confirmed_frames": fall_frames,
+                            "window_frames": total_frames,
+                            "baseline_height_px": int(baseline_h),
+                        }
+                    })
 
         # ── 3. Fire & Smoke Detection (Physics-Grounded Chromatic + YOLO) ────
         if "fire" in active or "smoke" in active:

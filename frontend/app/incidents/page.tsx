@@ -131,6 +131,25 @@ export default function IncidentsCommandHub() {
   const [triageVideoOverride, setTriageVideoOverride] = useState<string | null>(null);
   const [triageVideoError, setTriageVideoError] = useState<boolean>(false);
 
+  useEffect(() => {
+    if (activeHazardModality === "fall") {
+      setConfidenceThreshold(0.40);
+      setSampleFps(2.0);
+    } else if (activeHazardModality === "fire") {
+      setConfidenceThreshold(0.45);
+      setSampleFps(2.0);
+    } else if (activeHazardModality === "smoke") {
+      setConfidenceThreshold(0.35);
+      setSampleFps(2.0);
+    } else if (activeHazardModality === "weapon") {
+      setConfidenceThreshold(0.30);
+      setSampleFps(2.0);
+    } else if (activeHazardModality === "crowd") {
+      setConfidenceThreshold(0.40);
+      setSampleFps(2.0);
+    }
+  }, [activeHazardModality]);
+
   const loadData = () => {
     fetch("http://localhost:8000/api/safety/incidents")
       .then((r) => r.json())

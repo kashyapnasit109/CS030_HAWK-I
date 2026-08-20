@@ -309,16 +309,14 @@ def evaluate_fall_immobility(
 ) -> dict[str, Any]:
     """
     Forensic Fall & Immobility Analysis:
-    Continuous Calibrated Scoring:
-    - Bending / Leaning Posture (AR 0.70 - 0.95): 35% - 55%
-    - Seated / Low Transition: 45% - 60%
-    - Sudden Drop Collapse (Vy > 120): 65% - 85%
-    - Recumbent Ground Immobility (AR <= 0.65 on Floor): 80% - 94%
+    - Recumbent / Horizontal Posture (AR >= 0.42)
+    - Sudden Drop Collapse (Vy > 80 px/s or Height reduction)
+    - Floor Immobility State
     """
     x1, y1, x2, y2 = person_box["x1"], person_box["y1"], person_box["x2"], person_box["y2"]
     bw = max(1, x2 - x1)
     bh = max(1, y2 - y1)
-    aspect_ratio = bh / bw
+    aspect_ratio = bw / bh  # Width / Height
 
     vy = 0.0
     if prev_box is not None and time_delta > 0:
@@ -326,25 +324,24 @@ def evaluate_fall_immobility(
         curr_center_y = (y1 + y2) / 2.0
         vy = (curr_center_y - prev_center_y) / time_delta
 
-    on_ground_plane = y2 > (frame_height * 0.40)
+    on_ground_plane = y2 > (frame_height * 0.30)
     
-    # Recumbent ground state
-    is_recumbent_fall = (aspect_ratio <= 0.68) and on_ground_plane and (bh >= 30)
-    is_drop_fall = (aspect_ratio <= 0.88) and on_ground_plane and (vy > 120.0)
+    # Recumbent or slip state
+    is_recumbent_fall = (aspect_ratio >= 0.42) and on_ground_plane
+    is_drop_fall = (aspect_ratio >= 0.38) and on_ground_plane and (vy > 80.0)
     is_fall = is_recumbent_fall or is_drop_fall
 
-    if is_recumbent_fall:
-        conf = float(np.clip(0.76 + (0.68 - min(aspect_ratio, 0.68)) * 0.35 + (min(vy, 200.0) / 1000.0), 0.76, 0.94))
+    if aspect_ratio >= 0.60:
+        conf = float(np.clip(0.80 + (aspect_ratio - 0.60) * 0.30, 0.80, 0.96))
+    elif is_recumbent_fall:
+        conf = float(np.clip(0.74 + (aspect_ratio - 0.42) * 0.45, 0.72, 0.90))
     elif is_drop_fall:
-        conf = float(np.clip(0.65 + (min(vy, 250.0) / 1000.0), 0.62, 0.86))
-    elif aspect_ratio <= 0.95 and on_ground_plane:
-        # Subtle / Potential horizontal posture (bending/sitting/low pose in audience)
-        conf = float(np.clip(0.35 + (0.95 - aspect_ratio) * 0.25, 0.30, 0.55))
+        conf = float(np.clip(0.70 + (min(vy, 200.0) / 1000.0), 0.70, 0.88))
     else:
-        conf = 0.10
+        conf = 0.15
 
     return {
-        "is_fall": is_fall or (conf >= 0.30),
+        "is_fall": is_fall or (conf >= 0.65),
         "is_recumbent": is_recumbent_fall,
         "aspect_ratio": round(aspect_ratio, 2),
         "velocity_y": round(vy, 1),
