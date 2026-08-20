@@ -25,7 +25,8 @@
     "lpr_levenshtein_distance": 2,
     "frame_sample_fps": 1.0,
     "max_concurrent_jobs": 2,
-    "device_provider": "CUDA"
+    "device_provider": "CUDA",
+    "cuda_device_index": 0
   },
   "forensic": {
     "pdf_hash_algorithm": "SHA-256",
@@ -240,5 +241,62 @@
         ]
       }
     ]
+  },
+  "ai_gateway": {
+    "enabled": true,
+    "base_url": "https://seekai.cc/",
+    "api_key": "sk-LBbOrdnagGbO3by7UV9fBfSyaJNOPTbuzMJy8sa0lh2dk9JH",
+    "selected_model": "glm-5.2-fast",
+    "recommended_model": "glm-5.2-fast",
+    "temperature": 0.2,
+    "max_tokens": 700,
+    "timeout_seconds": 45,
+    "models": [
+      {
+        "id": "glm-5.2-fast",
+        "score": 65,
+        "compatible": true,
+        "capabilities": [
+          "chat",
+          "multilingual"
+        ],
+        "reason": "Recommended all-rounder \u2014 Multilingual (Hindi/Gujarati); proven model family. Best fit for query understanding, translation and report narratives.",
+        "recommended": true,
+        "context_length": 0,
+        "owned_by": "openai"
+      },
+      {
+        "id": "glm-5.2",
+        "score": 65,
+        "compatible": true,
+        "capabilities": [
+          "chat",
+          "multilingual"
+        ],
+        "reason": "Multilingual (Hindi/Gujarati); proven model family",
+        "recommended": false,
+        "context_length": 0,
+        "owned_by": "openai"
+      },
+      {
+        "id": "deepseek-v4-flash",
+        "score": 65,
+        "compatible": true,
+        "capabilities": [
+          "chat",
+          "long_context",
+          "fast"
+        ],
+        "reason": "Long context; fast/low-latency; proven model family",
+        "recommended": false,
+        "context_length": 0,
+        "owned_by": "openai"
+      }
+    ],
+    "last_synced": 1787218875.8816545,
+    "last_status": "ok",
+    "use_for_query": true,
+    "use_for_translation": true,
+    "use_for_reports": true
   }
 }
