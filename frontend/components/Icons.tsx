@@ -1020,7 +1020,3 @@ export const SlidersIcon = ({ size = 18, ...props }: IconProps) =>
   );
 
 
-
-
-
-

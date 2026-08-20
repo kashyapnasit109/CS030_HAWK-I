@@ -104,6 +104,7 @@ export interface MatchResult {
     box: { x1: number; y1: number; x2: number; y2: number };
   }>;
   object_count?: number;
+  search_type?: string;
 }
 
 export interface SearchJob {

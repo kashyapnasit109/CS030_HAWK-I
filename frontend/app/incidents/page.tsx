@@ -41,6 +41,8 @@ import {
   FaceScanIcon,
   ShieldCheckIcon,
   SlidersIcon,
+  ImageIcon,
+  DownloadIcon,
 } from "@/components/Icons";
 
 interface IncidentItem {
@@ -74,8 +76,10 @@ interface MerkleBlock {
 
 interface AvailVideo {
   id: string;
-  original_filename: string;
-  stored_filename: string;
+  original_filename?: string;
+  stored_filename?: string;
+  filename?: string;
+  camera_id?: string;
   duration?: number;
   video_url: string;
   thumbnail_url?: string;
@@ -124,6 +128,8 @@ export default function IncidentsCommandHub() {
   const [clipTab, setClipTab] = useState<"video" | "frame">("video");
   const [clipError, setClipError] = useState<boolean>(false);
   const [enhanceMatch, setEnhanceMatch] = useState<MatchResult | null>(null);
+  const [triageVideoOverride, setTriageVideoOverride] = useState<string | null>(null);
+  const [triageVideoError, setTriageVideoError] = useState<boolean>(false);
 
   const loadData = () => {
     fetch("http://localhost:8000/api/safety/incidents")
@@ -356,7 +362,7 @@ export default function IncidentsCommandHub() {
   };
 
   const filteredVideos = availableVideos.filter((v) =>
-    v.original_filename.toLowerCase().includes(videoFilterQuery.toLowerCase()) ||
+    (v.original_filename || v.filename || v.id).toLowerCase().includes(videoFilterQuery.toLowerCase()) ||
     v.id.toLowerCase().includes(videoFilterQuery.toLowerCase())
   );
 
@@ -542,6 +548,44 @@ export default function IncidentsCommandHub() {
                   </button>
                 </div>
 
+                {/* Footage Source Dropdown Selector */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.03)", padding: "8px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.08)", flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <FilmIcon size={15} style={{ color: "#60A5FA" }} />
+                    <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#E2E8F0" }}>Select Live Feed / CCTV Footage:</span>
+                  </div>
+                  <select
+                    className="input-field"
+                    value={triageVideoOverride || selectedIncident.video_url || ""}
+                    onChange={(e) => {
+                      setTriageVideoOverride(e.target.value);
+                      setTriageVideoError(false);
+                    }}
+                    style={{
+                      padding: "5px 12px",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      background: "#030712",
+                      border: "1px solid rgba(59,130,246,0.5)",
+                      borderRadius: "6px",
+                      color: "#FFFFFF",
+                      minWidth: "280px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {selectedIncident.video_url && (
+                      <option value={selectedIncident.video_url}>
+                        📹 Primary Incident Locus ({selectedIncident.camera_id})
+                      </option>
+                    )}
+                    {availableVideos.map((v) => (
+                      <option key={v.id} value={v.video_url}>
+                        📹 {v.camera_id || "CAM"}: {v.filename || v.id} ({v.duration ? `${v.duration}s` : "CCTV Stream"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Evidence Video Player HUD */}
                 <div
                   style={{
@@ -552,19 +596,26 @@ export default function IncidentsCommandHub() {
                     borderRadius: "8px",
                     overflow: "hidden",
                     border: "1px solid rgba(59,130,246,0.35)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   <video
-                    key={selectedIncident.video_url || selectedIncident.incident_id}
-                    src={
-                      selectedIncident.video_url
-                        ? `http://localhost:8000${selectedIncident.video_url.startsWith("/") ? "" : "/"}${selectedIncident.video_url}`
-                        : "http://localhost:8000/storage/uploads/subway.mp4"
-                    }
+                    key={triageVideoOverride || selectedIncident.video_url || selectedIncident.incident_id}
+                    src={resolveStorageUrl(
+                      triageVideoOverride ||
+                      selectedIncident.video_url ||
+                      (availableVideos.length > 0 ? availableVideos[0].video_url : "/storage/uploads/subway.mp4")
+                    )}
                     autoPlay
                     loop
                     muted
                     controls
+                    onError={() => {
+                      console.warn("Triage video failed to load or decode");
+                      setTriageVideoError(true);
+                    }}
                     style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000000" }}
                   />
 

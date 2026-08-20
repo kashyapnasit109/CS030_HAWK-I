@@ -42,7 +42,7 @@ _active_incidents: list[dict[str, Any]] = [
         ],
         "status": "active",
         "dispatched_guard": "QRT-02 (Officer Priya Nair)",
-        "video_url": "/storage/uploads/376bd311.mp4"
+        "video_url": "/storage/uploads/39feb69f.mp4"
     },
     {
         "incident_id": "INC-2026-0819-02",
