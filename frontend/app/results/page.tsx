@@ -6,7 +6,7 @@ import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import EnhanceModal from "@/components/EnhanceModal";
 import AddSuspectModal from "@/components/AddSuspectModal";
-import { getJobStatus, exportReport, resolveStorageUrl, downloadFramesZip, MatchResult, SearchJob, apiFetch, addCaseEvidence, getActiveCase } from "@/lib/api";
+import { getJobStatus, cancelSearchJob, cancelAllSearchJobs, exportReport, resolveStorageUrl, downloadFramesZip, MatchResult, SearchJob, apiFetch, addCaseEvidence, getActiveCase } from "@/lib/api";
 import {
   TargetIcon,
   SearchIcon,
@@ -606,6 +606,38 @@ export default function ResultsPage() {
     if (hash) { setJobId(hash); loadJob(hash); }
   }, [loadJob]);
 
+  // Live Auto-polling for active running/queued search jobs
+  useEffect(() => {
+    if (!jobId || !job) return;
+    if (job.status !== "running" && job.status !== "queued") return;
+
+    const interval = setInterval(async () => {
+      try {
+        const j = await getJobStatus(jobId);
+        setJob(j);
+        if (j.status === "completed" || j.status === "failed" || j.status === "cancelled") {
+          clearInterval(interval);
+          loadPastJobs();
+        }
+      } catch {}
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [jobId, job?.status, loadPastJobs]);
+
+  const handleStopJob = async (targetJobId?: string) => {
+    const idToStop = targetJobId || jobId;
+    if (!idToStop) return;
+    try {
+      await cancelSearchJob(idToStop);
+      showToast(`Search job #${idToStop} stopped`, "info");
+      loadJob(idToStop);
+      loadPastJobs();
+    } catch {
+      showToast("Failed to stop search job", "error");
+    }
+  };
+
   const matches: MatchResult[] = (job?.matches || [])
     .filter((m) => !filterLabel || m.label.toLowerCase().includes(filterLabel.toLowerCase()))
     .sort((a, b) => sortBy === "timestamp" ? a.timestamp - b.timestamp : b.confidence - a.confidence);
@@ -698,6 +730,49 @@ export default function ResultsPage() {
 
         {job && (
           <>
+            {/* Active Running/Queued Search Banner */}
+            {(job.status === "running" || job.status === "queued") && (
+              <div className="card" style={{ marginBottom: 20, borderColor: "rgba(59, 130, 246, 0.4)", background: "rgba(59, 130, 246, 0.04)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#60A5FA", animation: "pulse 1.2s infinite" }} />
+                    <strong style={{ fontSize: "0.95rem", color: "var(--text-primary)" }}>
+                      AI Search In Progress ({jobId ? `#${jobId}` : "Scanning"})
+                    </strong>
+                    <span className={`status-pill status-${job.status}`}>{job.status}</span>
+                  </div>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleStopJob()}
+                    style={{ background: "rgba(233,69,96,0.18)", color: "var(--accent)", border: "1px solid rgba(233,69,96,0.4)", display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <CloseIcon size={14} /> Stop Search
+                  </button>
+                </div>
+                <div className="progress-bar" style={{ height: 6, marginBottom: 8 }}>
+                  <div className="progress-bar-fill" style={{ width: "100%", animation: "pulse 1.5s infinite" }} />
+                </div>
+                <div style={{ display: "flex", gap: 16, fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                  <span><strong style={{ color: "#60A5FA" }}>{(job as any).frames_processed ?? 0}</strong> frames parsed</span>
+                  <span><strong style={{ color: "var(--green)" }}>{job.match_count ?? (job as any).frames_matched ?? 0}</strong> target matches identified</span>
+                  <span style={{ marginLeft: "auto", color: "var(--text-muted)", fontSize: "0.72rem" }}>Auto-refreshing results every 2s</span>
+                </div>
+              </div>
+            )}
+
+            {job.status === "cancelled" && (
+              <div style={{
+                marginBottom: 20, padding: "12px 18px", borderRadius: "10px",
+                background: "rgba(233,69,96,0.08)", border: "1px solid rgba(233,69,96,0.3)",
+                display: "flex", justifyContent: "space-between", alignItems: "center"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--accent)", fontWeight: 700, fontSize: "0.88rem" }}>
+                  <CloseIcon size={16} /> Search Job #{jobId} was stopped by operator. Displaying matches collected prior to cancellation.
+                </div>
+                <span className="status-pill status-failed">Cancelled</span>
+              </div>
+            )}
+
             {/* Status + Controls */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
               <span className={`status-pill status-${job.status}`}>{job.status}</span>
@@ -1220,16 +1295,28 @@ export default function ResultsPage() {
                         <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
                           {details.match_count || details.frames_matched || 0} matches found
                         </span>
-                        <button 
-                          onClick={() => {
-                            setJobId(id);
-                            loadJob(id);
-                          }}
-                          className="btn btn-primary btn-sm"
-                          style={{ display: "flex", alignItems: "center", gap: "4px" }}
-                        >
-                          View Results →
-                        </button>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          {(details.status === "running" || details.status === "queued") && (
+                            <button
+                              onClick={() => handleStopJob(id)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ background: "rgba(233,69,96,0.15)", color: "var(--accent)", border: "1px solid rgba(233,69,96,0.3)" }}
+                              title="Stop this search job"
+                            >
+                              <CloseIcon size={12} /> Stop
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => {
+                              setJobId(id);
+                              loadJob(id);
+                            }}
+                            className="btn btn-primary btn-sm"
+                            style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                          >
+                            View Results →
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

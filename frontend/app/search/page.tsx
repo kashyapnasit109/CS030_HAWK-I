@@ -84,6 +84,24 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
+  // Automatically adjust default thresholds based on selected modality
+  useEffect(() => {
+    if (mode === "image") {
+      setSimilarityThreshold(0.50); // Calibrated for FaceNet 512-D (rejects random crowd faces < 0.46)
+      setConfidenceThreshold(0.45);
+      setSampleFps(2.0);
+    } else if (mode === "keyword") {
+      setSimilarityThreshold(0.24);
+      setSampleFps(1.0);
+    } else if (mode === "lpr") {
+      setSimilarityThreshold(0.50);
+      setSampleFps(1.0);
+    } else if (mode === "object") {
+      setConfidenceThreshold(0.35);
+      setSampleFps(1.0);
+    }
+  }, [mode]);
+
   // Attribute Search states
   const [topColor, setTopColor] = useState("all");
   const [bottomColor, setBottomColor] = useState("all");

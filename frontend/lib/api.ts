@@ -108,7 +108,7 @@ export interface MatchResult {
 }
 
 export interface SearchJob {
-  status: "queued" | "running" | "completed" | "failed";
+  status: "queued" | "running" | "completed" | "failed" | "cancelled";
   type: string;
   match_count: number;
   matches?: MatchResult[];

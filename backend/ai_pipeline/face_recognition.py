@@ -431,8 +431,8 @@ def run_face_recognition_search(
         frame_idx = 0
         frames_processed = 0
 
-        # Calibrate effective similarity matching threshold
-        effective_sim_thresh = max(0.28, min(0.42, similarity_threshold))
+        # Calibrate effective similarity matching threshold (Default >= 0.48 to reject random crowd faces)
+        effective_sim_thresh = max(0.46, float(similarity_threshold))
 
         try:
             while cap.isOpened():
@@ -455,12 +455,18 @@ def run_face_recognition_search(
                 frames_processed += 1
                 if progress_cb:
                     try:
-                        progress_cb(frames_processed, len(matches), list(matches))
+                        res = progress_cb(frames_processed, len(matches), list(matches))
+                        if res is False:
+                            print(f"[face_recognition] Search interrupted for job {job_id}")
+                            break
+                    except InterruptedError:
+                        print(f"[face_recognition] Job {job_id} cancelled by operator")
+                        break
                     except Exception:
                         pass
 
-                # Detect all faces across the frame
-                faces_detected = detect_faces(frame, min_size=(18, 18))
+                # Detect all faces across the frame with quality threshold
+                faces_detected = detect_faces(frame, min_size=(22, 22))
                 frame_matching_boxes = []
 
                 for det in faces_detected:
@@ -475,7 +481,7 @@ def run_face_recognition_search(
                     y_max = min(frame.shape[0], y + h + pad_y)
 
                     face_crop = frame[y_min:y_max, x_min:x_max]
-                    if face_crop.size == 0 or is_blurry_or_micro(face_crop, min_dim=14, min_laplacian=3.0):
+                    if face_crop.size == 0 or is_blurry_or_micro(face_crop, min_dim=20, min_laplacian=4.5):
                         continue
 
                     try:
@@ -492,13 +498,9 @@ def run_face_recognition_search(
                     raw_sim = float(sims[max_idx].item())
                     best_label = db_labels[max_idx]
 
-                    # Calibrate confidence score
+                    # Strict suspect match check: only accept if similarity meets calibrated threshold
                     if raw_sim >= effective_sim_thresh:
-                        calibrated_conf = float(np.clip(0.60 + (raw_sim - effective_sim_thresh) * 1.20, 0.60, 0.99))
-                    else:
-                        calibrated_conf = float(np.clip(raw_sim * 0.70, 0.0, 0.45))
-
-                    if raw_sim >= effective_sim_thresh:
+                        calibrated_conf = float(np.clip(0.65 + (raw_sim - effective_sim_thresh) * 1.25, 0.65, 0.99))
                         color_idx = len(frame_matching_boxes) % len(PREMIUM_PALETTE_BGR)
                         frame_matching_boxes.append({
                             "x1": x,

@@ -88,6 +88,9 @@ def _run_face_search_task(job_id: str, request: ImageSearchRequest):
         ref_paths = [_resolve_reference(rid) for rid in request.reference_ids]
 
         for vid_id in request.video_ids:
+            if _jobs[job_id].get("cancelled") or _jobs[job_id].get("status") == "cancelled":
+                raise InterruptedError("Search job cancelled by user")
+
             # Timeout guard
             if time.time() - _jobs[job_id]["started_at"] > JOB_TIMEOUT_SECONDS:
                 raise TimeoutError("Job exceeded maximum allowed runtime")
@@ -108,13 +111,21 @@ def _run_face_search_task(job_id: str, request: ImageSearchRequest):
             )
             all_matches.extend(matches)
 
-        _jobs[job_id]["status"] = "completed"
-        _jobs[job_id]["matches"] = all_matches
-        _jobs[job_id]["match_count"] = len(all_matches)
-        _save_matches_to_db(job_id, all_matches, "face_recognition")
+        if _jobs[job_id].get("cancelled") or _jobs[job_id].get("status") == "cancelled":
+            _jobs[job_id]["status"] = "cancelled"
+            _jobs[job_id]["error"] = "Cancelled by user"
+        else:
+            _jobs[job_id]["status"] = "completed"
+            _jobs[job_id]["matches"] = all_matches
+            _jobs[job_id]["match_count"] = len(all_matches)
+            _save_matches_to_db(job_id, all_matches, "face_recognition")
     except Exception as e:
-        _jobs[job_id]["status"] = "failed"
-        _jobs[job_id]["error"] = str(e)
+        if _jobs[job_id].get("cancelled") or _jobs[job_id].get("status") == "cancelled" or isinstance(e, InterruptedError):
+            _jobs[job_id]["status"] = "cancelled"
+            _jobs[job_id]["error"] = "Cancelled by user"
+        else:
+            _jobs[job_id]["status"] = "failed"
+            _jobs[job_id]["error"] = str(e)
 
 
 def _save_matches_to_db(job_id: str, matches: list[dict], search_type: str):
@@ -269,6 +280,9 @@ def _run_keyword_search_task(job_id: str, request: KeywordSearchRequest):
 
     try:
         for vid_id in request.video_ids:
+            if _jobs[job_id].get("cancelled") or _jobs[job_id].get("status") == "cancelled":
+                raise InterruptedError("Search job cancelled by user")
+
             # Timeout guard
             if time.time() - _jobs[job_id]["started_at"] > JOB_TIMEOUT_SECONDS:
                 raise TimeoutError("Job exceeded maximum allowed runtime")
@@ -288,13 +302,21 @@ def _run_keyword_search_task(job_id: str, request: KeywordSearchRequest):
             )
             all_matches.extend(matches)
 
-        _jobs[job_id]["status"] = "completed"
-        _jobs[job_id]["matches"] = all_matches
-        _jobs[job_id]["match_count"] = len(all_matches)
-        _save_matches_to_db(job_id, all_matches, "keyword")
+        if _jobs[job_id].get("cancelled") or _jobs[job_id].get("status") == "cancelled":
+            _jobs[job_id]["status"] = "cancelled"
+            _jobs[job_id]["error"] = "Cancelled by user"
+        else:
+            _jobs[job_id]["status"] = "completed"
+            _jobs[job_id]["matches"] = all_matches
+            _jobs[job_id]["match_count"] = len(all_matches)
+            _save_matches_to_db(job_id, all_matches, "keyword")
     except Exception as e:
-        _jobs[job_id]["status"] = "failed"
-        _jobs[job_id]["error"] = str(e)
+        if _jobs[job_id].get("cancelled") or _jobs[job_id].get("status") == "cancelled" or isinstance(e, InterruptedError):
+            _jobs[job_id]["status"] = "cancelled"
+            _jobs[job_id]["error"] = "Cancelled by user"
+        else:
+            _jobs[job_id]["status"] = "failed"
+            _jobs[job_id]["error"] = str(e)
 
 
 def _run_lpr_search_task(job_id: str, request: LprSearchRequest):
@@ -307,6 +329,9 @@ def _run_lpr_search_task(job_id: str, request: LprSearchRequest):
 
     try:
         for vid_id in request.video_ids:
+            if _jobs[job_id].get("cancelled") or _jobs[job_id].get("status") == "cancelled":
+                raise InterruptedError("Search job cancelled by user")
+
             # Timeout guard
             if time.time() - _jobs[job_id]["started_at"] > JOB_TIMEOUT_SECONDS:
                 raise TimeoutError("Job exceeded maximum allowed runtime")
@@ -326,13 +351,21 @@ def _run_lpr_search_task(job_id: str, request: LprSearchRequest):
             )
             all_matches.extend(matches)
 
-        _jobs[job_id]["status"] = "completed"
-        _jobs[job_id]["matches"] = all_matches
-        _jobs[job_id]["match_count"] = len(all_matches)
-        _save_matches_to_db(job_id, all_matches, "lpr")
+        if _jobs[job_id].get("cancelled") or _jobs[job_id].get("status") == "cancelled":
+            _jobs[job_id]["status"] = "cancelled"
+            _jobs[job_id]["error"] = "Cancelled by user"
+        else:
+            _jobs[job_id]["status"] = "completed"
+            _jobs[job_id]["matches"] = all_matches
+            _jobs[job_id]["match_count"] = len(all_matches)
+            _save_matches_to_db(job_id, all_matches, "lpr")
     except Exception as e:
-        _jobs[job_id]["status"] = "failed"
-        _jobs[job_id]["error"] = str(e)
+        if _jobs[job_id].get("cancelled") or _jobs[job_id].get("status") == "cancelled" or isinstance(e, InterruptedError):
+            _jobs[job_id]["status"] = "cancelled"
+            _jobs[job_id]["error"] = "Cancelled by user"
+        else:
+            _jobs[job_id]["status"] = "failed"
+            _jobs[job_id]["error"] = str(e)
 
 
 @router.post("/by-image")
