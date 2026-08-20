@@ -23,3 +23,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 20, 2026 11:23:11]` **refactor(perf): decouple camera frame ingestion from computer vision workers** — *Verified component: tensor memory management & latency optimization*
 - `[Aug 20, 2026 16:29:51]` **refactor(rules): unify telemetry event formats for detection frames and violations** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Aug 20, 2026 18:25:44]` **docs(evidence): add sequence diagram for ring buffer frame ingestion** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
+- `[Aug 20, 2026 19:35:44]` **docs(copilot): document statutory evidence certificate generation parameters** — *Verified component: prime compliance copilot & assistant integration*
