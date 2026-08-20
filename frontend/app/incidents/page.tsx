@@ -119,7 +119,10 @@ export default function IncidentsCommandHub() {
 
   // Modals for Evidence Video & Enhancement
   const [previewClipUrl, setPreviewClipUrl] = useState<string | null>(null);
+  const [previewFrameUrl, setPreviewFrameUrl] = useState<string | null>(null);
   const [previewClipTitle, setPreviewClipTitle] = useState<string>("");
+  const [clipTab, setClipTab] = useState<"video" | "frame">("video");
+  const [clipError, setClipError] = useState<boolean>(false);
   const [enhanceMatch, setEnhanceMatch] = useState<MatchResult | null>(null);
 
   const loadData = () => {
@@ -1227,7 +1230,10 @@ export default function IncidentsCommandHub() {
                           <button
                             onClick={() => {
                               setPreviewClipUrl(clipUrl);
+                              setPreviewFrameUrl(frameUrl);
                               setPreviewClipTitle(`${m.label} (${m.timestamp_str})`);
+                              setClipTab("video");
+                              setClipError(false);
                             }}
                             className="btn btn-secondary btn-sm"
                             style={{ fontSize: "0.72rem", fontWeight: 800, color: "#60A5FA", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
@@ -1337,32 +1343,42 @@ export default function IncidentsCommandHub() {
           </div>
         )}
 
-        {/* EVIDENCE VIDEO CLIP PLAYBACK MODAL */}
+        {/* FORENSIC EVIDENCE VIDEO PLAYER MODAL */}
         {previewClipUrl && (
           <div
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(0,0,0,0.88)",
-              zIndex: 1050,
+              background: "rgba(0,0,0,0.92)",
+              zIndex: 1200,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               padding: 20,
             }}
+            onClick={() => setPreviewClipUrl(null)}
           >
             <div
               style={{
                 background: "#0A0F1D",
-                border: "1px solid #3B82F6",
-                borderRadius: 12,
-                maxWidth: 720,
+                border: "1px solid rgba(59,130,246,0.4)",
+                borderRadius: 14,
+                maxWidth: 780,
                 width: "100%",
-                padding: 20,
-                boxShadow: "0 20px 60px rgba(0,0,0,0.95)",
+                boxShadow: "0 24px 80px rgba(0,0,0,0.95), 0 0 40px rgba(59,130,246,0.2)",
+                overflow: "hidden",
               }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              {/* Header */}
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "16px 20px",
+                background: "rgba(255,255,255,0.03)",
+                borderBottom: "1px solid rgba(255,255,255,0.08)",
+              }}>
                 <h3 style={{ fontSize: "1rem", fontWeight: 900, margin: 0, color: "white", display: "flex", alignItems: "center", gap: 8 }}>
                   <PlayIcon size={16} style={{ color: "#3B82F6" }} />
                   {previewClipTitle || "Forensic Video Evidence Clip"}
@@ -1372,27 +1388,128 @@ export default function IncidentsCommandHub() {
                 </button>
               </div>
 
+              {/* View Switcher Tabs */}
+              <div style={{
+                display: "flex",
+                background: "rgba(0,0,0,0.5)",
+                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                padding: "6px 16px",
+                gap: 8,
+              }}>
+                <button
+                  onClick={() => setClipTab("video")}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 6,
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    background: clipTab === "video" ? "rgba(59,130,246,0.2)" : "transparent",
+                    border: `1px solid ${clipTab === "video" ? "#3B82F6" : "transparent"}`,
+                    color: clipTab === "video" ? "#60A5FA" : "var(--text-muted)",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <FilmIcon size={14} /> Video Stream Playback
+                </button>
+                {previewFrameUrl && (
+                  <button
+                    onClick={() => setClipTab("frame")}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: 6,
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      background: clipTab === "frame" ? "rgba(59,130,246,0.2)" : "transparent",
+                      border: `1px solid ${clipTab === "frame" ? "#3B82F6" : "transparent"}`,
+                      color: clipTab === "frame" ? "#60A5FA" : "var(--text-muted)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <ImageIcon size={14} /> Forensic Detection Overlay
+                  </button>
+                )}
+              </div>
+
+              {/* Player / Preview Canvas */}
               <div
                 style={{
                   position: "relative",
                   width: "100%",
-                  height: "360px",
+                  minHeight: "380px",
                   background: "#000",
-                  borderRadius: 8,
-                  overflow: "hidden",
-                  border: "1px solid rgba(59,130,246,0.3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                <video
-                  src={previewClipUrl}
-                  autoPlay
-                  controls
-                  loop
-                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                />
+                {clipTab === "video" && !clipError ? (
+                  <video
+                    src={previewClipUrl}
+                    autoPlay
+                    controls
+                    loop
+                    onError={() => {
+                      console.warn("Video failed to decode in browser, falling back to overlay frame");
+                      setClipError(true);
+                    }}
+                    style={{ width: "100%", maxHeight: "460px", objectFit: "contain" }}
+                  />
+                ) : (
+                  <div style={{ width: "100%", position: "relative", display: "flex", justifyContent: "center" }}>
+                    <img
+                      src={previewFrameUrl || previewClipUrl}
+                      alt="Evidence Frame"
+                      style={{ width: "100%", maxHeight: "460px", objectFit: "contain" }}
+                    />
+                    {clipError && (
+                      <div style={{
+                        position: "absolute",
+                        bottom: 12,
+                        left: 12,
+                        background: "rgba(0,0,0,0.85)",
+                        border: "1px solid rgba(239,68,68,0.5)",
+                        borderRadius: 6,
+                        padding: "6px 12px",
+                        fontSize: "0.72rem",
+                        color: "#F87171",
+                      }}>
+                        Video stream format notice — displaying high-res forensic detection overlay frame
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+              {/* Footer */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", background: "rgba(255,255,255,0.02)", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {previewClipUrl && (
+                    <a
+                      href={previewClipUrl}
+                      download
+                      className="btn btn-secondary btn-sm"
+                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.72rem" }}
+                    >
+                      <DownloadIcon size={13} /> Download Video Clip
+                    </a>
+                  )}
+                  {previewFrameUrl && (
+                    <a
+                      href={previewFrameUrl}
+                      download
+                      className="btn btn-secondary btn-sm"
+                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.72rem" }}
+                    >
+                      <ImageIcon size={13} /> Download Frame
+                    </a>
+                  )}
+                </div>
                 <button onClick={() => setPreviewClipUrl(null)} className="btn btn-secondary btn-sm">
                   Close Player
                 </button>

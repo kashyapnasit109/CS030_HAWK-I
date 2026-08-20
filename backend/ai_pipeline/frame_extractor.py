@@ -213,6 +213,18 @@ def save_frame(
     cv2.imwrite(str(output_path), annotated, [cv2.IMWRITE_JPEG_QUALITY, 95])
 
 
+def _get_ffmpeg_cmd() -> str:
+    """Return path to ffmpeg executable (from imageio_ffmpeg or system PATH)."""
+    try:
+        import imageio_ffmpeg
+        exe = imageio_ffmpeg.get_ffmpeg_exe()
+        if exe and Path(exe).exists():
+            return str(exe)
+    except Exception:
+        pass
+    return "ffmpeg"
+
+
 def extract_clip(
     video_path: str | Path,
     output_path: str | Path,
@@ -277,7 +289,6 @@ def extract_clip(
             box_list = []
 
         # If bounding boxes are specified, track each across the clip
-        # tracks_per_box: list of dict mapping frame_idx -> (x1, y1, x2, y2)
         tracks_per_box = []
         init_idx = max(0, min(len(clip_frames) - 1, center_frame_idx - start_frame))
 
@@ -303,7 +314,6 @@ def extract_clip(
                         tx, ty, tw, th = [int(v) for v in bbox]
                         box_track[i] = (tx, ty, tx + tw, ty + th)
                     else:
-                        # Continue with last known position if lost
                         box_track[i] = box_track.get(i - 1, (bx1, by1, bx2, by2))
             except Exception:
                 pass
@@ -351,13 +361,15 @@ def extract_clip(
 
         # Transcode to web-optimized H.264 MP4 with FFmpeg
         import subprocess, shutil
+        ffmpeg_bin = _get_ffmpeg_cmd()
         cmd = [
-            "ffmpeg", "-y",
+            ffmpeg_bin, "-y",
             "-i", str(temp_output_path),
             "-c:v", "libx264",
             "-pix_fmt", "yuv420p",
             "-preset", "veryfast",
             "-crf", "22",
+            "-movflags", "+faststart",
             str(output_path)
         ]
         try:
@@ -368,6 +380,7 @@ def extract_clip(
                 except Exception:
                     pass
         except Exception as e:
+            print(f"[frame_extractor] FFmpeg transcode warning: {e}")
             if temp_output_path.exists():
                 try:
                     if Path(output_path).exists():
