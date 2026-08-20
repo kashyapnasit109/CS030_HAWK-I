@@ -127,11 +127,13 @@ class VideoHazardScanRequest(BaseModel):
 
 class HazardSearchRequest(BaseModel):
     video_ids: list[str] = Field(..., description="List of uploaded video IDs to search for hazards")
-    hazard_types: list[str] = Field(default=["fall", "fire", "smoke"], description="List of hazard types (fall, fire, smoke, crowd, luggage, all)")
-    confidence_threshold: float = Field(0.60, ge=0.0, le=1.0)
+    hazard_types: list[str] = Field(default=["fall", "fire", "smoke", "crowd", "weapon"], description="List of hazard types (fall, fire, smoke, crowd, weapon, face, all)")
+    confidence_threshold: float = Field(0.50, ge=0.0, le=1.0)
     sample_fps: float = Field(2.0, ge=0.1, le=10.0)
     start_time: float | None = Field(None, description="Start time in seconds")
     end_time: float | None = Field(None, description="End time in seconds")
+    keyword_query: str | None = Field(None, description="Optional natural language query for YOLO-World object detector")
+    blur_faces: bool = Field(False, description="Enable forensic DPDP privacy face blurring")
 
 
 class EscalateFromSearchRequest(BaseModel):
@@ -228,6 +230,8 @@ def _run_hazard_search_task(job_id: str, req: HazardSearchRequest):
                 start_time=req.start_time,
                 end_time=req.end_time,
                 progress_cb=lambda p, m, cur=None: _update_hazard_progress(job_id, p, m, cur),
+                keyword_query=req.keyword_query,
+                blur_faces=req.blur_faces,
             )
             all_matches.extend(matches)
 

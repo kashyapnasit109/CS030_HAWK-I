@@ -6,8 +6,8 @@ import ToastProvider, { showToast } from "@/components/ToastProvider";
 import { VideoIcon, PlayIcon, PauseIcon, ClockIcon, CameraIcon, FolderIcon, ShieldIcon, CheckIcon, SearchIcon } from "@/components/Icons";
 
 const videoSegments = [
-  { id: "seg1", label: "Trump Remarks Archive (Village)", url: "http://localhost:8001/storage/uploads/trump_speech.mp4" },
-  { id: "seg2", label: "Subway Concourse 1080p Stream", url: "http://localhost:8001/storage/uploads/subway.mp4" },
+  { id: "seg1", label: "Trump Remarks Archive (Village)", url: "http://localhost:8000/storage/uploads/trump_speech.mp4" },
+  { id: "seg2", label: "Subway Concourse 1080p Stream", url: "http://localhost:8000/storage/uploads/subway.mp4" },
 ];
 
 export default function PlaybackTacticalPage() {
@@ -358,3 +358,4 @@ export default function PlaybackTacticalPage() {
     </ToastProvider>
   );
 }
+

@@ -412,62 +412,45 @@ def run_object_detection(
                 frame_idx += 1
                 continue
 
-            # Draw all bounding boxes on the frame using premium HUD overlays
-            annotated = frame.copy()
-            labels_found = []
-            from ai_pipeline.frame_extractor import draw_premium_hud_overlay
+            # Prepare multi-box overlay with unique colors
+            from ai_pipeline.frame_extractor import (
+                PREMIUM_PALETTE_BGR,
+                save_frame,
+                draw_matte_glass_overlay,
+            )
 
-            for det in frame_detections:
+            multi_boxes = []
+            labels_found = []
+            for d_idx, det in enumerate(frame_detections):
                 box = det["box"]
                 labels_found.append(det["class_name"])
-                # Color code
-                col = (246, 130, 59) # cobalt blue
-                if det["class_name"] in POLICE_CATEGORIES.get("weapons", []):
-                    col = (60, 60, 235) # red for weapons
-                elif det["class_name"] in POLICE_CATEGORIES.get("vehicles", []):
-                    col = (250, 200, 50) # amber for vehicles
-                elif det["class_name"] == "person":
-                    col = (90, 220, 120) # emerald for persons
-
-                annotated = draw_premium_hud_overlay(
-                    annotated,
-                    {
-                        "x1": box["x1"],
-                        "y1": box["y1"],
-                        "x2": box["x2"],
-                        "y2": box["y2"],
-                        "label": det["class_name"],
-                        "confidence": det["confidence"]
-                    },
-                    color_bgr=col
-                )
+                color_bgr = PREMIUM_PALETTE_BGR[d_idx % len(PREMIUM_PALETTE_BGR)]
+                multi_boxes.append({
+                    "x1": box["x1"],
+                    "y1": box["y1"],
+                    "x2": box["x2"],
+                    "y2": box["y2"],
+                    "label": det["class_name"].title(),
+                    "confidence": det["confidence"],
+                    "color_bgr": color_bgr,
+                })
 
             # Save annotated frame
             frame_filename = f"obj_{job_id}_{frame_idx:06d}.jpg"
             frame_path = job_dir / frame_filename
-            cv2.imwrite(str(frame_path), annotated, [cv2.IMWRITE_JPEG_QUALITY, 95])
+            save_frame(frame, frame_path, draw_boxes=multi_boxes)
 
             clip_filename = f"clip_{job_id}_{frame_idx:06d}.mp4"
             clip_path = job_dir / clip_filename
             
-            first_det = frame_detections[0] if frame_detections else None
-            draw_box_param = None
-            if first_det:
-                draw_box_param = {
-                    "x1": first_det["box"]["x1"],
-                    "y1": first_det["box"]["y1"],
-                    "x2": first_det["box"]["x2"],
-                    "y2": first_det["box"]["y2"],
-                    "label": first_det["class_name"],
-                    "confidence": first_det["confidence"]
-                }
+            first_det = multi_boxes[0] if multi_boxes else None
             
             clip_tasks.append({
                 "video_path": video_path,
                 "output_path": clip_path,
                 "center_timestamp": timestamp,
                 "window_seconds": 4.0,
-                "draw_box": draw_box_param,
+                "draw_boxes": multi_boxes,
             })
 
             frame_hash = _sha256_file(frame_path)
@@ -475,7 +458,7 @@ def run_object_detection(
             # Summary of detected objects
             from collections import Counter
             obj_counts = Counter(labels_found)
-            summary_label = ", ".join(f"{count}× {cls}" for cls, count in obj_counts.items())
+            summary_label = ", ".join(f"{count}× {cls.title()}" for cls, count in obj_counts.items())
             avg_conf = sum(d["confidence"] for d in frame_detections) / len(frame_detections)
 
             matches.append({
@@ -486,7 +469,8 @@ def run_object_detection(
                 "clip_url": f"/storage/results/{job_id}/{clip_filename}",
                 "confidence": round(avg_conf, 4),
                 "label": summary_label,
-                "box": {"x1": first_det["box"]["x1"], "y1": first_det["box"]["y1"], "x2": first_det["box"]["x2"], "y2": first_det["box"]["y2"]} if first_det else None,
+                "box": first_det,
+                "boxes": multi_boxes,
                 "search_type": "object_detection",
                 "detections": frame_detections,
                 "object_count": len(frame_detections),

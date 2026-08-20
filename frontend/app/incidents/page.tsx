@@ -33,6 +33,14 @@ import {
   HourglassIcon,
   ZapIcon,
   UserIcon,
+  FlameIcon,
+  SmokeIcon,
+  FallIcon,
+  UsersIcon,
+  WeaponIcon,
+  FaceScanIcon,
+  ShieldCheckIcon,
+  SlidersIcon,
 } from "@/components/Icons";
 
 interface IncidentItem {
@@ -73,7 +81,7 @@ interface AvailVideo {
   thumbnail_url?: string;
 }
 
-type HazardModality = "fall" | "fire" | "smoke" | "crowd" | "all";
+type HazardModality = "fall" | "fire" | "smoke" | "crowd" | "weapon" | "face" | "keyword" | "all";
 
 export default function IncidentsCommandHub() {
   const [incidents, setIncidents] = useState<IncidentItem[]>([]);
@@ -95,11 +103,10 @@ export default function IncidentsCommandHub() {
   const [activeHazardModality, setActiveHazardModality] = useState<HazardModality>("fall");
 
   // Hazard Search Controls
-  const [confidenceThreshold, setConfidenceThreshold] = useState<number>(0.60);
+  const [confidenceThreshold, setConfidenceThreshold] = useState<number>(0.50);
   const [sampleFps, setSampleFps] = useState<number>(2.0);
-  const [aspectRatioLimit, setAspectRatioLimit] = useState<number>(0.88);
-  const [tempTriggerC, setTempTriggerC] = useState<number>(55.0);
-  const [smokeDensityMin, setSmokeDensityMin] = useState<number>(65);
+  const [keywordQuery, setKeywordQuery] = useState<string>("");
+  const [blurFaces, setBlurFaces] = useState<boolean>(false);
   const [startTimeSec, setStartTimeSec] = useState<string>("");
   const [endTimeSec, setEndTimeSec] = useState<string>("");
 
@@ -116,7 +123,7 @@ export default function IncidentsCommandHub() {
   const [enhanceMatch, setEnhanceMatch] = useState<MatchResult | null>(null);
 
   const loadData = () => {
-    fetch("http://localhost:8001/api/safety/incidents")
+    fetch("http://localhost:8000/api/safety/incidents")
       .then((r) => r.json())
       .then((d) => {
         if (d.incidents) {
@@ -125,14 +132,14 @@ export default function IncidentsCommandHub() {
       })
       .catch(() => {});
 
-    fetch("http://localhost:8001/api/safety/merkle-chain")
+    fetch("http://localhost:8000/api/safety/merkle-chain")
       .then((r) => r.json())
       .then((d) => {
         if (d.ledger) setMerkleLedger(d.ledger);
       })
       .catch(() => {});
 
-    fetch("http://localhost:8001/api/videos/list")
+    fetch("http://localhost:8000/api/videos/list")
       .then((r) => r.json())
       .then((d) => {
         if (d.videos && d.videos.length > 0) {
@@ -193,7 +200,7 @@ export default function IncidentsCommandHub() {
 
   const handleResolve = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:8001/api/safety/acknowledge/${id}`, {
+      const res = await fetch(`http://localhost:8000/api/safety/acknowledge/${id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ operator_name: "Commander J. Vance" }),
@@ -218,7 +225,7 @@ export default function IncidentsCommandHub() {
       formData.append("camera_id", "CAM-01");
 
       const token = typeof window !== "undefined" ? localStorage.getItem("visioncctv_token") : null;
-      const res = await fetch("http://localhost:8001/api/videos/upload", {
+      const res = await fetch("http://localhost:8000/api/videos/upload", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
@@ -268,7 +275,7 @@ export default function IncidentsCommandHub() {
 
     const hazardTypes =
       activeHazardModality === "all"
-        ? ["fall", "fire", "smoke", "crowd"]
+        ? ["fall", "fire", "smoke", "crowd", "weapon", "face"]
         : [activeHazardModality];
 
     setIsSearching(true);
@@ -285,12 +292,14 @@ export default function IncidentsCommandHub() {
         confidenceThreshold,
         sampleFps,
         sTime,
-        eTime
+        eTime,
+        activeHazardModality === "keyword" ? keywordQuery : null,
+        blurFaces
       );
 
       if (res.job_id) {
         setHazardJobId(res.job_id);
-        showToast(`Optical AI ${activeHazardModality.toUpperCase()} hazard scan initiated...`, "info");
+        showToast(`AI ${activeHazardModality.toUpperCase()} Hazard Suite scan initiated...`, "info");
       }
     } catch (err: any) {
       setIsSearching(false);
@@ -370,13 +379,13 @@ export default function IncidentsCommandHub() {
           <div>
             <h1 style={{ fontSize: "1.35rem", fontWeight: 900, margin: 0, color: "#FFFFFF", display: "flex", alignItems: "center", gap: 10 }}>
               <ShieldIcon size={24} style={{ color: "#3B82F6" }} />
-              VIGINT Autonomous C4ISR Threat & Emergency Command Hub
+              VIGINT Threat & Emergency Command Hub
               <span className="badge badge-red" style={{ fontSize: "0.65rem", letterSpacing: "0.08em" }}>
-                P1-P4 ACTIVE ESCALATION
+                TASK-SPECIFIC AI REBUILT
               </span>
             </h1>
             <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: "var(--text-muted)", fontFamily: "JetBrains Mono, monospace" }}>
-              DEMPSTER-SHAFER MULTI-SENSOR EVIDENTIAL CONSENSUS MATRIX · SECTION 65B MERKLE CHAIN
+              TASK-SPECIFIC YOLOV8/YOLO11 MODELS · BYTETRACK PERSISTENT IDS · POSE SKELETONS · SECTION 65B MERKLE CHAIN
             </p>
           </div>
 
@@ -390,7 +399,7 @@ export default function IncidentsCommandHub() {
             </button>
             <button
               onClick={() => {
-                fetch("http://localhost:8001/api/safety/escalate", {
+                fetch("http://localhost:8000/api/safety/escalate", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
@@ -399,37 +408,34 @@ export default function IncidentsCommandHub() {
                     zone_name: "Science & Engineering Quad",
                     zone_code: "QUAD-01",
                     camera_id: "CAM-01",
-                    consensus_score: 0.98,
-                    iot_telemetry: { aspect_ratio: 0.58, mq2_smoke: 320, sound_dba: 92.4 },
+                    consensus_score: 0.96,
+                    iot_telemetry: { mq2_smoke: 420, temperature: 68.5, aspect_ratio: 0.72 },
                   }),
                 })
                   .then((r) => r.json())
                   .then((d) => {
-                    if (d.incident) {
-                      setP1Takeover(d.incident);
+                    if (d.success) {
+                      showToast("EMERGENCY ESCALATION FIRED! Dispatching QRT...", "error");
                       loadData();
-                      setSelectedIncidentId(d.incident.incident_id);
-                      setActiveTab("triage");
                     }
                   });
               }}
-              className="btn btn-primary btn-sm"
-              style={{ background: "#EF4444", borderColor: "#EF4444", fontWeight: 900 }}
+              className="btn btn-secondary btn-sm"
+              style={{ borderColor: "rgba(239,68,68,0.5)", color: "#EF4444", fontWeight: 800 }}
             >
-              <AlertIcon size={14} /> Trigger P1 Emergency
+              <ZapIcon size={14} /> Test P1 Escalation
             </button>
           </div>
         </div>
 
-        {/* NAVIGATION TABS */}
-        <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+        {/* TOP LEVEL NAVIGATION TABS */}
+        <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
           {[
-            { id: "triage", label: "Threat Triage & Evidence Console", icon: ActivityIcon },
-            { id: "hazard_search", label: "Forensic Hazard Search & Clip Ingestion", icon: SearchIcon },
-            { id: "dempster_matrix", label: "Dempster-Shafer Proof Matrix", icon: SignalIcon },
-            { id: "merkle_ledger", label: "Cryptographic SHA-256 Merkle Ledger", icon: LockIcon },
+            { id: "triage", label: "C4ISR Live Triage Feed", count: incidents.filter((i) => i.status === "active").length },
+            { id: "hazard_search", label: "AI Hazard Scanner & Video Evidence", count: hazardMatches.length },
+            { id: "dempster_matrix", label: "Dempster-Shafer Consensus Matrix" },
+            { id: "merkle_ledger", label: "Legal Merkle Chain of Custody" },
           ].map((tab) => {
-            const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
@@ -438,45 +444,50 @@ export default function IncidentsCommandHub() {
                 className={`btn btn-sm ${isActive ? "btn-primary" : "btn-secondary"}`}
                 style={{
                   fontWeight: 800,
-                  fontSize: "0.78rem",
                   display: "flex",
                   alignItems: "center",
-                  gap: 6,
+                  gap: "8px",
+                  background: isActive ? "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)" : "rgba(255,255,255,0.03)",
                   borderColor: isActive ? "#3B82F6" : "rgba(255,255,255,0.08)",
                 }}
               >
-                <Icon size={14} />
                 {tab.label}
+                {tab.count !== undefined && (
+                  <span className={`badge ${isActive ? "badge-red" : "badge-secondary"}`} style={{ fontSize: "0.65rem", padding: "1px 6px" }}>
+                    {tab.count}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
 
-        {/* TAB 1: 3-PANE TRIAGE CONSOLE */}
+        {/* TAB 1: TRIAGE */}
         {activeTab === "triage" && (
-          <div style={{ display: "grid", gridTemplateColumns: "340px 1fr 340px", gap: "16px", alignItems: "start" }}>
-            {/* LEFT: INCIDENT QUEUE */}
-            <div className="card" style={{ padding: "16px", background: "#080C16", display: "flex", flexDirection: "column", gap: "10px", maxHeight: "80vh", overflowY: "auto" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#60A5FA", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                  Incident Feed ({incidents.length})
+          <div style={{ display: "grid", gridTemplateColumns: "340px 1fr 340px", gap: "16px" }}>
+            {/* LEFT: ACTIVE INCIDENTS QUEUE */}
+            <div className="card" style={{ padding: "14px", background: "#080C16", display: "flex", flexDirection: "column", height: "calc(100vh - 240px)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                <h3 style={{ fontSize: "0.9rem", fontWeight: 800, margin: 0, color: "#FFFFFF" }}>
+                  Active Queue ({incidents.length})
+                </h3>
+                <span className="badge badge-red" style={{ fontSize: "0.65rem" }}>
+                  LIVE
                 </span>
-                <span className="badge badge-green" style={{ fontSize: "0.6rem" }}>LIVE</span>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {incidents.map((inc, iIdx) => {
-                  const isSelected = selectedIncident?.incident_id === inc.incident_id;
+              <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px" }}>
+                {incidents.map((inc) => {
+                  const isSelected = inc.incident_id === selectedIncidentId;
                   const isP1 = inc.severity === "P1";
-
                   return (
                     <div
-                      key={`${inc.incident_id || "inc"}-${iIdx}`}
+                      key={inc.incident_id}
                       onClick={() => setSelectedIncidentId(inc.incident_id)}
                       style={{
                         padding: "12px",
                         borderRadius: "8px",
-                        background: isSelected ? "rgba(59,130,246,0.16)" : "rgba(255,255,255,0.02)",
+                        background: isSelected ? "rgba(59,130,246,0.15)" : isP1 ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.02)",
                         border: `1px solid ${isSelected ? "#3B82F6" : isP1 ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.06)"}`,
                         cursor: "pointer",
                         transition: "all 0.15s ease",
@@ -544,8 +555,8 @@ export default function IncidentsCommandHub() {
                     key={selectedIncident.video_url || selectedIncident.incident_id}
                     src={
                       selectedIncident.video_url
-                        ? `http://localhost:8001${selectedIncident.video_url.startsWith("/") ? "" : "/"}${selectedIncident.video_url}`
-                        : "http://localhost:8001/storage/uploads/trump_speech.mp4"
+                        ? `http://localhost:8000${selectedIncident.video_url.startsWith("/") ? "" : "/"}${selectedIncident.video_url}`
+                        : "http://localhost:8000/storage/uploads/subway.mp4"
                     }
                     autoPlay
                     loop
@@ -643,45 +654,159 @@ export default function IncidentsCommandHub() {
         {/* TAB 2: SEPARATED FORENSIC HAZARD DETECTION & CLIP INGESTION WORKFLOW */}
         {activeTab === "hazard_search" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-            {/* SPECIALIZED HAZARD MODALITY SELECTOR BAR */}
+            {/* SPECIALIZED HAZARD MODALITY SELECTOR BAR (RESPONSIVE GRID WITH PREMIUM ICONS) */}
             <div
               style={{
-                display: "flex",
-                gap: 8,
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))",
+                gap: "12px",
                 background: "#080C16",
-                padding: "8px",
-                borderRadius: "8px",
-                border: "1px solid rgba(59,130,246,0.25)",
-                flexWrap: "wrap",
+                padding: "14px",
+                borderRadius: "10px",
+                border: "1px solid rgba(59,130,246,0.22)",
+                boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
               }}
             >
               {[
-                { id: "fall", label: "🚶‍♂️ Slip & Fall Immobility", desc: "Aspect Ratio < 0.88 + Downward Vy Vector" },
-                { id: "fire", label: "🔥 Optical Thermal & Fire Outbreak", desc: "HSV Flame Core + Temp Rise" },
-                { id: "smoke", label: "💨 Volumetric Smoke Dispersion", desc: "Chromatic Gray Envelope + Edge Attenuation" },
-                { id: "crowd", label: "👥 Crowd Surge & Stampede", desc: "Density + Kinetic Disorder" },
-                { id: "all", label: "🛡️ Compound Multi-Hazard Scan", desc: "Execute All Hazard Models Simultaneously" },
+                {
+                  id: "fall" as HazardModality,
+                  label: "Slip & Fall Pose",
+                  badge: "YOLO-Pose 17-pt",
+                  desc: "Biomechanical skeleton angles & multi-frame confirmation",
+                  icon: FallIcon,
+                  accent: "#F59E0B",
+                  bgGlow: "rgba(245, 158, 11, 0.15)",
+                },
+                {
+                  id: "fire" as HazardModality,
+                  label: "Fire & Flame Outbreak",
+                  badge: "YOLO11s D-Fire",
+                  desc: "Core flame luminance & rapid thermal envelope growth",
+                  icon: FlameIcon,
+                  accent: "#EF4444",
+                  bgGlow: "rgba(239, 68, 68, 0.15)",
+                },
+                {
+                  id: "smoke" as HazardModality,
+                  label: "Volumetric Smoke Plume",
+                  badge: "Fine-Tuned Smoke",
+                  desc: "Plume dispersion modeling & background edge attenuation",
+                  icon: SmokeIcon,
+                  accent: "#94A3B8",
+                  bgGlow: "rgba(148, 163, 184, 0.15)",
+                },
+                {
+                  id: "crowd" as HazardModality,
+                  label: "Live People & Crowd",
+                  badge: "ByteTrack Persistent IDs",
+                  desc: "Live headcount (#1, #2...) & dynamic density tiering",
+                  icon: UsersIcon,
+                  accent: "#3B82F6",
+                  bgGlow: "rgba(59, 130, 246, 0.15)",
+                },
+                {
+                  id: "weapon" as HazardModality,
+                  label: "Armed Threat & Weapon",
+                  badge: "Dual Gun/Knife",
+                  desc: "Firearm/blade detection & suspect carrier association",
+                  icon: WeaponIcon,
+                  accent: "#EC4899",
+                  bgGlow: "rgba(236, 72, 153, 0.15)",
+                },
+                {
+                  id: "face" as HazardModality,
+                  label: "Face & DPDP Privacy Blur",
+                  badge: "YOLO Face Masker",
+                  desc: "Facial landmark bounding & real-time privacy redaction",
+                  icon: FaceScanIcon,
+                  accent: "#06B6D4",
+                  bgGlow: "rgba(6, 182, 212, 0.15)",
+                },
+                {
+                  id: "keyword" as HazardModality,
+                  label: "Open-Vocab Search",
+                  badge: "YOLO-World v2",
+                  desc: "Dynamic prompt text binding ('red backpack', 'ladder', etc.)",
+                  icon: SearchIcon,
+                  accent: "#8B5CF6",
+                  bgGlow: "rgba(139, 92, 246, 0.15)",
+                },
+                {
+                  id: "all" as HazardModality,
+                  label: "Full Multi-Hazard Suite",
+                  badge: "Unified Multi-Modal",
+                  desc: "Concurrent execution of all 7 specialized neural models",
+                  icon: ShieldCheckIcon,
+                  accent: "#10B981",
+                  bgGlow: "rgba(16, 185, 129, 0.15)",
+                },
               ].map((m) => {
                 const isActive = activeHazardModality === m.id;
+                const IconComp = m.icon;
                 return (
                   <button
                     key={m.id}
-                    onClick={() => setActiveHazardModality(m.id as any)}
-                    className={`btn btn-sm ${isActive ? "btn-primary" : "btn-secondary"}`}
+                    onClick={() => setActiveHazardModality(m.id)}
                     style={{
-                      padding: "8px 14px",
                       display: "flex",
-                      flexDirection: "column",
                       alignItems: "flex-start",
-                      background: isActive ? "linear-gradient(135deg, #2563EB, #1D4ED8)" : "rgba(255,255,255,0.02)",
-                      borderColor: isActive ? "#3B82F6" : "rgba(255,255,255,0.08)",
-                      color: isActive ? "#FFFFFF" : "#94A3B8",
-                      flex: 1,
-                      minWidth: 200,
+                      gap: "12px",
+                      padding: "12px 14px",
+                      borderRadius: "8px",
+                      background: isActive
+                        ? `linear-gradient(135deg, ${m.bgGlow} 0%, rgba(10,15,29,0.9) 100%)`
+                        : "rgba(255,255,255,0.02)",
+                      border: `1px solid ${isActive ? m.accent : "rgba(255,255,255,0.08)"}`,
+                      boxShadow: isActive ? `0 4px 20px ${m.bgGlow}` : "none",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                      position: "relative",
+                      overflow: "hidden",
                     }}
                   >
-                    <span style={{ fontWeight: 900, fontSize: "0.82rem" }}>{m.label}</span>
-                    <span style={{ fontSize: "0.65rem", opacity: 0.8, fontFamily: "JetBrains Mono, monospace" }}>{m.desc}</span>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 8,
+                        background: isActive ? m.accent : "rgba(255,255,255,0.05)",
+                        color: isActive ? "#FFFFFF" : m.accent,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        transition: "all 0.2s ease",
+                        boxShadow: isActive ? `0 2px 10px ${m.accent}66` : "none",
+                      }}
+                    >
+                      <IconComp size={20} />
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontWeight: 800, fontSize: "0.84rem", color: isActive ? "#FFFFFF" : "#E2E8F0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {m.label}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "0.58rem",
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            background: isActive ? `${m.accent}25` : "rgba(255,255,255,0.06)",
+                            color: isActive ? m.accent : "#94A3B8",
+                            fontWeight: 700,
+                            fontFamily: "JetBrains Mono, monospace",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {m.badge}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.68rem", color: "var(--text-muted)", lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                        {m.desc}
+                      </p>
+                    </div>
                   </button>
                 );
               })}
@@ -698,7 +823,7 @@ export default function IncidentsCommandHub() {
                       CCTV Video Clips ({selectedVideoIds.size}/{availableVideos.length} Selected)
                     </h3>
                     <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
-                      Choose target video clips to analyze for {activeHazardModality.toUpperCase()}
+                      Choose target video clips to analyze with active neural pipeline
                     </span>
                   </div>
 
@@ -717,7 +842,7 @@ export default function IncidentsCommandHub() {
                 <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                   <input
                     type="text"
-                    placeholder="Filter clips by name..."
+                    placeholder="Filter clips by filename..."
                     value={videoFilterQuery}
                     onChange={(e) => setVideoFilterQuery(e.target.value)}
                     className="input input-sm"
@@ -791,80 +916,43 @@ export default function IncidentsCommandHub() {
               <div className="card" style={{ padding: "18px", background: "#080C16", border: "1px solid rgba(59,130,246,0.3)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                 <div>
                   <h3 style={{ fontSize: "0.95rem", fontWeight: 900, color: "#FFFFFF", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
-                    <TargetIcon size={18} style={{ color: "#EF4444" }} />
-                    Specialized {activeHazardModality.toUpperCase()} Model Calibration
+                    <SlidersIcon size={18} style={{ color: "#60A5FA" }} />
+                    {activeHazardModality.toUpperCase()} Neural Calibration
                   </h3>
 
                   {/* Dynamic Parameters per Modality */}
-                  {activeHazardModality === "fall" && (
-                    <div style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 8, padding: 12, marginBottom: 14 }}>
-                      <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#60A5FA", marginBottom: 6 }}>
-                        🏃 Slip & Fall Immobility Heuristics
-                      </div>
-                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 10 }}>
-                        Triggers when bounding box aspect ratio drops below threshold (H/W &lt; 0.88) with vertical downward velocity spike (Vy &gt; 110 px/s).
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginBottom: 4 }}>
-                        <span>Aspect Ratio Cutoff ($H/W$):</span>
-                        <strong style={{ color: "#60A5FA" }}>{aspectRatioLimit}</strong>
+                  {activeHazardModality === "keyword" && (
+                    <div style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.3)", borderRadius: 8, padding: 12, marginBottom: 14 }}>
+                      <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#C084FC", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                        <SearchIcon size={14} /> YOLO-World Open-Vocabulary Query
                       </div>
                       <input
-                        type="range"
-                        min="0.65"
-                        max="1.05"
-                        step="0.02"
-                        value={aspectRatioLimit}
-                        onChange={(e) => setAspectRatioLimit(parseFloat(e.target.value))}
-                        style={{ width: "100%", accentColor: "#3B82F6" }}
+                        type="text"
+                        placeholder="e.g. red backpack, ladder, helmet, umbrella, knife..."
+                        value={keywordQuery}
+                        onChange={(e) => setKeywordQuery(e.target.value)}
+                        className="input input-sm"
+                        style={{ width: "100%", fontSize: "0.82rem", background: "rgba(0,0,0,0.5)", borderColor: "#A855F7" }}
                       />
                     </div>
                   )}
 
-                  {activeHazardModality === "fire" && (
-                    <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, padding: 12, marginBottom: 14 }}>
-                      <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#EF4444", marginBottom: 6 }}>
-                        🔥 Optical Thermal Flame Envelope
+                  {activeHazardModality === "face" && (
+                    <div style={{ background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.3)", borderRadius: 8, padding: 12, marginBottom: 14 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#06B6D4", display: "flex", alignItems: "center", gap: 6 }}>
+                            <FaceScanIcon size={14} /> DPDP Privacy Redaction Blur
+                          </div>
+                          <div style={{ fontSize: "0.70rem", color: "var(--text-muted)" }}>Pixelate/blur faces for non-docket judicial compliance</div>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={blurFaces}
+                          onChange={(e) => setBlurFaces(e.target.checked)}
+                          style={{ width: 18, height: 18, accentColor: "#06B6D4", cursor: "pointer" }}
+                        />
                       </div>
-                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 10 }}>
-                        Detects high-luminance HSV flame envelopes (H: 0-38, S: 95-255, V: 175-255) with spatial flame cluster expansion modeling.
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginBottom: 4 }}>
-                        <span>Thermal Temp Outbreak Trigger:</span>
-                        <strong style={{ color: "#EF4444" }}>{tempTriggerC}°C</strong>
-                      </div>
-                      <input
-                        type="range"
-                        min="45"
-                        max="85"
-                        step="1"
-                        value={tempTriggerC}
-                        onChange={(e) => setTempTriggerC(parseFloat(e.target.value))}
-                        style={{ width: "100%", accentColor: "#EF4444" }}
-                      />
-                    </div>
-                  )}
-
-                  {activeHazardModality === "smoke" && (
-                    <div style={{ background: "rgba(148,163,184,0.06)", border: "1px solid rgba(148,163,184,0.2)", borderRadius: 8, padding: 12, marginBottom: 14 }}>
-                      <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#94A3B8", marginBottom: 6 }}>
-                        💨 Volumetric Smoke Dispersion
-                      </div>
-                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 10 }}>
-                        Measures chromatic low-saturation gray envelope ($S &lt; 58$) combined with Sobel background edge gradient attenuation.
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginBottom: 4 }}>
-                        <span>Min Plume Density:</span>
-                        <strong style={{ color: "#94A3B8" }}>{smokeDensityMin}%</strong>
-                      </div>
-                      <input
-                        type="range"
-                        min="40"
-                        max="90"
-                        step="5"
-                        value={smokeDensityMin}
-                        onChange={(e) => setSmokeDensityMin(parseInt(e.target.value))}
-                        style={{ width: "100%", accentColor: "#94A3B8" }}
-                      />
                     </div>
                   )}
 
@@ -877,8 +965,8 @@ export default function IncidentsCommandHub() {
                       </div>
                       <input
                         type="range"
-                        min="0.40"
-                        max="0.95"
+                        min="0.30"
+                        max="0.90"
                         step="0.05"
                         value={confidenceThreshold}
                         onChange={(e) => setConfidenceThreshold(parseFloat(e.target.value))}
@@ -925,7 +1013,7 @@ export default function IncidentsCommandHub() {
                     }}
                   >
                     {isSearching ? <HourglassIcon size={16} /> : <SearchIcon size={16} />}
-                    {isSearching ? `Scanning for ${activeHazardModality.toUpperCase()}...` : `Run ${activeHazardModality.toUpperCase()} AI Scan`}
+                    {isSearching ? `Scanning with ${activeHazardModality.toUpperCase()} Model...` : `Run ${activeHazardModality.toUpperCase()} AI Scan`}
                   </button>
                 </div>
               </div>
@@ -970,7 +1058,7 @@ export default function IncidentsCommandHub() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                 <h3 style={{ fontSize: "1.1rem", fontWeight: 900, color: "#FFFFFF", margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
-                  <ShieldIcon size={20} style={{ color: "#3B82F6" }} />
+                  <ShieldCheckIcon size={20} style={{ color: "#3B82F6" }} />
                   Forensic {activeHazardModality.toUpperCase()} Search Results ({hazardMatches.length} Incidents Found)
                 </h3>
                 {hazardMatches.length > 0 && (
@@ -1028,16 +1116,19 @@ export default function IncidentsCommandHub() {
                         style={{
                           position: "relative",
                           width: "100%",
-                          height: "175px",
+                          height: "220px",
                           borderRadius: "6px",
                           overflow: "hidden",
-                          background: "#000000",
+                          background: "#030712",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
                         <img
                           src={frameUrl}
                           alt={m.label}
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          style={{ width: "100%", height: "100%", objectFit: "contain" }}
                         />
 
                         {/* Top Overlay Badges */}
@@ -1087,9 +1178,12 @@ export default function IncidentsCommandHub() {
                             fontSize: "0.68rem",
                             fontFamily: "JetBrains Mono, monospace",
                             color: "#FFFFFF",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
                           }}
                         >
-                          ⏱ {m.timestamp_str}
+                          <ClockIcon size={11} /> {m.timestamp_str}
                         </div>
                       </div>
 
@@ -1315,3 +1409,4 @@ export default function IncidentsCommandHub() {
     </ToastProvider>
   );
 }
+

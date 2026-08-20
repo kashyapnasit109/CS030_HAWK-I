@@ -20,7 +20,7 @@ export default function AuditTrailPage() {
   const loadAuditLogs = useCallback(async () => {
     try {
       const token = localStorage.getItem("visioncctv_token");
-      const res = await fetch("http://localhost:8001/api/audit/list", {
+      const res = await fetch("http://localhost:8000/api/audit/list", {
         headers: { "Authorization": `Bearer ${token}` }
       });
 
@@ -121,4 +121,5 @@ export default function AuditTrailPage() {
     </ToastProvider>
   );
 }
+
 

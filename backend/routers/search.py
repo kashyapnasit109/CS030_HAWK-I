@@ -29,9 +29,9 @@ _jobs: dict[str, dict[str, Any]] = {}
 class ImageSearchRequest(BaseModel):
     video_ids: list[str] = Field(..., description="List of uploaded video IDs to search")
     reference_ids: list[str] = Field(..., description="List of reference image IDs")
-    confidence_threshold: float = Field(0.60, ge=0.0, le=1.0)
-    similarity_threshold: float = Field(0.58, ge=0.0, le=1.0)
-    sample_fps: float = Field(1.0, ge=0.1, le=10.0)
+    confidence_threshold: float = Field(0.45, ge=0.0, le=1.0)
+    similarity_threshold: float = Field(0.42, ge=0.0, le=1.0)
+    sample_fps: float = Field(2.0, ge=0.1, le=10.0)
     start_time: float | None = Field(None, description="Start time filter in seconds")
     end_time: float | None = Field(None, description="End time filter in seconds")
 
@@ -39,7 +39,7 @@ class ImageSearchRequest(BaseModel):
 class KeywordSearchRequest(BaseModel):
     video_ids: list[str] = Field(..., description="List of uploaded video IDs to search")
     keyword: str = Field(..., min_length=1, description="Natural-language search query")
-    similarity_threshold: float = Field(0.25, ge=0.0, le=1.0)
+    similarity_threshold: float = Field(0.20, ge=0.0, le=1.0)
     sample_fps: float = Field(1.0, ge=0.1, le=10.0)
     start_time: float | None = Field(None, description="Start time filter in seconds")
     end_time: float | None = Field(None, description="End time filter in seconds")

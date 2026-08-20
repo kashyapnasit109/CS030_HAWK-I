@@ -142,15 +142,20 @@ export default function SearchPage() {
   // Update similarity/confidence threshold default based on mode
   useEffect(() => {
     if (mode === "image") {
-      setSimilarityThreshold(0.58);
-      setConfidenceThreshold(0.60);
+      setSimilarityThreshold(0.33);
+      setConfidenceThreshold(0.35);
+      setSampleFps(2.0);
     } else if (mode === "keyword") {
-      setSimilarityThreshold(0.25);
+      setSimilarityThreshold(0.15);
+      setConfidenceThreshold(0.15);
+      setSampleFps(2.0);
     } else if (mode === "lpr") {
       setSimilarityThreshold(0.50);
+      setSampleFps(1.0);
     } else if (mode === "object") {
-      setConfidenceThreshold(0.40);
-      setSimilarityThreshold(0.40);
+      setConfidenceThreshold(0.25);
+      setSimilarityThreshold(0.25);
+      setSampleFps(2.0);
     } else if (mode === "activity") {
       setSampleFps(2.0);
     }
@@ -301,7 +306,7 @@ export default function SearchPage() {
         const token = localStorage.getItem("visioncctv_token");
         const bagVal = bagPresent === "yes" ? true : bagPresent === "no" ? false : null;
         
-        const res = await fetch("http://localhost:8001/api/search/by-attributes", {
+        const res = await fetch("http://localhost:8000/api/search/by-attributes", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -493,7 +498,7 @@ export default function SearchPage() {
                         >
                           {ref.image_url ? (
                             <img
-                              src={`http://localhost:8001${ref.image_url}`}
+                              src={`http://localhost:8000${ref.image_url}`}
                               alt={ref.label}
                               style={{ width: "100%", height: 70, objectFit: "cover" }}
                             />
@@ -781,7 +786,7 @@ export default function SearchPage() {
                       />
                       <div className="video-thumb">
                         {v.thumbnail_url ? (
-                          <img src={`http://localhost:8001${v.thumbnail_url}`} alt="" />
+                          <img src={`http://localhost:8000${v.thumbnail_url}`} alt="" />
                         ) : <FilmIcon size={24} style={{ color: "var(--text-muted)" }} />}
                       </div>
                       <div className="video-info">
@@ -993,4 +998,5 @@ export default function SearchPage() {
     </ToastProvider>
   );
 }
+
 

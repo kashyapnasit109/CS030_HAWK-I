@@ -906,7 +906,6 @@ export const RouterIcon = ({ size = 18, ...props }: IconProps) =>
     props
   );
 
-// Sync / refresh — two circular arrows (used only for "Sync Models").
 export const RefreshIcon = ({ size = 18, ...props }: IconProps) =>
   baseSvg(
     size,
@@ -920,6 +919,106 @@ export const RefreshIcon = ({ size = 18, ...props }: IconProps) =>
     ),
     props
   );
+
+export const FlameIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+      </>
+    ),
+    props
+  );
+
+export const SmokeIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+      </>
+    ),
+    props
+  );
+
+export const FallIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <circle cx="12" cy="5" r="2" />
+        <path d="m9 20 3-6 4 2 2 4" />
+        <path d="m6 13 4-2 3 3" />
+        <path d="m14 7-3 3-4-1" />
+      </>
+    ),
+    props
+  );
+
+export const WeaponIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <line x1="12" y1="3" x2="12" y2="7" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+        <line x1="3" y1="12" x2="7" y2="12" />
+        <line x1="17" y1="12" x2="21" y2="12" />
+        <circle cx="12" cy="12" r="3" />
+      </>
+    ),
+    props
+  );
+
+export const FaceScanIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+        <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+        <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+        <circle cx="12" cy="11" r="3" />
+        <path d="M8 17a4 4 0 0 1 8 0" />
+      </>
+    ),
+    props
+  );
+
+export const ShieldCheckIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        <path d="m9 12 2 2 4-4" />
+      </>
+    ),
+    props
+  );
+
+export const SlidersIcon = ({ size = 18, ...props }: IconProps) =>
+  baseSvg(
+    size,
+    (
+      <>
+        <line x1="4" y1="21" x2="4" y2="14" />
+        <line x1="4" y1="10" x2="4" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12" y2="3" />
+        <line x1="20" y1="21" x2="20" y2="16" />
+        <line x1="20" y1="12" x2="20" y2="3" />
+        <line x1="1" y1="14" x2="7" y2="14" />
+        <line x1="9" y1="8" x2="15" y2="8" />
+        <line x1="17" y1="16" x2="23" y2="16" />
+      </>
+    ),
+    props
+  );
+
 
 
 

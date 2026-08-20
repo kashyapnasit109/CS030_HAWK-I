@@ -277,7 +277,7 @@ export default function WatchlistsPage() {
                                   <>
                                     <div style={{ width: "36px", height: "36px", borderRadius: "4px", background: "#000", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                       {refImage?.image_url ? (
-                                        <img src={`http://localhost:8001${refImage.image_url}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                        <img src={`http://localhost:8000${refImage.image_url}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                       ) : (
                                         <UserIcon size={18} style={{ color: "var(--text-muted)" }} />
                                       )}
@@ -374,4 +374,5 @@ export default function WatchlistsPage() {
     </ToastProvider>
   );
 }
+
 

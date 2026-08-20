@@ -55,6 +55,15 @@ TRANSLATION_MAP = {
     "જેકેટ": "jacket",
     
     # Objects & Subjects
+    "फोन": "phone",
+    "ફોન": "phone",
+    "मोबाइल": "phone",
+    "મોબાઈલ": "phone",
+    "सेलफोन": "phone",
+    "स्मार्टफोन": "phone",
+    "સ્માર્ટફોન": "phone",
+    "टेलीफोन": "phone",
+    "ટેલિફોન": "phone",
     "कार": "car",
     "કાર": "car",
     "गाड़ी": "car",

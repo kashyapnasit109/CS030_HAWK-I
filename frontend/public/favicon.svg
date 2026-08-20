@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="shieldGrad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3B82F6" />
+      <stop offset="0.5" stop-color="#1D4ED8" />
+      <stop offset="1" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="neonRing" x1="12" y1="8" x2="36" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8" />
+      <stop offset="1" stop-color="#6366F1" />
+    </linearGradient>
+    <linearGradient id="coreGrad" x1="16" y1="14" x2="32" y2="34" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60A5FA" />
+      <stop offset="1" stop-color="#3B82F6" />
+    </linearGradient>
+  </defs>
+  <path d="M24 3L42 10.5V23C42 33.5 34.5 42.5 24 45.5C13.5 42.5 6 33.5 6 23V10.5L24 3Z" fill="url(#shieldGrad)" stroke="url(#neonRing)" stroke-width="2" stroke-linejoin="round" />
+  <path d="M24 3V45.5M6 10.5L24 24L42 10.5M6 23L24 24L42 23" stroke="rgba(255,255,255,0.22)" stroke-width="1.2" />
+  <polygon points="24,14 33,24 24,34 15,24" fill="url(#coreGrad)" stroke="#93C5FD" stroke-width="1" />
+  <circle cx="24" cy="24" r="3.5" fill="#FFFFFF" />
+  <circle cx="24" cy="24" r="1.5" fill="#1E3A8A" />
+</svg>

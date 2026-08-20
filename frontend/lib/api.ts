@@ -1,9 +1,9 @@
 /**
- * VisionCCTV API client
- * All calls go to http://localhost:8001
+ * SentinelVision / VIGINT API client
+ * Default endpoint: http://localhost:8000
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export type ApiError = Error & { status: number; isNetworkError?: boolean };
 
@@ -84,8 +84,17 @@ export interface MatchResult {
   label: string;
   severity?: "P1" | "P2" | "P3" | "P4" | string;
   incident_type?: string;
-  search_type: "face_recognition" | "keyword" | "lpr" | "object_detection" | "activity_analysis" | "emergency_hazard" | "campus_safety";
-  box?: { x1: number; y1: number; x2: number; y2: number };
+  box?: { x1: number; y1: number; x2: number; y2: number; label?: string; confidence?: number };
+  boxes?: Array<{
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    label?: string;
+    confidence?: number;
+    color_bgr?: number[];
+  }>;
+  detected_instances?: number;
   frame_hash?: string;
   clip_hash?: string;
   ocr_text?: string;
@@ -747,11 +756,13 @@ export interface HazardSearchJob {
 
 export async function startHazardSearch(
   videoIds: string[],
-  hazardTypes: string[] = ["fall", "fire", "smoke"],
-  confidenceThreshold: number = 0.60,
+  hazardTypes: string[] = ["fall", "fire", "smoke", "crowd", "weapon"],
+  confidenceThreshold: number = 0.50,
   sampleFps: number = 2.0,
   startTime?: number | null,
-  endTime?: number | null
+  endTime?: number | null,
+  keywordQuery?: string | null,
+  blurFaces?: boolean
 ): Promise<{ success: boolean; job_id: string; status: string }> {
   return apiFetch("/api/safety/search-hazard", {
     method: "POST",
@@ -763,6 +774,8 @@ export async function startHazardSearch(
       sample_fps: sampleFps,
       start_time: startTime ?? null,
       end_time: endTime ?? null,
+      keyword_query: keywordQuery ?? null,
+      blur_faces: blurFaces ?? false,
     }),
   });
 }

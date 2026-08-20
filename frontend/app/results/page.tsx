@@ -34,7 +34,7 @@ import {
   ClockIcon,
 } from "@/components/Icons";
 
-const BASE_URL = "http://localhost:8001";
+const BASE_URL = "http://localhost:8000";
 
 // ── Magnifying Glass Hover Zoom Component ───────────────────────────────────────
 function ZoomImage({ src, alt }: { src: string; alt: string }) {
@@ -1273,4 +1273,5 @@ export default function ResultsPage() {
     </ToastProvider>
   );
 }
+
 

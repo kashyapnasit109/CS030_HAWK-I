@@ -53,7 +53,7 @@ export default function CamerasPage() {
 
   const loadZones = useCallback(async (camId: string) => {
     try {
-      const res = await fetch(`http://localhost:8001/api/cameras/${camId}/zones`);
+      const res = await fetch(`http://localhost:8000/api/cameras/${camId}/zones`);
       if (res.ok) {
         const data = await res.json();
         setZones(data.zones || []);
@@ -83,7 +83,7 @@ export default function CamerasPage() {
   const handleSaveZone = async () => {
     if (!activeCam || newZonePoints.length < 3 || !newZoneName.trim()) return;
     try {
-      const res = await fetch(`http://localhost:8001/api/cameras/${activeCam}/zones`, {
+      const res = await fetch(`http://localhost:8000/api/cameras/${activeCam}/zones`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -111,7 +111,7 @@ export default function CamerasPage() {
   const handleDeleteZone = async (zoneId: string) => {
     if (!activeCam || !confirm("Are you sure you want to delete this ROI zone?")) return;
     try {
-      const res = await fetch(`http://localhost:8001/api/cameras/${activeCam}/zones/${zoneId}`, {
+      const res = await fetch(`http://localhost:8000/api/cameras/${activeCam}/zones/${zoneId}`, {
         method: "DELETE",
       });
       if (res.ok) {
@@ -231,7 +231,7 @@ export default function CamerasPage() {
       try {
         // Fetch all recent alerts (last 10 seconds)
         const since = Date.now() / 1000 - 10;
-        const res = await fetch(`http://localhost:8001/api/cameras/alerts/all?since=${since}`);
+        const res = await fetch(`http://localhost:8000/api/cameras/alerts/all?since=${since}`);
         if (res.ok) {
           const data = await res.json();
           if (data.alerts && data.alerts.length > 0) {
@@ -914,7 +914,7 @@ export default function CamerasPage() {
                       }}
                     >
                       <div style={{ width: 44, height: 44, borderRadius: 4, overflow: "hidden", background: "var(--bg-elevated)", flexShrink: 0 }}>
-                        <img src={`http://localhost:8001${alert.snapshot_url}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <img src={`http://localhost:8000${alert.snapshot_url}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
@@ -953,4 +953,5 @@ export default function CamerasPage() {
     </ToastProvider>
   );
 }
+
 

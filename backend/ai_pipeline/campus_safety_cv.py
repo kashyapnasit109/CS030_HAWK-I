@@ -502,36 +502,38 @@ def analyze_crowd_surge(
 # ── 5. Main Emergency Hazard Video Search Pipeline ───────────────────────
 
 def run_campus_safety_search(
-    video_path: Path,
-    incident_types: list[str] | None = None,
+    video_path,
+    incident_types: list[str],
     camera_id: str = "CAM-01",
     job_id: str | None = None,
-    confidence_threshold: float = 0.60,
+    confidence_threshold: float = 0.50,
     sample_fps: float = 2.0,
     start_time: float | None = None,
     end_time: float | None = None,
     progress_cb: Optional[Callable[[int, int, list], None]] = None,
+    keyword_query: Optional[str] = None,
+    blur_faces: bool = False,
 ) -> list[dict[str, Any]]:
     """
-    Dedicated Campus Safety & Emergency Hazard Search:
-    Scans video footage with physics-grounded false-positive suppression for:
-    - Fall & Immobility (`fall`)
-    - Optical Fire Outbreak (`fire`, `thermal`)
-    - Smoke Dispersion (`smoke`)
-    - Crowd Altercation & Surge (`crowd`, `stampede`)
-    - Abandoned Luggage (`luggage`)
-
-    Generates Section 65B SHA-256 hashed forensic evidence frames and 4-second video clips.
+    Forensic Multi-Hazard Emergency Scanning Engine.
+    Executes task-specific YOLO11/YOLOv8 models + ByteTrack + Pose Skeletons:
+    - Optical Fire & Flame Nucleus (`fire`)
+    - Volumetric Smoke Dispersion (`smoke`)
+    - Slip, Trip & Fall Immobility (`fall`)
+    - Clustered Crowd Surge & Density (`crowd`)
+    - Armed Weapon Threat (`weapon`)
+    - Face Detection & Redaction (`face`)
+    - Open-Vocabulary Object Keyword Search (`keyword`)
     """
-    from ai_pipeline.object_detection import _get_yolo_detector, _TORCH_AVAILABLE
+    from ai_pipeline.hazard_engine import get_hazard_engine
 
     if job_id is None:
         job_id = str(uuid.uuid4())[:8]
 
     if not incident_types or "all" in incident_types:
-        active_types = {"fall", "fire", "smoke", "crowd", "luggage", "thermal"}
+        active_types = ["fire", "smoke", "fall", "crowd", "weapon", "face"]
     else:
-        active_types = {t.lower().strip() for t in incident_types}
+        active_types = [t.lower().strip() for t in incident_types]
 
     job_dir = RESULTS_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
@@ -541,18 +543,11 @@ def run_campus_safety_search(
     video_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
     frame_interval = max(1, int(video_fps / sample_fps))
 
-    yolo = None
-    if _TORCH_AVAILABLE:
-        try:
-            yolo = _get_yolo_detector()
-        except Exception:
-            yolo = None
+    hazard_suite = get_hazard_engine()
+    hazard_suite.track_buffer.reset()
 
     matches = []
     clip_tasks = []
-    prev_frame_bgr = None
-    prev_gray = None
-    prev_persons: list[dict[str, int]] = []
     frame_idx = 0
     frames_processed = 0
     last_match_sec = -10.0
@@ -575,26 +570,21 @@ def run_campus_safety_search(
             if end_time is not None and timestamp > end_time:
                 break
 
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             frames_processed += 1
 
-            # Detect Hard Camera Cuts / Scene Transitions
-            is_shot_cut = False
-            if prev_gray is not None and prev_gray.shape == gray.shape:
-                global_diff = float(np.mean(cv2.absdiff(gray, prev_gray)))
-                if global_diff > 42.0:  # Camera cut / angle switch
-                    is_shot_cut = True
+            # Run frame through unified task-specific hazard suite
+            res = hazard_suite.process_frame(
+                frame=frame,
+                frame_idx=frame_idx,
+                timestamp_sec=timestamp,
+                enabled_modules=active_types,
+                confidence_threshold=confidence_threshold,
+                blur_faces=blur_faces,
+                keyword_query=keyword_query,
+            )
 
-            # If a shot cut occurred, temporal continuity is broken: reset previous frames
-            if is_shot_cut:
-                prev_frame_bgr = frame.copy()
-                prev_gray = gray.copy()
-                prev_persons = []
-                frame_idx += 1
-                continue
-
-            # Estimate camera translation to compensate for panning/shaking
-            cam_shift = _estimate_camera_motion(prev_gray, gray) if prev_gray is not None else (0.0, 0.0)
+            frame_incidents = res.get("incidents", [])
+            overlay_frame = res.get("overlay_frame", frame)
 
             if progress_cb:
                 try:
@@ -602,165 +592,13 @@ def run_campus_safety_search(
                 except Exception:
                     pass
 
-            frame_incidents = []
-
-            # ── 1. High-Precision YOLO Detection with Strict IoU & Containment NMS ──
-            person_boxes = []
-            luggage_boxes = []
-
-            if yolo is not None and any(t in active_types for t in ("fall", "crowd", "luggage", "fire", "all")):
-                from ai_pipeline.device_manager import get_torch_device
-                res = yolo(frame, conf=0.52, device=get_torch_device(), verbose=False)
-                
-                raw_persons = []
-                raw_person_scores = []
-
-                for r in res[0].boxes:
-                    conf = float(r.conf.item())
-                    cls_id = int(r.cls.item())
-                    x1, y1, x2, y2 = [int(v) for v in r.xyxy.cpu().numpy()[0]]
-                    bw = x2 - x1
-                    bh = y2 - y1
-                    box_dict = {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
-
-                    if cls_id == 0:  # Person
-                        # Strict human proportions filter
-                        if bh >= 65 and bw >= 24 and (bw / max(1, bh)) <= 1.20:
-                            raw_persons.append(box_dict)
-                            raw_person_scores.append(conf)
-                    elif cls_id in (24, 26, 28) and conf >= 0.50:  # Backpack, Handbag, Suitcase
-                        luggage_boxes.append({"box": box_dict, "conf": conf})
-
-                deduped_boxes = _nms_person_boxes(raw_persons, raw_person_scores, iou_thresh=0.28, containment_thresh=0.45)
-                for b in deduped_boxes:
-                    person_boxes.append({"box": b, "conf": 0.85})
-
-            # ── 2. Optical Thermal & Fire Outbreak (Passing person_boxes to reject apparel) ──
-            if any(t in active_types for t in ("fire", "thermal", "all")):
-                fire_dets = detect_optical_fire_smoke(frame, prev_frame_bgr, person_boxes, cam_shift)
-                for f_det in fire_dets:
-                    if f_det["confidence"] >= confidence_threshold:
-                        frame_incidents.append({
-                            "incident_type": "fire_outbreak",
-                            "severity": "P1",
-                            "label": f_det["label"],
-                            "confidence": f_det["confidence"],
-                            "box": f_det["box"],
-                            "color_bgr": f_det.get("color_bgr", (20, 40, 245)),
-                            "iot_telemetry": {"temperature_c": f_det.get("temperature_c", 68.0), "optical_flame_intensity": 0.95}
-                        })
-
-            # ── 3. Smoke Dispersion ──
-            if any(t in active_types for t in ("smoke", "all")):
-                smoke_dets = detect_smoke_dispersion(frame, prev_gray, None, cam_shift)
-                for s_det in smoke_dets:
-                    if s_det["confidence"] >= confidence_threshold:
-                        frame_incidents.append({
-                            "incident_type": "smoke_dispersion",
-                            "severity": "P1",
-                            "label": s_det["label"],
-                            "confidence": s_det["confidence"],
-                            "box": s_det["box"],
-                            "color_bgr": s_det.get("color_bgr", (180, 180, 195)),
-                            "iot_telemetry": {"mq2_smoke_ppm": 480, "optical_opacity": s_det["confidence"]}
-                        })
-
-            # ── 4. Fall & Immobility Check on Persons ──
-            if any(t in active_types for t in ("fall", "all")):
-                for i, p in enumerate(person_boxes):
-                    prev_b = prev_persons[i] if i < len(prev_persons) else None
-                    fall_res = evaluate_fall_immobility(p["box"], prev_b, frame_height=frame.shape[0])
-                    if fall_res["is_fall"] and fall_res["confidence"] >= confidence_threshold:
-                        frame_incidents.append({
-                            "incident_type": "fall_detected",
-                            "severity": "P1",
-                            "label": f"Slip & Fall Immobility ({fall_res['aspect_ratio']} AR)",
-                            "confidence": fall_res["confidence"],
-                            "box": p["box"],
-                            "color_bgr": (50, 160, 255),
-                            "iot_telemetry": {"aspect_ratio": fall_res["aspect_ratio"], "posture": "recumbent_ground"}
-                        })
-
-            # ── 5. Clustered Crowd Altercation & Surge Check ──
-            if any(t in active_types for t in ("crowd", "stampede", "all")):
-                surge_res = analyze_crowd_surge(gray, prev_gray, person_boxes, frame.shape, None, cam_shift)
-                if surge_res["is_surge"] and surge_res["confidence"] >= confidence_threshold:
-                    c_count = surge_res["cluster_count"]
-                    tier = surge_res["tier"]
-                    
-                    if tier == "violent_altercation":
-                        label = f"Violent Altercation & Surge ({c_count} Persons Clustered)"
-                        severity = "P1"
-                    elif tier == "dense_stampede":
-                        label = f"Dense Crowd Stampede ({c_count} Persons Clustered)"
-                        severity = "P1"
-                    else:
-                        label = f"Crowd Gathering ({c_count} Persons Clustered)"
-                        severity = "P2"
-
-                    frame_incidents.append({
-                        "incident_type": "stampede_surge",
-                        "severity": severity,
-                        "label": label,
-                        "confidence": surge_res["confidence"],
-                        "box": surge_res["cluster_box"] or {"x1": 40, "y1": 40, "x2": frame.shape[1] - 40, "y2": frame.shape[0] - 40},
-                        "color_bgr": (40, 40, 240),
-                        "iot_telemetry": {
-                            "density_sqm": surge_res["density_rho"],
-                            "kinetic_disorder": surge_res["kinetic_disorder"],
-                            "person_count": c_count,
-                            "classification_tier": tier,
-                        }
-                    })
-
-            # ── 6. Abandoned Object Check ──
-            if any(t in active_types for t in ("luggage", "all")):
-                for lug in luggage_boxes:
-                    lb = lug["box"]
-                    lcx = (lb["x1"] + lb["x2"]) / 2
-                    lcy = (lb["y1"] + lb["y2"]) / 2
-                    min_dist = float("inf")
-                    for p in person_boxes:
-                        pb = p["box"]
-                        pcx = (pb["x1"] + pb["x2"]) / 2
-                        pcy = (pb["y1"] + pb["y2"]) / 2
-                        dist = math.hypot(lcx - pcx, lcy - pcy)
-                        if dist < min_dist:
-                            min_dist = dist
-
-                    if min_dist > 220.0:  # Isolated luggage > ~5.5 meters in pixel scale
-                        frame_incidents.append({
-                            "incident_type": "abandoned_object",
-                            "severity": "P2",
-                            "label": "Unattended / Abandoned Luggage",
-                            "confidence": 0.85,
-                            "box": lb,
-                            "color_bgr": (250, 180, 40),
-                            "iot_telemetry": {"stationary_seconds": 180, "owner_distance_m": 7.2}
-                        })
-
             # Record matches if any emergency incidents detected
             if frame_incidents:
                 main_inc = frame_incidents[0]
                 if (timestamp - last_match_sec) >= 1.2:
-                    annotated = frame.copy()
-                    for inc in frame_incidents:
-                        annotated = draw_premium_hud_overlay(
-                            annotated,
-                            {
-                                "box": inc["box"],
-                                "label": inc["label"],
-                                "confidence": inc["confidence"],
-                                "search_type": "emergency_hazard",
-                                "color_bgr": inc.get("color_bgr", (40, 40, 240)),
-                                "camera_id": camera_id,
-                                "timestamp_str": format_timestamp(timestamp),
-                            }
-                        )
-
                     frame_filename = f"{job_id}_{int(timestamp * 1000):08d}.jpg"
                     frame_abs = job_dir / frame_filename
-                    save_frame(annotated, frame_abs)
+                    save_frame(overlay_frame, frame_abs)
                     frame_rel = f"/storage/results/{job_id}/{frame_filename}"
                     frame_hash = _sha256_file(frame_abs)
 
@@ -777,15 +615,13 @@ def run_campus_safety_search(
                         "search_type": "emergency_hazard",
                         "box": main_inc["box"],
                         "frame_hash": frame_hash,
+                        "people_count": res.get("people_count", 0),
                         "iot_telemetry": main_inc.get("iot_telemetry", {}),
                     }
                     matches.append(match_obj)
                     clip_tasks.append((round(timestamp, 3), len(matches) - 1))
                     last_match_sec = timestamp
 
-            prev_frame_bgr = frame.copy()
-            prev_gray = gray.copy()
-            prev_persons = [p["box"] for p in person_boxes]
             frame_idx += 1
 
     finally:

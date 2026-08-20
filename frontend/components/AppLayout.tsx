@@ -23,8 +23,11 @@ import {
   TrendingUpIcon,
   CheckIcon,
   ScienceIcon,
-  CloseIcon
+  CloseIcon,
+  ZapIcon,
 } from "./Icons";
+import VigintLogo from "./VigintLogo";
+import LandingPage from "./LandingPage";
 
 interface NavItem {
   href: string;
@@ -41,6 +44,7 @@ const campusSafetyItems: NavItem[] = [
 
 const monitorItems: NavItem[] = [
   { href: "/",         icon: DashboardIcon, label: "Dashboard",   roles: ["admin", "supervisor", "investigator", "operator"] },
+  { href: "/pipeline", icon: ZapIcon,       label: "AI Neural Pipeline", roles: ["admin", "supervisor", "investigator", "operator"] },
   { href: "/live",     icon: LiveIcon,      label: "Live Wall",   roles: ["admin", "supervisor", "operator"] },
   { href: "/playback", icon: CameraIcon,    label: "Recordings",  roles: ["admin", "supervisor", "operator"] },
   { href: "/cameras",  icon: CameraIcon,    label: "CCTV Streams", roles: ["admin", "supervisor", "investigator", "operator"] },
@@ -56,7 +60,7 @@ const investigateItems: NavItem[] = [
 ];
 
 const systemItems: NavItem[] = [
-  { href: "/settings",  icon: SettingsIcon,  label: "Settings",         roles: ["admin", "supervisor"] },
+  { href: "/settings",  icon: SettingsIcon,  label: "Settings & AI Models", roles: ["admin", "supervisor"] },
   { href: "/metrics",   icon: ScienceIcon,   label: "AI Metrics & Accuracy", roles: ["admin", "supervisor", "investigator", "operator"] },
   { href: "/audit",     icon: ShieldIcon,    label: "Audit Trail",      roles: ["admin", "auditor"] },
   { href: "/verify",    icon: ShieldIcon,    label: "Verify PDF",       roles: ["admin", "auditor", "supervisor", "investigator", "operator"] },
@@ -129,7 +133,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [signupName, setSignupName] = useState("");
   const [signupRole, setSignupRole] = useState("operator");
   const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaSessionToken, setMfaSessionToken] = useState("");
   const [mfaCode, setMfaCode] = useState("");
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -537,220 +543,314 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     return <div style={{ background: "#000000", minHeight: "100vh" }} aria-hidden />;
   }
 
+  const handleQuickLogin = async (roleName: "admin" | "supervisor" | "investigator" | "operator") => {
+    setUsernameInput(roleName);
+    setPasswordInput("hawki");
+    setLoading(true);
+    setLoginError("");
+    try {
+      const res = await fetch("http://localhost:8000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: roleName, password: "hawki" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Login failed");
+      if (data.mfa_required) {
+        setMfaSessionToken(data.session_token);
+        setMfaRequired(true);
+        setShowLoginModal(true);
+      } else {
+        localStorage.setItem("visioncctv_token", data.token);
+        localStorage.setItem("visioncctv_user", JSON.stringify(data.user));
+        setUser(data.user);
+        setIsAuthenticated(true);
+        setShowLoginModal(false);
+      }
+    } catch (err: any) {
+      setLoginError(err.message || "Failed to log in");
+      setShowLoginModal(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
-      <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#000000", fontFamily: "sans-serif", padding: "20px" }}>
-        <div style={{ width: "100%", maxWidth: "420px", background: "#080808", border: "1px solid rgba(59,130,246,0.18)", borderRadius: "20px", padding: "32px", boxShadow: "0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(59,130,246,0.08)" }}>
-          <div style={{ textAlign: "center", marginBottom: "24px" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "52px", height: "52px", background: "var(--accent)", borderRadius: "14px", marginBottom: "12px", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}>
-              <ShieldIcon size={26} style={{ color: "white" }} />
-            </div>
-            <h1 style={{ color: "#F1F5F9", fontSize: "1.7rem", fontWeight: 800, margin: 0, letterSpacing: "-0.5px" }}>VIG<span style={{ color: "#60A5FA" }}>INT</span></h1>
-            <p style={{ color: "#475569", fontSize: "0.82rem", marginTop: "6px" }}>Intelligent Campus Safety & Emergency Platform (SIH Edition)</p>
-          </div>
+      <div style={{ position: "relative", minHeight: "100vh", background: "#030712" }}>
+        <LandingPage
+          onSignInClick={() => {
+            setShowLoginModal(true);
+            setLoginError("");
+          }}
+          onQuickLogin={handleQuickLogin}
+        />
 
-          {/* Mode Switcher Tabs */}
-          {!mfaRequired && (
-            <div style={{ display: "flex", background: "#0C0C0C", padding: "4px", borderRadius: "10px", marginBottom: "24px", border: "1px solid rgba(255,255,255,0.06)" }}>
+        {/* Modal Slide-Over for Authentication */}
+        {showLoginModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 100,
+              background: "rgba(0, 0, 0, 0.85)",
+              backdropFilter: "blur(14px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px",
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                maxWidth: "440px",
+                background: "#080C16",
+                border: "1px solid rgba(59,130,246,0.3)",
+                borderRadius: "20px",
+                padding: "32px",
+                boxShadow: "0 25px 70px rgba(0,0,0,0.9), 0 0 50px rgba(59,130,246,0.15)",
+              }}
+            >
+              {/* Close Button */}
               <button
-                type="button"
-                suppressHydrationWarning
-                onClick={() => { setAuthMode("login"); setLoginError(""); }}
+                onClick={() => setShowLoginModal(false)}
                 style={{
-                  flex: 1,
-                  padding: "8px 16px",
-                  borderRadius: "7px",
-                  border: "none",
-                  background: authMode === "login" ? "var(--accent)" : "transparent",
-                  color: authMode === "login" ? "white" : "#94a3b8",
-                  fontWeight: 700,
-                  fontSize: "0.85rem",
+                  position: "absolute",
+                  top: "18px",
+                  right: "18px",
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "50%",
+                  width: "32px",
+                  height: "32px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#94A3B8",
                   cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  boxShadow: authMode === "login" ? "0 2px 10px rgba(59,130,246,0.4)" : "none"
                 }}
               >
-                Sign In
-              </button>
-              <button
-                type="button"
-                suppressHydrationWarning
-                onClick={() => { setAuthMode("signup"); setLoginError(""); }}
-                style={{
-                  flex: 1,
-                  padding: "8px 16px",
-                  borderRadius: "7px",
-                  border: "none",
-                  background: authMode === "signup" ? "var(--accent)" : "transparent",
-                  color: authMode === "signup" ? "white" : "#94a3b8",
-                  fontWeight: 700,
-                  fontSize: "0.85rem",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  boxShadow: authMode === "signup" ? "0 2px 10px rgba(59,130,246,0.4)" : "none"
-                }}
-              >
-                Sign Up
-              </button>
-            </div>
-          )}
-
-          {loginError && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(239, 68, 68, 0.12)", border: "1px solid rgba(239, 68, 68, 0.35)", borderRadius: "10px", padding: "12px", color: "#EF4444", fontSize: "0.85rem", marginBottom: "20px" }}>
-              <WarningIcon size={16} /> {loginError}
-            </div>
-          )}
-
-          {mfaRequired ? (
-            <form onSubmit={handleMfaSubmit}>
-              <div style={{ marginBottom: "24px" }}>
-                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.8rem", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase" }}>Authenticator Code</label>
-                <input 
-                  type="text" 
-                  required
-                  maxLength={6}
-                  placeholder="Enter 6-digit code"
-                  value={mfaCode}
-                  onChange={(e) => setMfaCode(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "1.2rem", letterSpacing: "8px", textAlign: "center", outline: "none" }}
-                />
-                <p style={{ color: "#64748b", fontSize: "0.75rem", marginTop: "8px", textAlign: "center" }}>Enter code from Google Authenticator</p>
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={loading}
-                style={{ width: "100%", background: "var(--accent)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}
-              >
-                {loading ? "Verifying..." : "Verify Code"}
-              </button>
-              
-              <button 
-                type="button"
-                onClick={() => setMfaRequired(false)}
-                style={{ width: "100%", background: "transparent", color: "#94a3b8", border: "none", marginTop: "12px", fontSize: "0.85rem", cursor: "pointer" }}
-              >
-                Back to Sign In
-              </button>
-            </form>
-          ) : authMode === "login" ? (
-            <form onSubmit={handleLoginSubmit}>
-              <div style={{ marginBottom: "18px" }}>
-                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Username</label>
-                <input 
-                  type="text" 
-                  required
-                  suppressHydrationWarning
-                  placeholder="e.g. investigator"
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "0.95rem", outline: "none" }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "22px" }}>
-                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Password</label>
-                <input 
-                  type="password" 
-                  required
-                  suppressHydrationWarning
-                  placeholder="••••••••"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "0.95rem", outline: "none" }}
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                suppressHydrationWarning
-                disabled={loading}
-                style={{ width: "100%", background: "var(--accent)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s all", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}
-              >
-                {loading ? "Authenticating..." : "Sign In"}
+                <CloseIcon size={14} />
               </button>
 
-              {/* Demo User Shortcuts */}
-              <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                <p style={{ color: "#475569", fontSize: "0.75rem", marginBottom: "8px", textAlign: "center" }}>Quick Demo Accounts (Password: <code style={{ color: "#60A5FA" }}>hawki</code>):</p>
-                <div style={{ display: "flex", gap: "6px", justifyContent: "center", flexWrap: "wrap" }}>
-                  {["admin", "investigator", "operator", "supervisor"].map((u) => (
-                    <button
-                      key={u}
-                      type="button"
-                      suppressHydrationWarning
-                      onClick={() => { setUsernameInput(u); setPasswordInput("hawki"); }}
-                      style={{ background: "#0C0C0C", border: "1px solid rgba(59,130,246,0.2)", borderRadius: "6px", padding: "4px 10px", color: "#94a3b8", fontSize: "0.75rem", cursor: "pointer" }}
-                    >
-                      {u}
-                    </button>
-                  ))}
+              <div style={{ textAlign: "center", marginBottom: "20px" }}>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "10px" }}>
+                  <VigintLogo size={42} showText={false} />
                 </div>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handleRegisterSubmit}>
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Full Name</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g. Inspector Rajan"
-                  value={signupName}
-                  onChange={(e) => setSignupName(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
-                />
+                <h2 style={{ color: "#F1F5F9", fontSize: "1.4rem", fontWeight: 800, margin: 0 }}>
+                  VIGINT Command Console
+                </h2>
+                <p style={{ color: "#64748B", fontSize: "0.80rem", marginTop: "4px" }}>
+                  Autonomous C4ISR Defense &amp; Threat Intelligence
+                </p>
               </div>
 
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Username</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g. rajan_officer"
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
-                />
-              </div>
+              {/* Mode Switcher Tabs */}
+              {!mfaRequired && (
+                <div style={{ display: "flex", background: "#0C1222", padding: "4px", borderRadius: "10px", marginBottom: "20px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <button
+                    type="button"
+                    suppressHydrationWarning
+                    onClick={() => { setAuthMode("login"); setLoginError(""); }}
+                    style={{
+                      flex: 1,
+                      padding: "8px 16px",
+                      borderRadius: "7px",
+                      border: "none",
+                      background: authMode === "login" ? "var(--accent)" : "transparent",
+                      color: authMode === "login" ? "white" : "#94a3b8",
+                      fontWeight: 700,
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      boxShadow: authMode === "login" ? "0 2px 10px rgba(59,130,246,0.4)" : "none"
+                    }}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    suppressHydrationWarning
+                    onClick={() => { setAuthMode("signup"); setLoginError(""); }}
+                    style={{
+                      flex: 1,
+                      padding: "8px 16px",
+                      borderRadius: "7px",
+                      border: "none",
+                      background: authMode === "signup" ? "var(--accent)" : "transparent",
+                      color: authMode === "signup" ? "white" : "#94a3b8",
+                      fontWeight: 700,
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      boxShadow: authMode === "signup" ? "0 2px 10px rgba(59,130,246,0.4)" : "none"
+                    }}
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              )}
 
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Password</label>
-                <input 
-                  type="password" 
-                  required
-                  placeholder="At least 4 characters"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
-                />
-              </div>
+              {loginError && (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(239, 68, 68, 0.12)", border: "1px solid rgba(239, 68, 68, 0.35)", borderRadius: "10px", padding: "12px", color: "#EF4444", fontSize: "0.82rem", marginBottom: "18px" }}>
+                  <WarningIcon size={16} /> {loginError}
+                </div>
+              )}
 
-              <div style={{ marginBottom: "22px" }}>
-                <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Assigned System Role</label>
-                <select
-                  value={signupRole}
-                  onChange={(e) => setSignupRole(e.target.value)}
-                  style={{ width: "100%", boxSizing: "border-box", background: "#161616", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#E6EDF3", fontSize: "0.9rem", outline: "none" }}
-                >
-                  <option value="operator">Control Room Operator</option>
-                  <option value="investigator">Cyber Cell Investigator</option>
-                  <option value="supervisor">Duty Supervisor</option>
-                  <option value="auditor">Forensic Auditor</option>
-                  <option value="admin">System Administrator</option>
-                </select>
-              </div>
+              {mfaRequired ? (
+                <form onSubmit={handleMfaSubmit}>
+                  <div style={{ marginBottom: "20px" }}>
+                    <label style={{ display: "block", color: "#94a3b8", fontSize: "0.75rem", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase" }}>Authenticator Code</label>
+                    <input 
+                      type="text" 
+                      required
+                      maxLength={6}
+                      placeholder="000000"
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value)}
+                      style={{ width: "100%", boxSizing: "border-box", background: "#10162A", border: "1px solid rgba(59,130,246,0.3)", borderRadius: "8px", padding: "12px", color: "#E6EDF3", fontSize: "1.2rem", letterSpacing: "8px", textAlign: "center", outline: "none" }}
+                    />
+                    <p style={{ color: "#64748b", fontSize: "0.72rem", marginTop: "6px", textAlign: "center" }}>Enter code from Google Authenticator</p>
+                  </div>
 
-              <button 
-                type="submit" 
-                disabled={loading}
-                style={{ width: "100%", background: "var(--accent)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", transition: "0.15s all", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}
-              >
-                {loading ? "Creating Account..." : "Create Account"}
-              </button>
-            </form>
-          )}
-        </div>
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    style={{ width: "100%", background: "var(--accent)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.95rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}
+                  >
+                    {loading ? "Verifying..." : "Verify & Access Console"}
+                  </button>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setMfaRequired(false)}
+                    style={{ width: "100%", background: "transparent", color: "#94a3b8", border: "none", marginTop: "12px", fontSize: "0.80rem", cursor: "pointer" }}
+                  >
+                    Back to Sign In
+                  </button>
+                </form>
+              ) : authMode === "login" ? (
+                <form onSubmit={handleLoginSubmit}>
+                  <div style={{ marginBottom: "14px" }}>
+                    <label style={{ display: "block", color: "#94a3b8", fontSize: "0.72rem", fontWeight: 700, marginBottom: "5px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Operator Username</label>
+                    <input 
+                      type="text" 
+                      required
+                      suppressHydrationWarning
+                      placeholder="e.g. admin"
+                      value={usernameInput}
+                      onChange={(e) => setUsernameInput(e.target.value)}
+                      style={{ width: "100%", boxSizing: "border-box", background: "#10162A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "11px", color: "#E6EDF3", fontSize: "0.90rem", outline: "none" }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: "18px" }}>
+                    <label style={{ display: "block", color: "#94a3b8", fontSize: "0.72rem", fontWeight: 700, marginBottom: "5px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Password</label>
+                    <input 
+                      type="password" 
+                      required
+                      suppressHydrationWarning
+                      placeholder="••••••••"
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      style={{ width: "100%", boxSizing: "border-box", background: "#10162A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "11px", color: "#E6EDF3", fontSize: "0.90rem", outline: "none" }}
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    suppressHydrationWarning
+                    disabled={loading}
+                    style={{ width: "100%", background: "var(--accent)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.92rem", fontWeight: 800, cursor: "pointer", transition: "0.15s all", boxShadow: "0 4px 20px rgba(59,130,246,0.35)" }}
+                  >
+                    {loading ? "Authenticating..." : "Authorize & Enter"}
+                  </button>
+
+                  {/* Demo User Shortcuts */}
+                  <div style={{ marginTop: "18px", paddingTop: "14px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                    <p style={{ color: "#475569", fontSize: "0.72rem", marginBottom: "8px", textAlign: "center" }}>Instant Role Profiles:</p>
+                    <div style={{ display: "flex", gap: "6px", justifyContent: "center", flexWrap: "wrap" }}>
+                      {(["admin", "investigator", "operator", "supervisor"] as const).map((u) => (
+                        <button
+                          key={u}
+                          type="button"
+                          suppressHydrationWarning
+                          onClick={() => handleQuickLogin(u)}
+                          style={{ background: "#0C1222", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "6px", padding: "5px 10px", color: "#94A3B8", fontSize: "0.72rem", cursor: "pointer", fontWeight: 600 }}
+                        >
+                          {u}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleRegisterSubmit}>
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={{ display: "block", color: "#94a3b8", fontSize: "0.72rem", fontWeight: 700, marginBottom: "5px", textTransform: "uppercase" }}>Full Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="e.g. Inspector Rajan"
+                      value={signupName}
+                      onChange={(e) => setSignupName(e.target.value)}
+                      style={{ width: "100%", boxSizing: "border-box", background: "#10162A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={{ display: "block", color: "#94a3b8", fontSize: "0.72rem", fontWeight: 700, marginBottom: "5px", textTransform: "uppercase" }}>Username</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="e.g. rajan_officer"
+                      value={usernameInput}
+                      onChange={(e) => setUsernameInput(e.target.value)}
+                      style={{ width: "100%", boxSizing: "border-box", background: "#10162A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={{ display: "block", color: "#94a3b8", fontSize: "0.72rem", fontWeight: 700, marginBottom: "5px", textTransform: "uppercase" }}>Password</label>
+                    <input 
+                      type="password" 
+                      required
+                      placeholder="At least 4 characters"
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      style={{ width: "100%", boxSizing: "border-box", background: "#10162A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: "18px" }}>
+                    <label style={{ display: "block", color: "#94a3b8", fontSize: "0.72rem", fontWeight: 700, marginBottom: "5px", textTransform: "uppercase" }}>System Role</label>
+                    <select
+                      value={signupRole}
+                      onChange={(e) => setSignupRole(e.target.value)}
+                      style={{ width: "100%", boxSizing: "border-box", background: "#10162A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px", color: "#E6EDF3", fontSize: "0.85rem", outline: "none" }}
+                    >
+                      <option value="operator">Control Room Operator</option>
+                      <option value="investigator">Cyber Cell Investigator</option>
+                      <option value="supervisor">Duty Supervisor</option>
+                      <option value="auditor">Forensic Auditor</option>
+                      <option value="admin">System Administrator</option>
+                    </select>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    style={{ width: "100%", background: "var(--accent)", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "0.90rem", fontWeight: 800, cursor: "pointer", transition: "0.15s all", boxShadow: "0 4px 16px rgba(59,130,246,0.28)" }}
+                  >
+                    {loading ? "Creating Account..." : "Create Account & Sign In"}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -760,13 +860,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <div className="layout">
       {/* Topbar */}
       <header className="topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
           <div className="topbar-logo" style={{ cursor: "pointer" }} onClick={() => router.push("/")}>
-            <div className="icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "30px", height: "30px", background: "var(--accent)", borderRadius: "7px", boxShadow: "0 2px 8px rgba(59,130,246,0.25)" }}>
-              <ShieldIcon size={16} style={{ color: "white" }} />
-            </div>
-            <span>VIG<span className="accent">INT</span></span>
-            <span className="badge badge-blue" style={{ fontSize: "0.6rem", marginLeft: 6, letterSpacing: "0.05em" }}>SIH CAMPUS SAFETY</span>
+            <VigintLogo size={28} subtitle="" />
           </div>
           
           {/* Active Case Selector */}

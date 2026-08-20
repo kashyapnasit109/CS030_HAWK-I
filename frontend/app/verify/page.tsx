@@ -62,7 +62,7 @@ export default function VerifyPage() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:8001/api/export/verify", {
+      const res = await fetch("http://localhost:8000/api/export/verify", {
         method: "POST",
         body: formData,
       });
@@ -294,4 +294,5 @@ export default function VerifyPage() {
     </ToastProvider>
   );
 }
+
 

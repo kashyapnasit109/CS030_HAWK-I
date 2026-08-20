@@ -91,7 +91,7 @@ export default function LiveTacticalWallPage() {
         }
       }
 
-      const vRes = await fetch("http://localhost:8001/api/videos/list").then((r) => r.json());
+      const vRes = await fetch("http://localhost:8000/api/videos/list").then((r) => r.json());
       if (vRes?.videos) {
         const vList = vRes.videos.map((v: any) => ({
           id: v.id,
@@ -118,7 +118,7 @@ export default function LiveTacticalWallPage() {
     if (cameras.length === 0) return;
     try {
       for (const cam of cameras) {
-        await fetch(`http://localhost:8001/api/cameras/${cam.camera_id}/start-detection`, {
+        await fetch(`http://localhost:8000/api/cameras/${cam.camera_id}/start-detection`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -146,7 +146,7 @@ export default function LiveTacticalWallPage() {
   useEffect(() => {
     const poll = async () => {
       try {
-        const res = await fetch("http://localhost:8001/api/cameras/alerts/all?since=0").then((r) => r.json());
+        const res = await fetch("http://localhost:8000/api/cameras/alerts/all?since=0").then((r) => r.json());
         if (res?.alerts && res.alerts.length > 0) {
           const formatted = res.alerts.slice(-30).reverse().map((a: any) => ({
             id: a.id,
@@ -170,7 +170,7 @@ export default function LiveTacticalWallPage() {
   // 5. Change Video Source / Simulate Video on a Camera Channel
   const handleSetCameraSource = async (cameraId: string, videoUrl: string, videoName: string) => {
     try {
-      await fetch(`http://localhost:8001/api/cameras/${cameraId}/set-source`, {
+      await fetch(`http://localhost:8000/api/cameras/${cameraId}/set-source`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source_url: videoUrl, source_name: videoName }),
@@ -195,7 +195,7 @@ export default function LiveTacticalWallPage() {
       formData.append("camera_id", selectedCamSlot);
 
       const token = localStorage.getItem("visioncctv_token");
-      const res = await fetch("http://localhost:8001/api/videos/upload", {
+      const res = await fetch("http://localhost:8000/api/videos/upload", {
         method: "POST",
         headers: token ? { "Authorization": `Bearer ${token}` } : {},
         body: formData,
@@ -219,7 +219,7 @@ export default function LiveTacticalWallPage() {
   const handleStopDetection = async () => {
     for (const cam of cameras) {
       try {
-        await fetch(`http://localhost:8001/api/cameras/${cam.camera_id}/stop-detection`, { method: "POST" });
+        await fetch(`http://localhost:8000/api/cameras/${cam.camera_id}/stop-detection`, { method: "POST" });
       } catch {}
     }
     setIsScanning(false);
@@ -312,7 +312,7 @@ export default function LiveTacticalWallPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "14px" }}>
             {cameras.map((cam, idx) => {
               const camId = cam.id || (cam as any).camera_id || `cam-${idx}`;
-              const streamUrl = `http://localhost:8001/api/cameras/${camId}/stream`;
+              const streamUrl = `http://localhost:8000/api/cameras/${camId}/stream`;
               const isSelected = activeCamId === camId;
 
               return (
@@ -371,7 +371,7 @@ export default function LiveTacticalWallPage() {
                       alt={cam.name}
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = `http://localhost:8001/api/cameras/${cam.camera_id}/snapshot`;
+                        (e.target as HTMLImageElement).src = `http://localhost:8000/api/cameras/${cam.camera_id}/snapshot`;
                       }}
                     />
 
@@ -623,3 +623,4 @@ export default function LiveTacticalWallPage() {
     </ToastProvider>
   );
 }
+

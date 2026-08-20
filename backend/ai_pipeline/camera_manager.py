@@ -711,44 +711,62 @@ def start_live_detection(
                             "box": {"x1": int(x), "y1": int(y), "x2": int(x+w), "y2": int(y+h)},
                         })
 
+                elif detection_type in ("hazard", "hazard_suite", "fall", "fire", "smoke", "weapon"):
+                    try:
+                        from ai_pipeline.hazard_engine import get_hazard_engine
+                        h_engine = get_hazard_engine()
+                        h_res = h_engine.process_frame(
+                            frame=frame,
+                            frame_idx=int(time.time()),
+                            timestamp_sec=time.time(),
+                            enabled_modules=["fire", "smoke", "fall", "crowd", "weapon", "face"],
+                            confidence_threshold=0.45,
+                        )
+                        for inc in h_res.get("incidents", []):
+                            detections.append({
+                                "type": inc.get("incident_type", "hazard"),
+                                "label": inc.get("label", "Hazard Alert"),
+                                "confidence": inc.get("confidence", 0.85),
+                                "box": inc.get("box", {"x1": 10, "y1": 10, "x2": 100, "y2": 100}),
+                                "severity": inc.get("severity", "P1"),
+                            })
+                        if h_res.get("people_count", 0) > 0:
+                            detections.append({
+                                "type": "people_count",
+                                "label": f"Live People Present: {h_res['people_count']}",
+                                "confidence": 0.95,
+                                "box": {"x1": 10, "y1": 10, "x2": 240, "y2": 45},
+                            })
+                    except Exception as e:
+                        print(f"[live_detection] Hazard error on {camera_id}: {e}")
+
                 elif detection_type in ("object", "crowd"):
                     try:
-                        from ai_pipeline.object_detection import _get_yolo_detector, COCO_CLASSES, POLICE_CATEGORIES, _TORCH_AVAILABLE as OBJ_TORCH
-                        if OBJ_TORCH:
-                            from ai_pipeline.device_manager import get_torch_device
-                            detector = _get_yolo_detector()
-                            device = get_torch_device()
-                            results = detector(frame, device=device, verbose=False)
-                            person_count = 0
-
-                            for r in results[0].boxes:
-                                conf = float(r.conf.item())
-                                if conf < 0.35:
-                                    continue
-                                cls_id = int(r.cls.item())
-                                cls_name = COCO_CLASSES[cls_id] if cls_id < len(COCO_CLASSES) else f"class_{cls_id}"
-                                
-                                if cls_name == "person":
-                                    person_count += 1
-
-                                if target_classes and cls_name not in target_classes and cls_name not in [POLICE_CATEGORIES.get(tc, []) for tc in target_classes]:
-                                    continue
-
-                                x1, y1, x2, y2 = r.xyxy.cpu().numpy()[0]
-                                detections.append({
-                                    "type": "object",
-                                    "label": cls_name,
-                                    "confidence": round(conf, 3),
-                                    "box": {"x1": int(x1), "y1": int(y1), "x2": int(x2), "y2": int(y2)},
-                                })
-
-                            if detection_type == "crowd" and person_count >= 3:
-                                detections.insert(0, {
-                                    "type": "crowd",
-                                    "label": f"Crowd Gathering ({person_count} Persons)",
-                                    "confidence": min(1.0, 0.5 + person_count * 0.1),
-                                    "box": {"x1": 20, "y1": 20, "x2": frame.shape[1] - 20, "y2": frame.shape[0] - 20},
-                                })
+                        from ai_pipeline.hazard_engine import get_hazard_engine
+                        h_engine = get_hazard_engine()
+                        h_res = h_engine.process_frame(
+                            frame=frame,
+                            frame_idx=int(time.time()),
+                            timestamp_sec=time.time(),
+                            enabled_modules=["crowd"],
+                            confidence_threshold=0.35,
+                        )
+                        for p in h_res.get("tracked_people", []):
+                            bx = p["box"]
+                            detections.append({
+                                "type": "person",
+                                "label": f"Person #{p['id']}",
+                                "confidence": round(p["conf"], 3),
+                                "box": bx,
+                            })
+                        p_count = h_res.get("people_count", 0)
+                        if detection_type == "crowd" and p_count >= 3:
+                            detections.insert(0, {
+                                "type": "crowd",
+                                "label": f"Crowd Gathering ({p_count} Persons)",
+                                "confidence": min(1.0, 0.5 + p_count * 0.1),
+                                "box": {"x1": 20, "y1": 20, "x2": frame.shape[1] - 20, "y2": frame.shape[0] - 20},
+                            })
                     except Exception as e:
                         print(f"[live_detection] Object detection error: {e}")
 

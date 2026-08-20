@@ -67,14 +67,14 @@ export default function DashboardPage() {
     listReferences().then((r) => setRefs(r?.references || [])).catch(() => {});
     listCameras().then((c) => setCameras(c?.cameras || [])).catch(() => {});
 
-    fetch("http://localhost:8001/api/safety/guards")
+    fetch("http://localhost:8000/api/safety/guards")
       .then((r) => r.json())
       .then((d) => {
         if (d.guards) setGuards(d.guards);
       })
       .catch(() => {});
 
-    fetch("http://localhost:8001/api/cameras/alerts/all?since=0")
+    fetch("http://localhost:8000/api/cameras/alerts/all?since=0")
       .then((r) => r.json())
       .then((d) => {
         if (d.alerts) setRecentSightings(d.alerts.slice(-8).reverse());
@@ -344,3 +344,4 @@ export default function DashboardPage() {
     </ToastProvider>
   );
 }
+

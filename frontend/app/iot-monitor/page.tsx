@@ -39,7 +39,7 @@ export default function IotMonitorPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const loadTelemetry = () => {
-    fetch("http://localhost:8001/api/iot/telemetry")
+    fetch("http://localhost:8000/api/iot/telemetry")
       .then((r) => r.json())
       .then((d) => {
         if (d.nodes) {
@@ -128,7 +128,7 @@ export default function IotMonitorPage() {
     if (anomalyType === "sound") overrides = { sound_dba: 94.0 };
 
     try {
-      await fetch("http://localhost:8001/api/iot/trigger-anomaly", {
+      await fetch("http://localhost:8000/api/iot/trigger-anomaly", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ node_id: selectedNode.node_id, overrides }),
@@ -143,7 +143,7 @@ export default function IotMonitorPage() {
   const clearAnomaly = async () => {
     if (!selectedNode) return;
     try {
-      await fetch(`http://localhost:8001/api/iot/clear-anomaly/${selectedNode.node_id}`, { method: "POST" });
+      await fetch(`http://localhost:8000/api/iot/clear-anomaly/${selectedNode.node_id}`, { method: "POST" });
       showToast(`Normal baseline restored on ${selectedNode.node_id}`, "success");
       setConsensusResult(null);
       loadTelemetry();
@@ -155,7 +155,7 @@ export default function IotMonitorPage() {
   const evaluateDempsterShafer = async (cvType: string, cvConf: number) => {
     if (!selectedNode) return;
     try {
-      const res = await fetch("http://localhost:8001/api/iot/evaluate-consensus", {
+      const res = await fetch("http://localhost:8000/api/iot/evaluate-consensus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cv_event_type: cvType, cv_confidence: cvConf, node_id: selectedNode.node_id }),
@@ -373,3 +373,4 @@ export default function IotMonitorPage() {
     </ToastProvider>
   );
 }
+

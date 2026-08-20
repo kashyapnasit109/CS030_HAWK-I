@@ -68,7 +68,7 @@ export default function CasesPage() {
   const loadCases = useCallback(async () => {
     try {
       const token = localStorage.getItem("visioncctv_token");
-      const res = await fetch("http://localhost:8001/api/cases/list", {
+      const res = await fetch("http://localhost:8000/api/cases/list", {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (!res.ok) throw new Error("Failed to load cases");
@@ -88,7 +88,7 @@ export default function CasesPage() {
     setDetailLoading(true);
     try {
       const token = localStorage.getItem("visioncctv_token");
-      const res = await fetch(`http://localhost:8001/api/cases/${caseId}`, {
+      const res = await fetch(`http://localhost:8000/api/cases/${caseId}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (!res.ok) throw new Error("Failed to load case folder");
@@ -170,7 +170,7 @@ export default function CasesPage() {
 
     try {
       const token = localStorage.getItem("visioncctv_token");
-      const res = await fetch("http://localhost:8001/api/cases/create", {
+      const res = await fetch("http://localhost:8000/api/cases/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -216,7 +216,7 @@ export default function CasesPage() {
 
     try {
       const token = localStorage.getItem("visioncctv_token");
-      const res = await fetch(`http://localhost:8001/api/cases/${activeCaseId}/upload_media`, {
+      const res = await fetch(`http://localhost:8000/api/cases/${activeCaseId}/upload_media`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -355,7 +355,7 @@ export default function CasesPage() {
                           <div key={m.media_id} style={{ display: "flex", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px", overflow: "hidden" }}>
                             <div style={{ width: "120px", height: "80px", background: "#000", position: "relative", flexShrink: 0 }}>
                               <img 
-                                src={`http://localhost:8001/storage/thumbnails/case_${caseDetail.case_id}_${m.file_path.split("_").pop()?.split(".")[0]}.jpg`}
+                                src={`http://localhost:8000/storage/thumbnails/case_${caseDetail.case_id}_${m.file_path.split("_").pop()?.split(".")[0]}.jpg`}
                                 alt="thumbnail" 
                                 onError={(e) => { e.currentTarget.src = "/storage/thumbnails/subway.jpg" }}
                                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -610,4 +610,5 @@ export default function CasesPage() {
     </ToastProvider>
   );
 }
+
 
