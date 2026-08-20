@@ -17,3 +17,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 19, 2026 09:21:41]` **fix(security): fix edge case in polygon containment test for concave boundaries** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Aug 19, 2026 17:01:13]` **refactor(twin): isolate optical hazard detectors into standalone inference module** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Aug 20, 2026 09:05:48]` **perf(detector): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Aug 20, 2026 09:43:29]` **refactor(wall): isolate optical hazard detectors into standalone inference module** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
