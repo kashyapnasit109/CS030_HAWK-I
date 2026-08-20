@@ -42,6 +42,7 @@ import {
   ShieldCheckIcon,
   SlidersIcon,
   ImageIcon,
+  VideoIcon,
   DownloadIcon,
 } from "@/components/Icons";
 
@@ -620,23 +621,41 @@ export default function IncidentsCommandHub() {
                     justifyContent: "center",
                   }}
                 >
-                  <video
-                    key={triageVideoOverride || selectedIncident.video_url || selectedIncident.incident_id}
-                    src={resolveStorageUrl(
-                      triageVideoOverride ||
-                      selectedIncident.video_url ||
-                      (availableVideos.length > 0 ? availableVideos[0].video_url : "/storage/uploads/subway.mp4")
-                    )}
-                    autoPlay
-                    loop
-                    muted
-                    controls
-                    onError={() => {
-                      console.warn("Triage video failed to load or decode");
-                      setTriageVideoError(true);
-                    }}
-                    style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000000" }}
-                  />
+                  {triageVideoError ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: "var(--text-muted)" }}>
+                      <VideoIcon size={36} style={{ color: "#EF4444" }} />
+                      <span style={{ fontSize: "0.82rem", fontWeight: 700 }}>Footage stream paused or format converting</span>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setTriageVideoError(false);
+                          setTriageVideoOverride(null);
+                        }}
+                        style={{ fontSize: "0.72rem" }}
+                      >
+                        Retry Primary Camera Feed
+                      </button>
+                    </div>
+                  ) : (
+                    <video
+                      key={triageVideoOverride || selectedIncident.video_url || selectedIncident.incident_id}
+                      src={resolveStorageUrl(
+                        triageVideoOverride ||
+                        selectedIncident.video_url ||
+                        (availableVideos.length > 0 ? availableVideos[0].video_url : "/storage/uploads/39feb69f.mp4")
+                      )}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      controls
+                      preload="auto"
+                      onError={() => {
+                        setTriageVideoError(true);
+                      }}
+                      style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000000" }}
+                    />
+                  )}
 
                   {/* Optical HUD Watermark Tag */}
                   <div

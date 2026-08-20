@@ -62,7 +62,7 @@ _active_incidents: list[dict[str, Any]] = [
         ],
         "status": "responding",
         "dispatched_guard": "QRT-01 (Officer Rajesh Sharma)",
-        "video_url": "/storage/uploads/subway.mp4"
+        "video_url": "/storage/uploads/840b0246.mp4"
     },
     {
         "incident_id": "INC-2026-0819-03",
@@ -81,7 +81,8 @@ _active_incidents: list[dict[str, Any]] = [
             "Security Desk incident ticket #T-8841 generated"
         ],
         "status": "acknowledged",
-        "dispatched_guard": None
+        "dispatched_guard": None,
+        "video_url": "/storage/uploads/subway.mp4"
     }
 ]
 
