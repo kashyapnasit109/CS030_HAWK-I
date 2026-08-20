@@ -25,3 +25,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 20, 2026 18:25:44]` **docs(evidence): add sequence diagram for ring buffer frame ingestion** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Aug 20, 2026 19:35:44]` **docs(copilot): document statutory evidence certificate generation parameters** — *Verified component: prime compliance copilot & assistant integration*
 - `[Aug 20, 2026 20:33:46]` **refactor(rules): isolate optical hazard detectors into standalone inference module** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Aug 20, 2026 21:19:22]` **fix(assignment): resolve thread-safety collision during concurrent WebSocket broadcast** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
