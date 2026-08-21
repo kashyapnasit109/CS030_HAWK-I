@@ -32,3 +32,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 21, 2026 09:02:27]` **test(rules): validate spatial polygon intersection tests across complex geometries** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Aug 21, 2026 09:56:57]` **test(assignment): validate spatial polygon intersection tests across complex geometries** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Aug 21, 2026 10:08:23]` **docs(detector): add API documentation for bulk rule assignment endpoints** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Aug 21, 2026 10:37:55]` **perf(pipeline): reduce memory footprint of 300-frame video buffer queue** — *Verified component: camera ring buffer & video ingestion*
