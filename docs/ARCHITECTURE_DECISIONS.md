@@ -39,3 +39,10 @@ Key architectural choices and their rationale.
 - 7-day retention policy for raw events
 - 90-day retention for aggregated metrics
 
+
+## [2026-08-21 16:05] Commit #30
+### Accessibility Improvements
+- WCAG 2.1 Level AA compliance
+- Screen reader support for all interactive elements
+- Keyboard navigation for dashboard controls
+
