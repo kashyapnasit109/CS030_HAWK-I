@@ -34,3 +34,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 21, 2026 10:08:23]` **docs(detector): add API documentation for bulk rule assignment endpoints** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Aug 21, 2026 10:37:55]` **perf(pipeline): reduce memory footprint of 300-frame video buffer queue** — *Verified component: camera ring buffer & video ingestion*
 - `[Aug 21, 2026 11:33:42]` **refactor(twin): simplify WebSocket client state lifecycle management** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Aug 21, 2026 11:37:31]` **fix(compliance): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: compliance engine core & rule execution*
