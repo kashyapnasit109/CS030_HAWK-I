@@ -37,3 +37,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 21, 2026 11:37:31]` **fix(compliance): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: compliance engine core & rule execution*
 - `[Aug 21, 2026 16:43:28]` **fix(wall): fix edge case in polygon containment test for concave boundaries** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Aug 21, 2026 17:02:53]` **docs(wall): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
+- `[Aug 21, 2026 17:03:37]` **refactor(perf): modularize SQLite rule assignment transaction isolation** — *Verified component: tensor memory management & latency optimization*
