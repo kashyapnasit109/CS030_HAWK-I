@@ -29,3 +29,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 20, 2026 21:32:41]` **test(security): validate spatial polygon intersection tests across complex geometries** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Aug 21, 2026 08:14:01]` **feat(evidence): add per-stream decoder latency & queue depth monitoring** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Aug 21, 2026 08:16:12]` **perf(compliance): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: compliance engine core & rule execution*
+- `[Aug 21, 2026 09:02:27]` **test(rules): validate spatial polygon intersection tests across complex geometries** — *Verified component: deterministic rule evaluator & spatial logic*
