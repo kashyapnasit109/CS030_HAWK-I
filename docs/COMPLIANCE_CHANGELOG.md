@@ -48,3 +48,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 22, 2026 14:15:53]` **perf(rules): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Aug 22, 2026 19:06:33]` **test(detector): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Aug 22, 2026 20:20:36]` **docs(copilot): update compliance engine operational deployment guide** — *Verified component: prime compliance copilot & assistant integration*
+- `[Aug 22, 2026 20:52:40]` **test(detector): verify deterministic condition parser against edge timezones** — *Verified component: YOLOv8 & YOLO-Pose inference models*
