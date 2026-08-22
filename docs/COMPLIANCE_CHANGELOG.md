@@ -45,3 +45,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 22, 2026 09:55:02]` **docs(wall): add API documentation for bulk rule assignment endpoints** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Aug 22, 2026 12:04:49]` **perf(copilot): streamline keypoint bounding box normalization algorithms** — *Verified component: prime compliance copilot & assistant integration*
 - `[Aug 22, 2026 13:21:09]` **feat(assignment): implement automated keyframe capture upon rule violation trigger** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Aug 22, 2026 14:15:53]` **perf(rules): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: deterministic rule evaluator & spatial logic*
