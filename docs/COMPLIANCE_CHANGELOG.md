@@ -52,3 +52,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 22, 2026 21:44:27]` **fix(copilot): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: prime compliance copilot & assistant integration*
 - `[Aug 23, 2026 08:25:43]` **perf(evidence): accelerate canvas polygon rendering with path caching** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Aug 23, 2026 08:36:41]` **test(wall): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
+- `[Aug 23, 2026 09:08:21]` **perf(wall): minimize thread context switching in camera worker pool** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
