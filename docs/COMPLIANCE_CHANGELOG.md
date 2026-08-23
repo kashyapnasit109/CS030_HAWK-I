@@ -55,3 +55,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 23, 2026 09:08:21]` **perf(wall): minimize thread context switching in camera worker pool** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Aug 23, 2026 10:09:55]` **perf(compliance): optimize YOLOv8 inference batching for edge ring buffers** — *Verified component: compliance engine core & rule execution*
 - `[Aug 23, 2026 16:44:49]` **test(diagnostics): add mock camera RTSP connection timeout failure injection** — *Verified component: hardware decoders & operational telemetry*
+- `[Aug 23, 2026 16:53:45]` **docs(twin): document camera compatibility capability matrix requirements** — *Verified component: digital twin topology & blast radius analyzer*
