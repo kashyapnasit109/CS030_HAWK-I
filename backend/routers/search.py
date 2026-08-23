@@ -676,13 +676,31 @@ def search_activity(request: ActivityAnalysisRequest, background_tasks: Backgrou
 
 
 @router.get("/job/{job_id}")
-def get_job_status(job_id: str):
+def get_job(job_id: str):
     """Poll job status and retrieve results when complete."""
+    if job_id not in _jobs:
+        try:
+            from routers.campus_safety import _hazard_jobs
+            if job_id in _hazard_jobs:
+                hz = _hazard_jobs[job_id]
+                _jobs[job_id] = {
+                    "status": hz.get("status", "completed"),
+                    "type": "keyword" if hz.get("hazard_types") == ["keyword"] else "emergency_hazard",
+                    "matches": hz.get("matches", []),
+                    "match_count": hz.get("match_count", len(hz.get("matches", []))),
+                    "frames_processed": hz.get("frames_processed", 0),
+                    "frames_matched": hz.get("frames_matched", 0),
+                    "query": f"AI Hazard: {', '.join(hz.get('hazard_types', [])).upper()}",
+                }
+        except Exception:
+            pass
+
     if job_id not in _jobs:
         # Check subdirectories of RESULTS_DIR for manifest.json files that match this job ID
         all_matches = []
         search_type = "unknown"
         has_manifest = False
+        query_str = "N/A"
         
         # Check single-video folder
         manifest_file = RESULTS_DIR / job_id / "manifest.json"
@@ -690,27 +708,29 @@ def get_job_status(job_id: str):
             try:
                 manifest = json.loads(manifest_file.read_text())
                 all_matches.extend(manifest.get("matches", []))
-                search_type = manifest.get("search_type", "unknown")
+                search_type = manifest.get("search_type", manifest.get("type", "unknown"))
+                query_str = manifest.get("query", "N/A")
                 has_manifest = True
             except Exception:
                 pass
         else:
             # Check multi-video folder prefixes (e.g. jobid_cam01, jobid_cam02)
-            for sub_dir in RESULTS_DIR.iterdir():
-                if sub_dir.is_dir() and sub_dir.name.startswith(job_id):
-                    sub_manifest = sub_dir / "manifest.json"
-                    if sub_manifest.exists():
-                        try:
-                            manifest = json.loads(sub_manifest.read_text())
-                            all_matches.extend(manifest.get("matches", []))
-                            search_type = manifest.get("search_type", "unknown")
-                            has_manifest = True
-                        except Exception:
-                            pass
+            if RESULTS_DIR.exists():
+                for sub_dir in RESULTS_DIR.iterdir():
+                    if sub_dir.is_dir() and sub_dir.name.startswith(job_id):
+                        sub_manifest = sub_dir / "manifest.json"
+                        if sub_manifest.exists():
+                            try:
+                                manifest = json.loads(sub_manifest.read_text())
+                                all_matches.extend(manifest.get("matches", []))
+                                search_type = manifest.get("search_type", manifest.get("type", "unknown"))
+                                if query_str == "N/A":
+                                    query_str = manifest.get("query", "N/A")
+                                has_manifest = True
+                            except Exception:
+                                pass
                             
         if has_manifest:
-            # We can aggregate query field from manifest
-            query_str = manifest.get("query", "N/A")
             _jobs[job_id] = {
                 "status": "completed",
                 "type": search_type,
@@ -726,9 +746,27 @@ def get_job_status(job_id: str):
 
 @router.get("/jobs")
 def list_jobs():
-    """List all search jobs including those persisted on disk."""
+    """List all search jobs including those persisted on disk and in hazard module."""
     jobs = {k: v.copy() for k, v in _jobs.items()}
     
+    # Also incorporate in-memory hazard jobs
+    try:
+        from routers.campus_safety import _hazard_jobs
+        for hz_id, hz_val in _hazard_jobs.items():
+            if hz_id not in jobs:
+                hz_type = "keyword" if hz_val.get("hazard_types") == ["keyword"] else "emergency_hazard"
+                jobs[hz_id] = {
+                    "status": hz_val.get("status", "completed"),
+                    "type": hz_type,
+                    "match_count": hz_val.get("match_count", 0),
+                    "created_at": hz_val.get("created_at", time.time()),
+                    "frames_processed": hz_val.get("frames_processed", 0),
+                    "frames_matched": hz_val.get("frames_matched", hz_val.get("match_count", 0)),
+                    "query": f"AI Hazard: {', '.join(hz_val.get('hazard_types', [])).upper()}",
+                }
+    except Exception:
+        pass
+
     if RESULTS_DIR.exists():
         for sub_dir in RESULTS_DIR.iterdir():
             if sub_dir.is_dir():
@@ -740,23 +778,25 @@ def list_jobs():
                         folder_name = sub_dir.name
                         parts = folder_name.split("_")
                         job_id = parts[0]
+                        m_count = manifest.get("match_count", manifest.get("total_matches", len(manifest.get("matches", []))))
+                        m_type = manifest.get("search_type", manifest.get("type", "unknown"))
+                        m_query = manifest.get("query", "N/A")
                         
                         if job_id not in jobs:
                             jobs[job_id] = {
                                 "status": "completed",
-                                "type": manifest.get("search_type", "unknown"),
-                                "match_count": manifest.get("match_count", 0),
-                                "created_at": manifest.get("created_at", time.time()),
+                                "type": m_type,
+                                "match_count": m_count,
+                                "created_at": manifest.get("created_at", manifest.get("completed_at", time.time())),
                                 "frames_processed": manifest.get("frames_processed", 0),
-                                "frames_matched": manifest.get("match_count", 0),
-                                "query": manifest.get("query", "N/A"),
+                                "frames_matched": m_count,
+                                "query": m_query,
                             }
                         else:
                             if "query" not in jobs[job_id] or jobs[job_id]["query"] == "N/A":
-                                jobs[job_id]["query"] = manifest.get("query", "N/A")
-                            # Sum up match count for multi-video runs if they are split
+                                jobs[job_id]["query"] = m_query
                             if len(parts) > 1:
-                                jobs[job_id]["match_count"] = jobs[job_id].get("match_count", 0) + manifest.get("match_count", 0)
+                                jobs[job_id]["match_count"] = jobs[job_id].get("match_count", 0) + m_count
                                 jobs[job_id]["frames_matched"] = jobs[job_id]["match_count"]
                     except Exception:
                         pass

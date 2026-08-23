@@ -207,9 +207,13 @@ def _resolve_video_path(video_id: str) -> tuple[Path, dict]:
 def _run_hazard_search_task(job_id: str, req: HazardSearchRequest):
     import time
     from ai_pipeline.campus_safety_cv import run_campus_safety_search
+    import routers.search as _search_router
 
     _hazard_jobs[job_id]["status"] = "running"
     _hazard_jobs[job_id]["started_at"] = time.time()
+    if hasattr(_search_router, "_jobs") and job_id in _search_router._jobs:
+        _search_router._jobs[job_id]["status"] = "running"
+
     all_matches = []
 
     try:
@@ -239,12 +243,29 @@ def _run_hazard_search_task(job_id: str, req: HazardSearchRequest):
         _hazard_jobs[job_id]["matches"] = all_matches
         _hazard_jobs[job_id]["match_count"] = len(all_matches)
 
+        if hasattr(_search_router, "_jobs") and job_id in _search_router._jobs:
+            _search_router._jobs[job_id]["status"] = "completed"
+            _search_router._jobs[job_id]["matches"] = all_matches
+            _search_router._jobs[job_id]["match_count"] = len(all_matches)
+            _search_router._jobs[job_id]["frames_matched"] = len(all_matches)
+
+        # Persist detection matches in SQLite database for permanent forensic indexing
+        try:
+            stype = "keyword" if (req.keyword_query and req.keyword_query.strip()) else "emergency_hazard"
+            _search_router._save_matches_to_db(job_id, all_matches, stype)
+        except Exception as dbe:
+            print(f"[campus_safety] DB save notice: {dbe}")
+
     except Exception as err:
         _hazard_jobs[job_id]["status"] = "failed"
         _hazard_jobs[job_id]["error"] = str(err)
+        if hasattr(_search_router, "_jobs") and job_id in _search_router._jobs:
+            _search_router._jobs[job_id]["status"] = "failed"
+            _search_router._jobs[job_id]["error"] = str(err)
 
 
 def _update_hazard_progress(job_id: str, frames_p: int, frames_m: int, current_matches: list | None = None):
+    import routers.search as _search_router
     if job_id in _hazard_jobs:
         _hazard_jobs[job_id]["frames_processed"] = frames_p
         _hazard_jobs[job_id]["frames_matched"] = frames_m
@@ -252,15 +273,23 @@ def _update_hazard_progress(job_id: str, frames_p: int, frames_m: int, current_m
             _hazard_jobs[job_id]["matches"] = list(current_matches)
             _hazard_jobs[job_id]["match_count"] = len(current_matches)
 
+    if hasattr(_search_router, "_jobs") and job_id in _search_router._jobs:
+        _search_router._jobs[job_id]["frames_processed"] = frames_p
+        _search_router._jobs[job_id]["frames_matched"] = frames_m
+        if current_matches is not None:
+            _search_router._jobs[job_id]["matches"] = list(current_matches)
+            _search_router._jobs[job_id]["match_count"] = len(current_matches)
+
 
 @router.post("/search-hazard")
 def start_hazard_search(req: HazardSearchRequest):
     """
     Start an asynchronous optical AI hazard search over selected video footage.
-    Scans for Fall Immobility, Thermal Fire Outbreak, and Smoke Dispersion.
+    Scans for Fall Immobility, Thermal Fire Outbreak, Smoke Dispersion, and Open-Vocab Objects.
     """
     import threading
     import uuid
+    import routers.search as _search_router
 
     job_id = f"hz_{str(uuid.uuid4())[:8]}"
     _hazard_jobs[job_id] = {
@@ -275,6 +304,21 @@ def start_hazard_search(req: HazardSearchRequest):
         "created_at": time.time(),
     }
 
+    # Register in global search router for Results Page visibility
+    query_desc = req.keyword_query if (req.keyword_query and req.keyword_query.strip()) else f"Emergency Hazard: {', '.join(req.hazard_types).upper()}"
+    search_type = "keyword" if (req.keyword_query and req.keyword_query.strip()) else "emergency_hazard"
+    if hasattr(_search_router, "_jobs"):
+        _search_router._jobs[job_id] = {
+            "status": "queued",
+            "type": search_type,
+            "query": query_desc,
+            "matches": [],
+            "match_count": 0,
+            "frames_processed": 0,
+            "frames_matched": 0,
+            "created_at": time.time(),
+        }
+
     t = threading.Thread(target=_run_hazard_search_task, args=(job_id, req), daemon=True)
     t.start()
 
@@ -284,6 +328,32 @@ def start_hazard_search(req: HazardSearchRequest):
 @router.get("/hazard-job/{job_id}")
 def get_hazard_job_status(job_id: str):
     """Poll real-time status and forensic detections of a hazard search job."""
+    if job_id not in _hazard_jobs:
+        # Check disk manifest
+        BASE_STORAGE = Path(__file__).parent.parent / "storage" / "results"
+        manifest_file = BASE_STORAGE / job_id / "manifest.json"
+        if not manifest_file.exists():
+            for sdir in BASE_STORAGE.glob(f"{job_id}*"):
+                if sdir.is_dir() and (sdir / "manifest.json").exists():
+                    manifest_file = sdir / "manifest.json"
+                    break
+        if manifest_file.exists():
+            import json
+            try:
+                mdata = json.loads(manifest_file.read_text())
+                matches = mdata.get("matches", [])
+                _hazard_jobs[job_id] = {
+                    "job_id": job_id,
+                    "status": "completed",
+                    "hazard_types": [mdata.get("type", "emergency_hazard")],
+                    "matches": matches,
+                    "match_count": len(matches),
+                    "frames_processed": mdata.get("frames_processed", len(matches)),
+                    "frames_matched": len(matches),
+                    "created_at": mdata.get("created_at", time.time()),
+                }
+            except Exception:
+                pass
     if job_id not in _hazard_jobs:
         raise HTTPException(status_code=404, detail=f"Hazard search job '{job_id}' not found")
     return _hazard_jobs[job_id]
