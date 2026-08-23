@@ -472,28 +472,45 @@ function VideoPlayerModal({
   );
 }
 
-function getSearchTypeIcon(type: string | undefined) {
-  switch (type) {
-    case "face_recognition": return <UserIcon size={12} />;
-    case "lpr": return <CarIcon size={12} />;
-    case "keyword": return <SearchIcon size={12} />;
-    case "object_detection": return <TargetIcon size={12} />;
-    case "emergency_hazard":
-    case "hazard": return <ShieldCheckIcon size={12} />;
-    default: return <ActivityIcon size={12} />;
-  }
+function getSearchTypeIcon(type: string | undefined, query?: string) {
+  const t = (type || "").toLowerCase();
+  const q = (query || "").toLowerCase();
+  if (t === "face_recognition" || t === "face" || q.includes("face") || q.includes("suspect")) return <FaceScanIcon size={14} />;
+  if (t === "lpr" || q.includes("plate") || q.includes("license")) return <CarIcon size={14} />;
+  if (t === "keyword" || q.includes("shirt") || q.includes("pants") || q.includes("person") || q.includes("target")) return <SearchIcon size={14} />;
+  if (t === "object_detection" || t === "object") return <PackageIcon size={14} />;
+  if (t === "attributes") return <UserIcon size={14} />;
+  if (q.includes("fire")) return <FlameIcon size={14} />;
+  if (q.includes("smoke")) return <SmokeIcon size={14} />;
+  if (q.includes("fall")) return <FallIcon size={14} />;
+  if (q.includes("crowd")) return <UsersIcon size={14} />;
+  if (q.includes("weapon")) return <WeaponIcon size={14} />;
+  if (q.includes("brawl")) return <AlertIcon size={14} />;
+  if (t === "emergency_hazard" || t.includes("hazard")) return <ShieldCheckIcon size={14} />;
+  return <ActivityIcon size={14} />;
 }
 
-function getSearchTypeLabel(type: string | undefined) {
-  switch (type) {
-    case "face_recognition": return "Face Re-ID";
-    case "lpr": return "License Plate (LPR)";
-    case "keyword": return "Open-Vocab Target";
-    case "object_detection": return "Object Detection";
-    case "emergency_hazard":
-    case "hazard": return "AI Campus Hazard Suite";
-    default: return "Activity Analysis";
+function getSearchTypeLabel(type: string | undefined, query?: string) {
+  const t = (type || "").toLowerCase();
+  const q = (query || "").toLowerCase();
+  if (t === "face_recognition" || t === "face") return "Face Re-ID / Facial Recognition";
+  if (t === "lpr") return "License Plate Recognition (LPR)";
+  if (t === "keyword") return "Open-Vocab Target Search";
+  if (t === "object_detection" || t === "object") return "Object Detection";
+  if (t === "attributes") return "Person Attributes Analytics";
+  if (t === "activity") return "Activity & Crowd Dynamics";
+  if (t === "emergency_hazard" || t.includes("hazard")) {
+    if (q.includes("compound")) return "Compound Crisis Matrix";
+    if (q.includes("fire") && q.includes("smoke")) return "Fire & Smoke Outbreak";
+    if (q.includes("fire")) return "Optical Fire Detection";
+    if (q.includes("smoke")) return "Volumetric Smoke Plume";
+    if (q.includes("fall")) return "Slip & Fall Biomechanics";
+    if (q.includes("crowd")) return "Crowd Density & Surge";
+    if (q.includes("brawl")) return "Violent Affray / Brawl";
+    if (q.includes("weapon")) return "Armed Weapon Threat";
+    return "Campus Safety Emergency Suite";
   }
+  return "AI Forensic Analysis";
 }
 
 // ── Main Results Page ─────────────────────────────────────────────────
@@ -503,6 +520,8 @@ export default function ResultsPage() {
   const [loadingJob, setLoadingJob] = useState(false);
   const [pastJobs, setPastJobs] = useState<Record<string, any>>({});
   const [loadingPastJobs, setLoadingPastJobs] = useState(false);
+  const [batchTab, setBatchTab] = useState<string>("all");
+  const [batchSearch, setBatchSearch] = useState<string>("");
 
   const loadPastJobs = useCallback(async () => {
     setLoadingPastJobs(true);
@@ -519,6 +538,7 @@ export default function ResultsPage() {
   useEffect(() => {
     loadPastJobs();
   }, [loadPastJobs]);
+
   const [videoPlayer, setVideoPlayer] = useState<MatchResult | null>(null);
   const [enhanceMatch, setEnhanceMatch] = useState<{ match: MatchResult; mode?: "general" | "face" | "lpr" | "super_res"; scale?: number } | null>(null);
   const [addSuspectMatch, setAddSuspectMatch] = useState<MatchResult | null>(null);
@@ -604,6 +624,10 @@ export default function ResultsPage() {
     try {
       const j = await getJobStatus(id.trim());
       setJob(j);
+      setJobId(id.trim());
+      if (typeof window !== "undefined") {
+        window.history.pushState({}, "", `/results?job_id=${encodeURIComponent(id.trim())}`);
+      }
     } catch {
       showToast("Job not found", "error");
       setJob(null);
@@ -612,32 +636,25 @@ export default function ResultsPage() {
     }
   }, []);
 
-  // Auto-load from URL query param, URL hash, or localStorage
+  // Explicit URL query param or hash loader
   useEffect(() => {
     const hash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
-    const qJobId = params.get("job_id") || hash || (typeof window !== "undefined" ? (localStorage.getItem("sentinel_active_hazard_job_id") || localStorage.getItem("sentinel_active_search_job_id")) : "");
+    const qJobId = params.get("job_id") || hash;
     if (qJobId) {
       setJobId(qJobId);
       loadJob(qJobId);
     }
   }, [loadJob]);
 
-  // If no job loaded yet, auto-select the latest job from pastJobs so results are immediately visible
-  useEffect(() => {
-    if (!job && !loadingJob && Object.keys(pastJobs).length > 0 && !jobId) {
-      const sortedJobIds = Object.keys(pastJobs).sort((a, b) => {
-        const tA = pastJobs[a]?.created_at || 0;
-        const tB = pastJobs[b]?.created_at || 0;
-        return tB - tA;
-      });
-      if (sortedJobIds.length > 0) {
-        const topId = sortedJobIds[0];
-        setJobId(topId);
-        loadJob(topId);
-      }
+  const handleReturnToLibrary = () => {
+    setJobId("");
+    setJob(null);
+    if (typeof window !== "undefined") {
+      window.history.pushState({}, "", "/results");
     }
-  }, [pastJobs, job, loadingJob, jobId, loadJob]);
+    loadPastJobs();
+  };
 
   // Live Auto-polling for active running/queued search jobs
   useEffect(() => {
@@ -763,93 +780,136 @@ export default function ResultsPage() {
   const confidenceColor = (c: number) =>
     c >= 0.8 ? "var(--green)" : c >= 0.6 ? "var(--yellow)" : "var(--accent)";
 
+  const batchCounts = {
+    all: Object.keys(pastJobs).length,
+    ai_search: Object.values(pastJobs).filter((j: any) => j.source_module === "ai_search" || ["face_recognition", "lpr", "keyword", "object_detection", "attributes", "activity"].includes(j.type)).length,
+    campus_emergency: Object.values(pastJobs).filter((j: any) => j.source_module === "campus_emergency" || (j.job_id && j.job_id.startsWith("hz_")) || (j.type && j.type.includes("hazard"))).length,
+    face_recognition: Object.values(pastJobs).filter((j: any) => j.type === "face_recognition" || j.type === "face" || (j.query && j.query.toLowerCase().includes("face"))).length,
+    lpr: Object.values(pastJobs).filter((j: any) => j.type === "lpr" || (j.query && j.query.toLowerCase().includes("plate"))).length,
+    keyword: Object.values(pastJobs).filter((j: any) => j.type === "keyword" || j.type === "open_vocab").length,
+    object_detection: Object.values(pastJobs).filter((j: any) => j.type === "object_detection" || j.type === "object" || j.type === "attributes").length,
+    activity: Object.values(pastJobs).filter((j: any) => j.type === "activity").length,
+  };
+
+  const filteredPastJobs = Object.entries(pastJobs)
+    .filter(([id, details]: [string, any]) => {
+      const sMod = (details.source_module || "").toLowerCase();
+      const sType = (details.type || "").toLowerCase();
+      const query = (details.query || details.query_details || "").toLowerCase();
+      const idStr = id.toLowerCase();
+      const searchMatch =
+        !batchSearch ||
+        idStr.includes(batchSearch.toLowerCase()) ||
+        query.includes(batchSearch.toLowerCase()) ||
+        sType.includes(batchSearch.toLowerCase());
+
+      if (!searchMatch) return false;
+
+      if (batchTab === "all") return true;
+      if (batchTab === "ai_search") {
+        return sMod === "ai_search" || ["face_recognition", "lpr", "keyword", "object_detection", "attributes", "activity"].includes(sType);
+      }
+      if (batchTab === "campus_emergency") {
+        return sMod === "campus_emergency" || idStr.startsWith("hz_") || sType.includes("hazard");
+      }
+      if (batchTab === "face_recognition") return sType === "face_recognition" || sType === "face" || query.includes("face");
+      if (batchTab === "lpr") return sType === "lpr" || query.includes("plate");
+      if (batchTab === "keyword") return sType === "keyword" || sType === "open_vocab";
+      if (batchTab === "object_detection") return sType === "object_detection" || sType === "object" || sType === "attributes";
+      if (batchTab === "activity") return sType === "activity";
+      return true;
+    })
+    .sort(([, a], [, b]) => (b.created_at || 0) - (a.created_at || 0));
+
   return (
     <ToastProvider>
       <AppLayout>
-        <div className="page-header">
-          <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <TargetIcon size={24} style={{ color: "var(--accent)" }} /> Investigation Results
-          </h1>
-          <p className="page-subtitle">
-            Timestamped evidence frames, video clips, suspect movement trail, and forensic export block.
-          </p>
-        </div>
-
-        {/* Job Loader & Recent Jobs Bar */}
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <div className="section-title" style={{ margin: 0 }}>Active Forensic Investigation Job</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn btn-secondary btn-sm" onClick={loadPastJobs} disabled={loadingPastJobs} style={{ fontSize: "0.72rem" }}>
-                {loadingPastJobs ? "Refreshing..." : "Refresh Jobs"}
+        <div className="page-header" style={{ marginBottom: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <TargetIcon size={24} style={{ color: "var(--accent)" }} />
+                {job ? `Batch Results: ${getSearchTypeLabel(job.type, job.query)}` : "Forensic Investigation Batch Library"}
+              </h1>
+              <p className="page-subtitle" style={{ margin: "4px 0 0" }}>
+                {job
+                  ? `Evidence frames, video streams, camera movement trails, and §65B report for Job #${jobId}.`
+                  : "Organized folder records of all processed AI Search modules (Face Re-ID, LPR, Keyword, Object, Attributes, Activity) and Campus Emergency modules."}
+              </p>
+            </div>
+            {job && (
+              <button
+                onClick={handleReturnToLibrary}
+                className="btn btn-secondary btn-sm"
+                style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 800, background: "rgba(59,130,246,0.12)", color: "#60A5FA", border: "1px solid rgba(59,130,246,0.3)" }}
+              >
+                ← Back to All Batches Library
               </button>
-              <a href="/incidents" className="btn btn-primary btn-sm" style={{ fontSize: "0.72rem" }}>Campus AI Incidents →</a>
-            </div>
+            )}
           </div>
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <input
-              className="input-field"
-              style={{ width: "320px" }}
-              placeholder="Enter Job ID (e.g. hz_8b8712cf)…"
-              value={jobId}
-              onChange={(e) => setJobId(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && loadJob(jobId)}
-            />
-            <button className="btn btn-secondary" onClick={() => loadJob(jobId)} disabled={loadingJob} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {loadingJob ? <><HourglassIcon size={14} /> Loading...</> : "Load Job"}
-            </button>
-          </div>
-
-          {/* Quick Switcher for Past / Recent Jobs */}
-          {Object.keys(pastJobs).length > 0 && (
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-              <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
-                Recent Investigation Sessions ({Object.keys(pastJobs).length}):
-              </div>
-              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
-                {Object.entries(pastJobs)
-                  .sort(([, a], [, b]) => (b.created_at || 0) - (a.created_at || 0))
-                  .slice(0, 8)
-                  .map(([pId, pVal]: [string, any]) => {
-                    const isSelected = jobId === pId;
-                    return (
-                      <button
-                        key={pId}
-                        onClick={() => {
-                          setJobId(pId);
-                          loadJob(pId);
-                        }}
-                        style={{
-                          padding: "6px 12px",
-                          borderRadius: 6,
-                          background: isSelected ? "rgba(59,130,246,0.2)" : "rgba(255,255,255,0.03)",
-                          border: `1px solid ${isSelected ? "var(--accent)" : "rgba(255,255,255,0.08)"}`,
-                          color: isSelected ? "#FFFFFF" : "var(--text-secondary)",
-                          fontSize: "0.74rem",
-                          fontWeight: isSelected ? 800 : 500,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: pVal.status === "completed" ? "var(--green)" : pVal.status === "running" ? "#60A5FA" : "var(--yellow)" }} />
-                        <span style={{ fontFamily: "JetBrains Mono, monospace" }}>#{pId}</span>
-                        <span style={{ color: isSelected ? "#93C5FD" : "var(--text-muted)", fontSize: "0.68rem" }}>
-                          ({pVal.match_count ?? pVal.frames_matched ?? 0} hits)
-                        </span>
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
         </div>
 
+        {/* ── MODE 1: DETAIL VIEW WHEN A BATCH JOB IS ACTIVE ── */}
         {job && (
           <>
+            {/* Quick Switcher for Past / Recent Jobs */}
+            {Object.keys(pastJobs).length > 0 && (
+              <div
+                style={{
+                  background: "var(--bg-card)",
+                  padding: "10px 16px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  marginBottom: 18,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  overflowX: "auto",
+                }}
+              >
+                <div style={{ fontSize: "0.68rem", fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
+                  Switch Batch:
+                </div>
+                <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
+                  {Object.entries(pastJobs)
+                    .sort(([, a], [, b]) => (b.created_at || 0) - (a.created_at || 0))
+                    .slice(0, 10)
+                    .map(([pId, pVal]: [string, any]) => {
+                      const isSelected = jobId === pId;
+                      return (
+                        <button
+                          key={pId}
+                          onClick={() => {
+                            setJobId(pId);
+                            loadJob(pId);
+                          }}
+                          style={{
+                            padding: "4px 10px",
+                            borderRadius: 6,
+                            background: isSelected ? "rgba(59,130,246,0.25)" : "rgba(255,255,255,0.02)",
+                            border: `1px solid ${isSelected ? "var(--accent)" : "rgba(255,255,255,0.06)"}`,
+                            color: isSelected ? "#FFFFFF" : "var(--text-secondary)",
+                            fontSize: "0.72rem",
+                            fontWeight: isSelected ? 800 : 500,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: pVal.status === "completed" ? "var(--green)" : pVal.status === "running" ? "#60A5FA" : "var(--yellow)" }} />
+                          <span style={{ fontFamily: "JetBrains Mono, monospace" }}>#{pId}</span>
+                          <span style={{ color: isSelected ? "#93C5FD" : "var(--text-muted)", fontSize: "0.65rem" }}>
+                            ({pVal.match_count ?? pVal.frames_matched ?? 0})
+                          </span>
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
             {/* Active Running/Queued Search Banner */}
             {(job.status === "running" || job.status === "queued") && (
               <div className="card" style={{ marginBottom: 20, borderColor: "rgba(59, 130, 246, 0.4)", background: "rgba(59, 130, 246, 0.04)" }}>
@@ -945,7 +1005,7 @@ export default function ResultsPage() {
                 }}>
                   <span style={{ color: "var(--text-muted)" }}>Search type:</span>
                   <span style={{ fontWeight: 700, color: "var(--accent)", display: "flex", alignItems: "center", gap: 5 }}>
-                    {getSearchTypeIcon(job.type)} {getSearchTypeLabel(job.type)}
+                    {getSearchTypeIcon(job.type, job.query)} {getSearchTypeLabel(job.type, job.query)}
                   </span>
                   <span style={{ color: "var(--border)" }}>|</span>
                   <span style={{ color: "var(--text-muted)" }}>Job ID:</span>
@@ -994,62 +1054,58 @@ export default function ResultsPage() {
                         className="btn btn-ghost btn-sm"
                         style={{ fontSize: "0.72rem", color: "var(--accent)" }}
                       >
-                        Reset Filter (Show All {eventCounts.all})
+                        Reset Filter
                       </button>
                     )}
                   </div>
 
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {[
-                      { id: "all", label: "All Events", icon: ActivityIcon, count: eventCounts.all, color: "var(--accent)", glow: "rgba(59,130,246,0.2)" },
-                      { id: "fire", label: "Fire Outbreaks", icon: FlameIcon, count: eventCounts.fire, color: "#EF4444", glow: "rgba(239,68,68,0.25)" },
-                      { id: "smoke", label: "Smoke Plumes", icon: SmokeIcon, count: eventCounts.smoke, color: "#94A3B8", glow: "rgba(148,163,184,0.25)" },
-                      { id: "crowd", label: "Crowd Surge & Density", icon: UsersIcon, count: eventCounts.crowd, color: "#38BDF8", glow: "rgba(56,189,248,0.25)" },
-                      { id: "fall", label: "Slip & Fall Immobility", icon: FallIcon, count: eventCounts.fall, color: "#F59E0B", glow: "rgba(245,158,11,0.25)" },
-                      { id: "brawl", label: "Violent Affray / Brawl", icon: AlertIcon, count: eventCounts.brawl, color: "#EC4899", glow: "rgba(236,72,153,0.25)" },
-                      { id: "weapon", label: "Armed Weapon Threat", icon: WeaponIcon, count: eventCounts.weapon, color: "#DC2626", glow: "rgba(220,38,38,0.25)" },
-                      { id: "face", label: "Face Identification", icon: FaceScanIcon, count: eventCounts.face, color: "#06B6D4", glow: "rgba(6,182,212,0.25)" },
-                    ].map((cat) => {
-                      const isActive = selectedEventFilter === cat.id;
-                      const IconComp = cat.icon;
-                      const hasItems = cat.count > 0;
+                      { id: "all", label: "All Evidence Frames", count: eventCounts.all, icon: ActivityIcon, color: "var(--accent)" },
+                      { id: "fire", label: "Optical Fire Outbreak", count: eventCounts.fire, icon: FlameIcon, color: "#EF4444" },
+                      { id: "smoke", label: "Volumetric Smoke", count: eventCounts.smoke, icon: SmokeIcon, color: "#94A3B8" },
+                      { id: "crowd", label: "Live Crowd & Headcount", count: eventCounts.crowd, icon: UsersIcon, color: "#3B82F6" },
+                      { id: "fall", label: "Slip & Fall Pose", count: eventCounts.fall, icon: FallIcon, color: "#F59E0B" },
+                      { id: "brawl", label: "Violent Affray / Brawl", count: eventCounts.brawl, icon: AlertIcon, color: "#EC4899" },
+                      { id: "weapon", label: "Armed Threat & Weapon", count: eventCounts.weapon, icon: WeaponIcon, color: "#DC2626" },
+                      { id: "face", label: "Face Identification", count: eventCounts.face, icon: FaceScanIcon, color: "#06B6D4" },
+                    ].map((btn) => {
+                      const isActive = selectedEventFilter === btn.id;
+                      const IconComp = btn.icon;
+                      const count = btn.count;
                       return (
                         <button
-                          key={cat.id}
-                          onClick={() => setSelectedEventFilter(cat.id)}
+                          key={btn.id}
+                          onClick={() => setSelectedEventFilter(btn.id)}
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: 8,
-                            padding: "8px 14px",
-                            borderRadius: "var(--radius-md)",
-                            background: isActive
-                              ? `linear-gradient(135deg, ${cat.glow} 0%, rgba(15,23,42,0.9) 100%)`
-                              : hasItems
-                              ? "rgba(255,255,255,0.03)"
-                              : "rgba(255,255,255,0.01)",
-                            border: `1.5px solid ${isActive ? cat.color : hasItems ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.04)"}`,
-                            boxShadow: isActive ? `0 0 16px ${cat.glow}` : "none",
-                            color: isActive ? "#FFFFFF" : hasItems ? "var(--text-primary)" : "var(--text-muted)",
-                            cursor: hasItems ? "pointer" : "default",
-                            opacity: hasItems || cat.id === "all" ? 1 : 0.45,
-                            transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
-                            fontSize: "0.78rem",
-                            fontWeight: isActive ? 800 : 600,
+                            gap: 6,
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            background: isActive ? "rgba(96,165,250,0.2)" : "rgba(255,255,255,0.03)",
+                            border: `1px solid ${isActive ? btn.color : "rgba(255,255,255,0.08)"}`,
+                            color: isActive ? "#FFFFFF" : count > 0 ? "var(--text-primary)" : "var(--text-muted)",
+                            fontSize: "0.74rem",
+                            fontWeight: isActive ? 800 : 500,
+                            cursor: count > 0 || btn.id === "all" ? "pointer" : "default",
+                            opacity: count > 0 || btn.id === "all" ? 1 : 0.45,
+                            transition: "all 0.15s ease",
                           }}
                         >
-                          <IconComp size={15} style={{ color: isActive ? "#FFFFFF" : cat.color }} />
-                          <span>{cat.label}</span>
-                          <span style={{
-                            padding: "2px 7px",
-                            borderRadius: 100,
-                            fontSize: "0.68rem",
-                            fontFamily: "JetBrains Mono, monospace",
-                            background: isActive ? cat.color : "rgba(255,255,255,0.08)",
-                            color: isActive ? "#FFFFFF" : cat.color,
-                            fontWeight: 800,
-                          }}>
-                            {cat.count}
+                          <IconComp size={13} style={{ color: isActive ? btn.color : "inherit" }} />
+                          <span>{btn.label}</span>
+                          <span
+                            style={{
+                              background: isActive ? btn.color : "rgba(255,255,255,0.08)",
+                              color: isActive ? "#000000" : "inherit",
+                              fontWeight: 800,
+                              fontSize: "0.65rem",
+                              padding: "1px 5px",
+                              borderRadius: 4,
+                            }}
+                          >
+                            {count}
                           </span>
                         </button>
                       );
@@ -1057,316 +1113,152 @@ export default function ResultsPage() {
                   </div>
                 </div>
 
-                {job.activity_data && (
-                  <div className="card" style={{ marginBottom: 24, padding: 20 }}>
-                    <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <BarChartIcon size={16} style={{ color: "var(--accent)" }} /> Activity Analysis Summary
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
-                      <div>
-                        {job.activity_data.heatmap_url && (
-                          <div style={{ borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }}>
-                            <img src={resolveStorageUrl(job.activity_data.heatmap_url)} alt="Activity Heatmap" style={{ width: "100%", maxHeight: 300, objectFit: "contain" }} />
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                          {[
-                            ["Total Frames Analyzed", job.activity_data.total_frames_analyzed],
-                            ["Max Persons Detected", job.activity_data.max_persons_detected],
-                            ["Average Persons/Frame", job.activity_data.average_persons_per_frame],
-                            ["Total Crowd Events", job.activity_data.total_crowd_events],
-                            ["Average Motion Intensity", `${((job.activity_data.average_motion_intensity ?? 0) * 100).toFixed(1)}%`],
-                            ["Scene Changes Detected", job.activity_data.total_scene_changes],
-                          ].map(([k, v]) => (
-                            <div key={k as string} style={{ background: "var(--bg-elevated)", padding: 12, borderRadius: 8 }}>
-                              <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>{k as string}</div>
-                              <div style={{ fontSize: "1.1rem", fontWeight: 800, fontFamily: "JetBrains Mono, monospace" }}>{v as any}</div>
-                            </div>
-                          ))}
-                        </div>
-                        <div style={{ background: "var(--bg-elevated)", padding: "12px 16px", borderRadius: 8, marginTop: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-secondary)" }}>OVERALL ACTIVITY LEVEL</span>
-                          <span className={`status-pill ${job.activity_data.activity_level === "HIGH" ? "status-failed" : job.activity_data.activity_level === "MEDIUM" ? "status-queued" : "status-completed"}`} style={{ fontWeight: 800 }}>
-                            {job.activity_data.activity_level}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {/* Suspect Camera Trail Map */}
+                <div style={{ marginBottom: 20 }}>
+                  <CameraTrailMap matches={matches} />
+                </div>
 
-                <CameraTrailMap matches={matches} />
+                {/* Timeline Scrubber */}
+                <div style={{ marginBottom: 20 }}>
+                  <TimelineScrubber
+                    matches={matches}
+                    totalDuration={totalDuration}
+                    onSelect={(m) => { setSelectedTimeline(m); setVideoPlayer(m); }}
+                    selected={selectedTimeline}
+                  />
+                </div>
               </>
             )}
 
-            {/* Timeline Scrubber */}
-            {job.status === "completed" && matches.length > 0 && (
-              <TimelineScrubber
-                matches={matches}
-                totalDuration={totalDuration}
-                onSelect={(m) => { setSelectedTimeline(m); setVideoPlayer(m); }}
-                selected={selectedTimeline}
-              />
-            )}
-
-            {/* Forensic Export Configuration Panel */}
-            {job.status === "completed" && job.match_count > 0 && (
-              <div className="card" style={{
-                marginBottom: 24,
-                background: "var(--bg-card)",
-                borderColor: "rgba(96,165,250,0.2)",
-              }}>
-                <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <FileTextIcon size={16} style={{ color: "var(--accent)" }} /> Export Forensic Case Report
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <div className="input-group" style={{ flex: 2, marginBottom: 0 }}>
-                      <label className="input-label">Report Title</label>
-                      <input className="input-field" value={exportTitle} onChange={(e) => setExportTitle(e.target.value)} />
-                    </div>
-                    <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
-                      <label className="input-label">Investigator Name</label>
-                      <input className="input-field" placeholder="Rank / Name" value={exportInvestigator} onChange={(e) => setExportInvestigator(e.target.value)} />
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
-                      <label className="input-label">Case File Number</label>
-                      <input className="input-field" placeholder="e.g. CR-2026-904" value={caseNumber} onChange={(e) => setCaseNumber(e.target.value)} />
-                    </div>
-                    <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
-                      <label className="input-label">Department / Agency</label>
-                      <input className="input-field" placeholder="e.g. Cyber Crime Unit" value={department} onChange={(e) => setDepartment(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Forensic Notes / Case Observations</label>
-                    <textarea
-                      className="input-field"
-                      placeholder="Add summary notes regarding the Chain of Custody or observations here..."
-                      style={{ minHeight: 60, resize: "vertical" }}
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                    />
-                  </div>
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <button className="btn btn-primary" style={{ width: "fit-content", alignSelf: "flex-end", display: "flex", alignItems: "center", gap: 6 }} onClick={handleExport} disabled={exporting}>
-                      <FileTextIcon size={14} /> {exporting ? "Compiling PDF Report..." : "Export Certified Forensic PDF"}
-                    </button>
-                    <button className="btn btn-secondary" style={{ width: "fit-content", alignSelf: "flex-end", display: "flex", alignItems: "center", gap: 6 }} onClick={handleExportZip} disabled={zipping}>
-                      <PackageIcon size={14} /> {zipping ? "Packaging..." : "Download All Frames (ZIP)"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Results Grid View */}
-            {matches.length === 0 && job.status === "completed" ? (
-              <div className="empty-state">
-                <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center" }}>
-                  <SearchIcon size={36} style={{ color: "var(--text-muted)" }} />
-                </div>
-                <div className="empty-state-title">No matches found</div>
-                <div className="empty-state-sub">Try adjusting similarity thresholds or checking video files.</div>
-              </div>
-            ) : view === "grid" ? (
-              <div className="results-grid" style={{ animationName: "fadeIn" }}>
+            {/* Results Grid / List */}
+            {view === "grid" ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
                 {matches.map((match, i) => (
                   <div
                     key={i}
                     className="result-card"
-                    onClick={() => { setVideoPlayer(match); setSelectedTimeline(match); }}
                     style={{
-                      borderColor: selectedTimeline === match ? "var(--accent)" : "var(--border)",
-                      boxShadow: selectedTimeline === match ? "0 0 20px rgba(96,165,250,0.15)" : "",
+                      background: "var(--bg-card)",
+                      border: `1px solid ${selectedTimeline === match ? "var(--accent)" : "var(--border)"}`,
+                      borderRadius: "var(--radius-lg)",
+                      overflow: "hidden",
+                      transition: "all 0.2s",
+                      boxShadow: selectedTimeline === match ? "0 0 16px rgba(96,165,250,0.3)" : "none",
                     }}
                   >
-                    <div style={{ position: "relative" }}>
+                    {/* Frame image + hover zoom */}
+                    <div style={{ position: "relative", height: 160, background: "var(--bg-elevated)", overflow: "hidden" }}>
                       {match.frame_url ? (
-                        <ZoomImage
-                          src={resolveStorageUrl(match.frame_url)}
-                          alt={`Match at ${match.timestamp_str}`}
-                        />
+                        <ZoomImage src={resolveStorageUrl(match.frame_url)} alt={match.label} />
                       ) : (
-                        <div style={{ width: "100%", height: 160, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <FilmIcon size={36} style={{ color: "var(--text-muted)" }} />
+                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>
+                          <ImageIcon size={32} />
                         </div>
                       )}
-                      <div style={{
-                        position: "absolute", inset: 0,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        background: "rgba(0,0,0,0)",
-                        transition: "background 0.2s",
-                      }}
-                        className="play-overlay"
-                      >
-                        <div style={{
+                      {/* Play overlay button */}
+                      <button
+                        className="play-icon"
+                        onClick={() => { setVideoPlayer(match); setSelectedTimeline(match); }}
+                        style={{
+                          position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
                           width: 44, height: 44, borderRadius: "50%",
-                          background: "rgba(59,130,246,0.9)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          opacity: 0, transition: "opacity 0.2s",
+                          background: "rgba(0,0,0,0.75)", border: "2px solid var(--accent)",
+                          color: "white", display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer", opacity: 0, transition: "opacity 0.2s", zIndex: 5,
                         }}
-                          className="play-icon"
-                        ><PlayIcon size={16} style={{ color: "white" }} /></div>
-                      </div>
-                      <div style={{
-                        position: "absolute", top: 8, right: 8,
-                        padding: "3px 8px", borderRadius: 100,
-                        background: "rgba(0,0,0,0.75)",
-                        fontSize: "0.7rem", fontWeight: 700,
-                        color: confidenceColor(match.confidence),
-                        border: `1px solid ${confidenceColor(match.confidence)}44`,
+                      >
+                        <PlayIcon size={18} />
+                      </button>
+                      {/* Timestamp badge */}
+                      <span style={{
+                        position: "absolute", bottom: 6, left: 6,
+                        background: "rgba(0,0,0,0.8)", color: "var(--text-primary)",
+                        padding: "2px 6px", borderRadius: 4, fontSize: "0.68rem",
+                        fontFamily: "JetBrains Mono, monospace", zIndex: 4,
+                      }}>
+                        {match.timestamp_str}
+                      </span>
+                      {/* Confidence badge */}
+                      <span style={{
+                        position: "absolute", top: 6, right: 6,
+                        background: match.confidence >= 0.8 ? "rgba(34,197,94,0.9)" : match.confidence >= 0.6 ? "rgba(245,158,11,0.9)" : "rgba(239,68,68,0.9)",
+                        color: "white", padding: "2px 7px", borderRadius: 12,
+                        fontSize: "0.68rem", fontWeight: 800, zIndex: 4,
                       }}>
                         {(match.confidence * 100).toFixed(0)}%
-                      </div>
-                      <div style={{
-                        position: "absolute", top: 8, left: 8,
-                        display: "flex", gap: 6, alignItems: "center",
-                      }}>
-                        <div style={{
-                          padding: "3px 8px", borderRadius: 100,
-                          background: "rgba(0,0,0,0.8)",
-                          display: "flex", alignItems: "center",
-                          color: "var(--text-secondary)",
-                        }}>
-                          {getSearchTypeIcon(match.search_type)}
-                        </div>
-                        {match.incident_type && (
-                          <div style={{
-                            padding: "3px 8px", borderRadius: 100,
-                            background: match.incident_type === "fire" ? "rgba(239,68,68,0.9)"
-                              : match.incident_type === "fall" ? "rgba(245,158,11,0.9)"
-                              : match.incident_type === "crowd" ? "rgba(56,189,248,0.9)"
-                              : match.incident_type === "brawl" ? "rgba(236,72,153,0.9)"
-                              : match.incident_type === "weapon" ? "rgba(220,38,38,0.9)"
-                              : "rgba(59,130,246,0.9)",
-                            color: "#FFFFFF",
-                            fontSize: "0.62rem",
-                            fontWeight: 900,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}>
-                            {match.incident_type}
-                          </div>
-                        )}
-                      </div>
+                      </span>
                     </div>
 
-                    <div className="result-card-body">
-                      <div className="result-card-ts">{match.timestamp_str}</div>
-                      <div className="result-card-meta">
+                    {/* Content */}
+                    <div style={{ padding: "12px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                         <span className="badge badge-blue" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          <VideoIcon size={11} /> {match.camera_id}
+                          <VideoIcon size={10} /> {match.camera_id}
                         </span>
-                        {match.label && (
-                          <span className="badge badge-accent" style={{
-                            maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
-                          }}>
-                            {match.label}
-                          </span>
-                        )}
+                        <span className="badge badge-accent" style={{ fontSize: "0.68rem" }}>{match.label}</span>
                       </div>
 
-                      {/* SHA-256 display — real hash from backend */}
-                      {match.frame_url && match.frame_hash && (
-                        <div style={{ margin: "10px 0 12px", background: "var(--bg-elevated)", padding: 6, borderRadius: 4 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.55rem", color: "var(--text-muted)", textTransform: "uppercase" }}>
-                            <span>Frame SHA-256</span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                copyHash(match.frame_hash || "");
-                              }}
-                              style={{ border: "none", background: "transparent", color: "var(--accent)", cursor: "pointer", fontSize: "0.55rem" }}
-                            >Copy</button>
-                          </div>
-                          <div className="mono" style={{ fontSize: "0.6rem", wordBreak: "break-all", color: "var(--text-secondary)", marginTop: 2 }}>
-                            {match.frame_hash}
-                          </div>
+                      {/* Frame SHA-256 Hash */}
+                      {match.frame_hash && (
+                        <div
+                          onClick={() => copyHash(match.frame_hash!)}
+                          title="Click to copy SHA-256 integrity hash"
+                          style={{
+                            fontSize: "0.62rem", fontFamily: "JetBrains Mono, monospace", color: "var(--text-muted)",
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            background: "var(--bg-elevated)", padding: "3px 6px", borderRadius: 4,
+                            cursor: "pointer", marginBottom: 8, border: "1px solid var(--border)",
+                          }}
+                        >
+                          SHA: {match.frame_hash.slice(0, 16)}…
                         </div>
                       )}
 
-                      <div className="result-card-actions">
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={(e) => { e.stopPropagation(); setVideoPlayer(match); setSelectedTimeline(match); }}
-                          style={{ display: "flex", alignItems: "center", gap: 4 }}
-                        ><PlayIcon size={12} /> Play</button>
+                      {/* Action buttons */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}>
                         <button
                           className="btn btn-secondary btn-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEnhanceMatch({ match, mode: "face", scale: 2.0 });
-                          }}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 4,
-                            background: "rgba(96,165,250,0.12)", color: "var(--accent)",
-                            border: "1px solid rgba(96,165,250,0.3)"
-                          }}
-                        ><SparklesIcon size={12} /> Enhance</button>
+                          onClick={() => setAddSuspectMatch(match)}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, fontSize: "0.7rem", background: "rgba(34,197,94,0.1)", color: "var(--green)", border: "1px solid rgba(34,197,94,0.3)" }}
+                          title="Save as suspect reference"
+                        >
+                          <TagIcon size={11} /> Suspect
+                        </button>
                         <button
                           className="btn btn-secondary btn-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEnhanceMatch({ match, mode: "super_res", scale: 4.0 });
-                          }}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 4,
-                            background: "rgba(59,130,246,0.12)", color: "var(--accent)",
-                            border: "1px solid rgba(59,130,246,0.3)"
-                          }}
-                        ><MaximizeIcon size={12} /> Upscale</button>
+                          onClick={() => setEnhanceMatch({ match, mode: "face", scale: 2.0 })}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, fontSize: "0.7rem", background: "rgba(96,165,250,0.1)", color: "var(--accent)", border: "1px solid rgba(96,165,250,0.3)" }}
+                        >
+                          <SparklesIcon size={11} /> Enhance
+                        </button>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                         <button
                           className="btn btn-secondary btn-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAddSuspectMatch(match);
-                          }}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 4,
-                            background: "rgba(34,197,94,0.12)", color: "var(--green)",
-                            border: "1px solid rgba(34,197,94,0.3)"
-                          }}
-                          title="Save this extracted frame as a labeled suspect reference photo"
-                        ><TagIcon size={12} /> Label Suspect</button>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const a = document.createElement("a");
-                            a.href = resolveStorageUrl(match.frame_url);
-                            a.download = `frame_${match.label}_${i}.jpg`;
-                            a.target = "_blank"; a.click();
-                          }}
-                          style={{ display: "flex", alignItems: "center", gap: 4 }}
-                        ><ImageIcon size={12} /> Frame</button>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={(e) => { e.stopPropagation(); handleJumpToPlayback(match); }}
-                          style={{ display: "flex", alignItems: "center", gap: 4 }}
-                          title="Open the playback timeline at this camera and timestamp"
-                        ><ClockIcon size={12} /> Playback</button>
+                          onClick={() => handleJumpToPlayback(match)}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, fontSize: "0.7rem" }}
+                          title="Open playback timeline"
+                        >
+                          <ClockIcon size={11} /> Playback
+                        </button>
                         {(() => {
-                          const key = `${match.camera_id}|${match.timestamp}|${i}`;
+                          const key = `grid|${match.camera_id}|${match.timestamp}|${i}`;
                           const pinned = pinnedKeys.has(key);
                           return (
                             <button
                               className="btn btn-secondary btn-sm"
                               disabled={pinningKey === key || pinned}
-                              onClick={(e) => { e.stopPropagation(); handleAddToCase(match, key); }}
+                              onClick={() => handleAddToCase(match, key)}
                               style={{
-                                display: "flex", alignItems: "center", gap: 4,
-                                background: pinned ? "rgba(34,197,94,0.12)" : "rgba(59,130,246,0.12)",
+                                display: "flex", alignItems: "center", justifyContent: "center", gap: 4, fontSize: "0.7rem",
+                                background: pinned ? "rgba(34,197,94,0.15)" : "rgba(59,130,246,0.15)",
                                 color: pinned ? "var(--green)" : "var(--accent)",
-                                border: `1px solid ${pinned ? "rgba(34,197,94,0.3)" : "rgba(59,130,246,0.3)"}`,
-                                opacity: pinningKey === key ? 0.6 : 1,
+                                border: `1px solid ${pinned ? "rgba(34,197,94,0.4)" : "rgba(59,130,246,0.4)"}`,
                               }}
-                              title={activeCase.id ? `Pin this hit as evidence to case ${activeCase.number || activeCase.id}` : "Select an active case in the top bar first"}
-                            ><FolderIcon size={12} /> {pinned ? "Pinned" : pinningKey === key ? "Pinning…" : "Add to Case"}</button>
+                            >
+                              <FolderIcon size={11} /> {pinned ? "Pinned" : "Pin Case"}
+                            </button>
                           );
                         })()}
                       </div>
@@ -1429,17 +1321,6 @@ export default function ResultsPage() {
                     >
                       <SparklesIcon size={12} /> Enhance
                     </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={(e) => { e.stopPropagation(); setEnhanceMatch({ match, mode: "super_res", scale: 4.0 }); }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 4,
-                        background: "rgba(59,130,246,0.12)", color: "var(--accent)",
-                        border: "1px solid rgba(59,130,246,0.3)"
-                      }}
-                    >
-                      <MaximizeIcon size={12} /> Upscale
-                    </button>
                     <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setVideoPlayer(match); }} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <PlayIcon size={12} /> Play
                     </button>
@@ -1451,27 +1332,6 @@ export default function ResultsPage() {
                     >
                       <ClockIcon size={12} /> Playback
                     </button>
-                    {(() => {
-                      const key = `list|${match.camera_id}|${match.timestamp}|${i}`;
-                      const pinned = pinnedKeys.has(key);
-                      return (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          disabled={pinningKey === key || pinned}
-                          onClick={(e) => { e.stopPropagation(); handleAddToCase(match, key); }}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 4,
-                            background: pinned ? "rgba(34,197,94,0.12)" : "rgba(59,130,246,0.12)",
-                            color: pinned ? "var(--green)" : "var(--accent)",
-                            border: `1px solid ${pinned ? "rgba(34,197,94,0.3)" : "rgba(59,130,246,0.3)"}`,
-                            opacity: pinningKey === key ? 0.6 : 1,
-                          }}
-                          title={activeCase.id ? `Pin as evidence to case ${activeCase.number || activeCase.id}` : "Select an active case in the top bar first"}
-                        >
-                          <FolderIcon size={12} /> {pinned ? "Pinned" : pinningKey === key ? "Pinning…" : "Add to Case"}
-                        </button>
-                      );
-                    })()}
                   </div>
                 ))}
               </div>
@@ -1479,43 +1339,151 @@ export default function ResultsPage() {
           </>
         )}
 
+        {/* ── MODE 2: COMPREHENSIVE BATCH & FOLDER STRUCTURE LIBRARY (WHEN NO JOB IS LOADED) ── */}
         {!job && !loadingJob && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div className="card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <div className="section-title" style={{ margin: 0 }}>Past Search Results</div>
-                <button className="btn btn-secondary btn-sm" onClick={loadPastJobs} disabled={loadingPastJobs}>
-                  {loadingPastJobs ? "Refreshing..." : "Refresh List"}
-                </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {/* Toolbar: Category Tabs + Search Input */}
+            <div className="card" style={{ padding: "18px 20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+                <div style={{ display: "flex", gap: 10, flex: 1, minWidth: 280 }}>
+                  <input
+                    className="input-field"
+                    style={{ flex: 1 }}
+                    placeholder="Search past batches by Job ID, keyword, license plate, or camera…"
+                    value={batchSearch}
+                    onChange={(e) => setBatchSearch(e.target.value)}
+                  />
+                  {batchSearch && (
+                    <button onClick={() => setBatchSearch("")} className="btn btn-ghost btn-sm">
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={loadPastJobs} disabled={loadingPastJobs}>
+                    {loadingPastJobs ? "Refreshing..." : "Refresh Batches"}
+                  </button>
+                  <a href="/search" className="btn btn-primary btn-sm">
+                    New AI Search →
+                  </a>
+                  <a href="/incidents" className="btn btn-secondary btn-sm">
+                    Campus Safety →
+                  </a>
+                </div>
               </div>
 
-              {Object.keys(pastJobs).length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center" }}>
-                    <TargetIcon size={36} style={{ color: "var(--text-muted)" }} />
-                  </div>
-                  <div className="empty-state-title">No search jobs found</div>
-                  <div className="empty-state-sub">
-                    Run an <a href="/search" style={{ color: "var(--accent)" }}>AI search</a> first, or enter a Job ID manually above.
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "16px" }}>
-                  {Object.entries(pastJobs).map(([id, details]: [string, any]) => (
-                    <div 
-                      key={id}
+              {/* Module Filter Tabs */}
+              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+                {[
+                  { id: "all", label: "All Processed Batches", count: batchCounts.all, color: "var(--accent)" },
+                  { id: "ai_search", label: "AI Search Page Modules", count: batchCounts.ai_search, color: "#3B82F6" },
+                  { id: "campus_emergency", label: "Campus Emergency Modules", count: batchCounts.campus_emergency, color: "#EF4444" },
+                  { id: "face_recognition", label: "Face Re-ID", count: batchCounts.face_recognition, color: "#06B6D4" },
+                  { id: "lpr", label: "License Plate (LPR)", count: batchCounts.lpr, color: "#10B981" },
+                  { id: "keyword", label: "Open-Vocab Target", count: batchCounts.keyword, color: "#A855F7" },
+                  { id: "object_detection", label: "Object & Attributes", count: batchCounts.object_detection, color: "#F59E0B" },
+                  { id: "activity", label: "Activity Analysis", count: batchCounts.activity, color: "#EC4899" },
+                ].map((tab) => {
+                  const isSelected = batchTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setBatchTab(tab.id)}
                       style={{
-                        background: "var(--bg-elevated)", border: "1px solid var(--border)",
-                        borderRadius: "10px", padding: "16px", display: "flex", flexDirection: "column", gap: "10px"
+                        padding: "6px 14px",
+                        borderRadius: "8px",
+                        background: isSelected ? "rgba(59,130,246,0.18)" : "rgba(255,255,255,0.03)",
+                        border: `1px solid ${isSelected ? tab.color : "rgba(255,255,255,0.08)"}`,
+                        color: isSelected ? "#FFFFFF" : "var(--text-secondary)",
+                        fontSize: "0.75rem",
+                        fontWeight: isSelected ? 800 : 500,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        whiteSpace: "nowrap",
+                        transition: "all 0.15s ease",
                       }}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <span>{tab.label}</span>
+                      <span
+                        style={{
+                          background: isSelected ? tab.color : "rgba(255,255,255,0.08)",
+                          color: isSelected ? "#000000" : "var(--text-muted)",
+                          fontWeight: 800,
+                          fontSize: "0.68rem",
+                          padding: "1px 6px",
+                          borderRadius: "10px",
+                        }}
+                      >
+                        {tab.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Batch Cards Grid */}
+            {filteredPastJobs.length === 0 ? (
+              <div className="card empty-state" style={{ padding: "40px 20px" }}>
+                <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center" }}>
+                  <FolderIcon size={40} style={{ color: "var(--text-muted)" }} />
+                </div>
+                <div className="empty-state-title" style={{ fontSize: "1.1rem", fontWeight: 800 }}>
+                  No investigation batches found
+                </div>
+                <div className="empty-state-sub" style={{ fontSize: "0.82rem" }}>
+                  Try adjusting your filter or run a new search from the <a href="/search" style={{ color: "var(--accent)" }}>AI Search page</a> or <a href="/incidents" style={{ color: "var(--accent)" }}>Campus Safety page</a>.
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "18px" }}>
+                {filteredPastJobs.map(([id, details]: [string, any]) => {
+                  const isEmergency = details.source_module === "campus_emergency" || id.startsWith("hz_") || (details.type && details.type.includes("hazard"));
+                  const matchCount = details.match_count || details.frames_matched || 0;
+                  const thumb = details.thumbnail_url;
+                  return (
+                    <div
+                      key={id}
+                      style={{
+                        background: "var(--bg-elevated)",
+                        border: `1px solid ${isEmergency ? "rgba(239,68,68,0.25)" : "rgba(59,130,246,0.25)"}`,
+                        borderRadius: "12px",
+                        padding: "18px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "12px",
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {/* Card Header: Origin Badge + Type Label + Status */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                         <div>
-                          <span style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 800, color: "var(--accent)" }}>
-                            {getSearchTypeLabel(details.type)}
-                          </span>
-                          <h4 style={{ margin: "4px 0", fontSize: "0.9rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                            Job ID: #{id}
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                            <span
+                              style={{
+                                fontSize: "0.62rem",
+                                fontWeight: 800,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.5px",
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                background: isEmergency ? "rgba(239,68,68,0.18)" : "rgba(59,130,246,0.18)",
+                                color: isEmergency ? "#F87171" : "#60A5FA",
+                                border: `1px solid ${isEmergency ? "rgba(239,68,68,0.4)" : "rgba(59,130,246,0.4)"}`,
+                              }}
+                            >
+                              {isEmergency ? "Campus Emergency" : "AI Search Module"}
+                            </span>
+                            <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "JetBrains Mono, monospace" }}>
+                              #{id}
+                            </span>
+                          </div>
+                          <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800, color: "#FFFFFF", display: "flex", alignItems: "center", gap: 6 }}>
+                            {getSearchTypeIcon(details.type, details.query)}
+                            {getSearchTypeLabel(details.type, details.query)}
                           </h4>
                         </div>
                         <span className={`status-pill status-${details.status}`} style={{ fontSize: "0.65rem" }}>
@@ -1523,42 +1491,71 @@ export default function ResultsPage() {
                         </span>
                       </div>
 
-                      <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        Query: <strong style={{ color: "var(--text-primary)" }}>{details.query || details.query_details || "N/A"}</strong>
-                      </div>
-
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border)", paddingTop: "12px", marginTop: "4px" }}>
-                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                          {details.match_count || details.frames_matched || 0} matches found
-                        </span>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          {(details.status === "running" || details.status === "queued") && (
-                            <button
-                              onClick={() => handleStopJob(id)}
-                              className="btn btn-secondary btn-sm"
-                              style={{ background: "rgba(233,69,96,0.15)", color: "var(--accent)", border: "1px solid rgba(233,69,96,0.3)" }}
-                              title="Stop this search job"
-                            >
-                              <CloseIcon size={12} /> Stop
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => {
-                              setJobId(id);
-                              loadJob(id);
-                            }}
-                            className="btn btn-primary btn-sm"
-                            style={{ display: "flex", alignItems: "center", gap: "4px" }}
-                          >
-                            View Results →
-                          </button>
+                      {/* Middle: Query Details & Thumbnail Preview */}
+                      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                        {thumb ? (
+                          <div style={{ width: 84, height: 56, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                            <img src={resolveStorageUrl(thumb)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          </div>
+                        ) : (
+                          <div style={{ width: 84, height: 56, borderRadius: 6, flexShrink: 0, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>
+                            <FolderIcon size={22} />
+                          </div>
+                        )}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 2 }}>Target / Query:</div>
+                          <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {details.query || details.query_details || "Standard Detection Pipeline"}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Metadata row */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.74rem", color: "var(--text-muted)", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5, color: matchCount > 0 ? "var(--green)" : "var(--text-muted)", fontWeight: 700 }}>
+                          <ShieldCheckIcon size={13} /> {matchCount} Evidence Hit{matchCount !== 1 ? "s" : ""}
+                        </span>
+                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.68rem" }}>
+                          {details.camera_id || "CAM-01"}
+                        </span>
+                      </div>
+
+                      {/* Action Button Footer */}
+                      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                        {(details.status === "running" || details.status === "queued") && (
+                          <button
+                            onClick={() => handleStopJob(id)}
+                            className="btn btn-secondary btn-sm"
+                            style={{ background: "rgba(233,69,96,0.15)", color: "var(--accent)", border: "1px solid rgba(233,69,96,0.3)", fontSize: "0.72rem" }}
+                          >
+                            <CloseIcon size={12} /> Stop
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setJobId(id);
+                            loadJob(id);
+                          }}
+                          className="btn btn-primary btn-sm"
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                            fontWeight: 800,
+                            fontSize: "0.76rem",
+                            background: isEmergency ? "linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)" : "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
+                          }}
+                        >
+                          Open Batch Records →
+                        </button>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

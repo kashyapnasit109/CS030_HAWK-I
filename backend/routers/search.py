@@ -747,26 +747,41 @@ def get_job(job_id: str):
 @router.get("/jobs")
 def list_jobs():
     """List all search jobs including those persisted on disk and in hazard module."""
-    jobs = {k: v.copy() for k, v in _jobs.items()}
+    jobs = {}
     
-    # Also incorporate in-memory hazard jobs
+    # 1. Incorporate active in-memory search jobs
+    for k, v in _jobs.items():
+        v_copy = v.copy()
+        v_copy["job_id"] = k
+        v_copy["source_module"] = "campus_emergency" if k.startswith("hz_") or "hazard" in v_copy.get("type", "") else "ai_search"
+        if "matches" in v_copy and v_copy["matches"]:
+            v_copy["thumbnail_url"] = v_copy["matches"][0].get("frame_url")
+        jobs[k] = v_copy
+    
+    # 2. Incorporate active in-memory hazard jobs
     try:
         from routers.campus_safety import _hazard_jobs
         for hz_id, hz_val in _hazard_jobs.items():
-            if hz_id not in jobs:
-                hz_type = "keyword" if hz_val.get("hazard_types") == ["keyword"] else "emergency_hazard"
-                jobs[hz_id] = {
-                    "status": hz_val.get("status", "completed"),
-                    "type": hz_type,
-                    "match_count": hz_val.get("match_count", 0),
-                    "created_at": hz_val.get("created_at", time.time()),
-                    "frames_processed": hz_val.get("frames_processed", 0),
-                    "frames_matched": hz_val.get("frames_matched", hz_val.get("match_count", 0)),
-                    "query": f"AI Hazard: {', '.join(hz_val.get('hazard_types', [])).upper()}",
-                }
+            hz_type = "keyword" if hz_val.get("hazard_types") == ["keyword"] else "emergency_hazard"
+            thumb = None
+            if hz_val.get("matches"):
+                thumb = hz_val["matches"][0].get("frame_url")
+            jobs[hz_id] = {
+                "job_id": hz_id,
+                "status": hz_val.get("status", "completed"),
+                "type": hz_type,
+                "source_module": "campus_emergency",
+                "match_count": hz_val.get("match_count", 0),
+                "created_at": hz_val.get("created_at", time.time()),
+                "frames_processed": hz_val.get("frames_processed", 0),
+                "frames_matched": hz_val.get("frames_matched", hz_val.get("match_count", 0)),
+                "query": f"AI Hazard: {', '.join(hz_val.get('hazard_types', [])).upper()}",
+                "thumbnail_url": thumb,
+            }
     except Exception:
         pass
 
+    # 3. Incorporate on-disk batch result folders
     if RESULTS_DIR.exists():
         for sub_dir in RESULTS_DIR.iterdir():
             if sub_dir.is_dir():
@@ -774,30 +789,49 @@ def list_jobs():
                 if manifest_file.exists():
                     try:
                         manifest = json.loads(manifest_file.read_text())
-                        # If multi-video, directory name is jobid_videoid. Get job_id part.
                         folder_name = sub_dir.name
                         parts = folder_name.split("_")
                         job_id = parts[0]
+                        if folder_name.startswith("hz_") and len(parts) >= 2:
+                            job_id = f"{parts[0]}_{parts[1]}"
+
                         m_count = manifest.get("match_count", manifest.get("total_matches", len(manifest.get("matches", []))))
                         m_type = manifest.get("search_type", manifest.get("type", "unknown"))
                         m_query = manifest.get("query", "N/A")
                         
+                        # Extract thumbnail from match frame or folder images
+                        matches = manifest.get("matches", [])
+                        thumb = matches[0].get("frame_url") if matches else None
+                        if not thumb:
+                            for img in sub_dir.glob("*.jpg"):
+                                thumb = f"/storage/results/{folder_name}/{img.name}"
+                                break
+
+                        src_mod = "campus_emergency" if job_id.startswith("hz_") or "hazard" in m_type else "ai_search"
+                        
                         if job_id not in jobs:
                             jobs[job_id] = {
+                                "job_id": job_id,
                                 "status": "completed",
                                 "type": m_type,
+                                "source_module": src_mod,
                                 "match_count": m_count,
                                 "created_at": manifest.get("created_at", manifest.get("completed_at", time.time())),
                                 "frames_processed": manifest.get("frames_processed", 0),
                                 "frames_matched": m_count,
                                 "query": m_query,
+                                "thumbnail_url": thumb,
+                                "camera_id": manifest.get("camera_id", "CAM-01"),
                             }
                         else:
                             if "query" not in jobs[job_id] or jobs[job_id]["query"] == "N/A":
                                 jobs[job_id]["query"] = m_query
-                            if len(parts) > 1:
-                                jobs[job_id]["match_count"] = jobs[job_id].get("match_count", 0) + m_count
-                                jobs[job_id]["frames_matched"] = jobs[job_id]["match_count"]
+                            if thumb and not jobs[job_id].get("thumbnail_url"):
+                                jobs[job_id]["thumbnail_url"] = thumb
+                            if "source_module" not in jobs[job_id]:
+                                jobs[job_id]["source_module"] = src_mod
+                            jobs[job_id]["match_count"] = max(jobs[job_id].get("match_count", 0), m_count)
+                            jobs[job_id]["frames_matched"] = jobs[job_id]["match_count"]
                     except Exception:
                         pass
                         

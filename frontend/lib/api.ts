@@ -109,7 +109,11 @@ export interface MatchResult {
 export interface SearchJob {
   status: "queued" | "running" | "completed" | "failed" | "cancelled";
   type: string;
+  query?: string;
+  source_module?: string;
   match_count: number;
+  frames_processed?: number;
+  frames_matched?: number;
   matches?: MatchResult[];
   error?: string;
   activity_data?: {
