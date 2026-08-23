@@ -35,18 +35,21 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
   const [loading, setLoading] = useState<boolean>(false);
   const [enhancedResult, setEnhancedResult] = useState<EnhanceResult | null>(null);
 
+  // Layer view state (modality-isolated vs composite)
+  const [activeLayer, setActiveLayer] = useState<"modality" | "all">("modality");
+  const activeImageUrl = (activeLayer === "all" && match.all_frame_url) ? match.all_frame_url : match.frame_url;
+  const originalUrl = resolveStorageUrl(activeImageUrl);
+
   // Split slider state (0% to 100%)
   const [sliderPos, setSliderPos] = useState<number>(50);
   const isDragging = useRef<boolean>(false);
   const sliderRef = useRef<HTMLDivElement>(null);
 
-  const originalUrl = resolveStorageUrl(match.frame_url);
-
   const handleEnhance = async () => {
     setLoading(true);
     try {
       const res = await enhanceImage({
-        image_url: match.frame_url,
+        image_url: activeImageUrl,
         mode,
         scale_factor: scaleFactor,
         sharpness_boost: sharpness,
@@ -160,6 +163,42 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
             borderRight: "1px solid var(--border)",
             position: "relative"
           }}>
+            {/* Layer Selection Switcher */}
+            {match.all_frame_url && match.all_frame_url !== match.frame_url && (
+              <div style={{ display: "flex", gap: 8, marginBottom: 14, width: "100%", maxWidth: 540 }}>
+                <button
+                  type="button"
+                  onClick={() => { setActiveLayer("modality"); setEnhancedResult(null); }}
+                  style={{
+                    flex: 1, padding: "7px 12px", borderRadius: 8,
+                    fontSize: "0.74rem", fontWeight: 800,
+                    background: activeLayer === "modality" ? "rgba(59,130,246,0.25)" : "rgba(255,255,255,0.04)",
+                    border: `1.5px solid ${activeLayer === "modality" ? "#3B82F6" : "rgba(255,255,255,0.1)"}`,
+                    color: activeLayer === "modality" ? "#93C5FD" : "var(--text-muted)",
+                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                  }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: activeLayer === "modality" ? "#3B82F6" : "#64748B" }} />
+                  Target Event ({match.incident_type ? match.incident_type.toUpperCase() : "CLEAN VIEW"})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setActiveLayer("all"); setEnhancedResult(null); }}
+                  style={{
+                    flex: 1, padding: "7px 12px", borderRadius: 8,
+                    fontSize: "0.74rem", fontWeight: 800,
+                    background: activeLayer === "all" ? "rgba(59,130,246,0.25)" : "rgba(255,255,255,0.04)",
+                    border: `1.5px solid ${activeLayer === "all" ? "#3B82F6" : "rgba(255,255,255,0.1)"}`,
+                    color: activeLayer === "all" ? "#93C5FD" : "var(--text-muted)",
+                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                  }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: activeLayer === "all" ? "#3B82F6" : "#64748B" }} />
+                  All Hazards Composite
+                </button>
+              </div>
+            )}
+
             {!enhancedResult ? (
               /* Single Original Image View */
               <div style={{ textAlign: "center", width: "100%", maxWidth: 540 }}>
@@ -179,7 +218,7 @@ export default function EnhanceModal({ match, onClose, initialMode = "face", ini
                     padding: "3px 10px", borderRadius: 100,
                     fontSize: "0.68rem", fontWeight: 700, color: "var(--text-secondary)"
                   }}>
-                    Original Frame
+                    {activeLayer === "all" ? "Composite Omni-Hazard Frame" : `${(match.incident_type || "Event").toUpperCase()} Isolated Frame`}
                   </div>
                 </div>
                 <p style={{ marginTop: 14, fontSize: "0.78rem", color: "var(--text-muted)" }}>
