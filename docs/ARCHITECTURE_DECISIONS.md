@@ -53,3 +53,10 @@ Key architectural choices and their rationale.
 - Burst allowance: 20 requests
 - Redis-backed distributed rate limiting
 
+
+## [2026-08-23 06:53] Commit #40
+### Compliance Engine
+- Rule evaluation interval: 60 seconds
+- SLA target: 99.5% camera uptime
+- Automated compliance report generation: daily at 00:00 UTC
+
