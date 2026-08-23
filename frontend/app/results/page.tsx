@@ -32,6 +32,14 @@ import {
   TagIcon,
   FolderIcon,
   ClockIcon,
+  FlameIcon,
+  SmokeIcon,
+  FallIcon,
+  UsersIcon,
+  WeaponIcon,
+  FaceScanIcon,
+  ShieldCheckIcon,
+  AlertIcon,
 } from "@/components/Icons";
 
 const BASE_URL = "http://localhost:8000";
@@ -468,8 +476,10 @@ function getSearchTypeIcon(type: string | undefined) {
   switch (type) {
     case "face_recognition": return <UserIcon size={12} />;
     case "lpr": return <CarIcon size={12} />;
-    case "keyword": return <MessageIcon size={12} />;
+    case "keyword": return <SearchIcon size={12} />;
     case "object_detection": return <TargetIcon size={12} />;
+    case "emergency_hazard":
+    case "hazard": return <ShieldCheckIcon size={12} />;
     default: return <ActivityIcon size={12} />;
   }
 }
@@ -478,8 +488,10 @@ function getSearchTypeLabel(type: string | undefined) {
   switch (type) {
     case "face_recognition": return "Face Re-ID";
     case "lpr": return "License Plate (LPR)";
-    case "keyword": return "Keyword";
+    case "keyword": return "Open-Vocab Target";
     case "object_detection": return "Object Detection";
+    case "emergency_hazard":
+    case "hazard": return "AI Campus Hazard Suite";
     default: return "Activity Analysis";
   }
 }
@@ -600,11 +612,32 @@ export default function ResultsPage() {
     }
   }, []);
 
-  // Auto-load from URL hash
+  // Auto-load from URL query param, URL hash, or localStorage
   useEffect(() => {
-    const hash = window.location.hash.replace("#", "");
-    if (hash) { setJobId(hash); loadJob(hash); }
+    const hash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const qJobId = params.get("job_id") || hash || (typeof window !== "undefined" ? (localStorage.getItem("sentinel_active_hazard_job_id") || localStorage.getItem("sentinel_active_search_job_id")) : "");
+    if (qJobId) {
+      setJobId(qJobId);
+      loadJob(qJobId);
+    }
   }, [loadJob]);
+
+  // If no job loaded yet, auto-select the latest job from pastJobs so results are immediately visible
+  useEffect(() => {
+    if (!job && !loadingJob && Object.keys(pastJobs).length > 0 && !jobId) {
+      const sortedJobIds = Object.keys(pastJobs).sort((a, b) => {
+        const tA = pastJobs[a]?.created_at || 0;
+        const tB = pastJobs[b]?.created_at || 0;
+        return tB - tA;
+      });
+      if (sortedJobIds.length > 0) {
+        const topId = sortedJobIds[0];
+        setJobId(topId);
+        loadJob(topId);
+      }
+    }
+  }, [pastJobs, job, loadingJob, jobId, loadJob]);
 
   // Live Auto-polling for active running/queued search jobs
   useEffect(() => {
@@ -638,9 +671,42 @@ export default function ResultsPage() {
     }
   };
 
-  const matches: MatchResult[] = (job?.matches || [])
+  const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
+
+  const getEventCategory = (m: MatchResult): string => {
+    const incType = (m.incident_type || "").toLowerCase();
+    const label = (m.label || "").toLowerCase();
+    const sType = (m.search_type || "").toLowerCase();
+
+    if (incType === "fire" || label.includes("fire") || label.includes("flame")) return "fire";
+    if (incType === "smoke" || label.includes("smoke")) return "smoke";
+    if (incType === "fall" || label.includes("fall") || label.includes("slip") || label.includes("casualty") || label.includes("immobility")) return "fall";
+    if (incType === "crowd" || label.includes("crowd") || label.includes("gathering") || label.includes("unrest") || label.includes("density") || label.includes("people")) return "crowd";
+    if (incType === "brawl" || label.includes("brawl") || label.includes("affray") || label.includes("altercation") || label.includes("combatant")) return "brawl";
+    if (incType === "weapon" || label.includes("weapon") || label.includes("gun") || label.includes("knife") || label.includes("blade") || label.includes("armed")) return "weapon";
+    if (incType === "face" || sType === "face_recognition" || label.includes("face") || label.includes("suspect")) return "face";
+    return "other";
+  };
+
+  const rawMatches: MatchResult[] = (job?.matches || [])
     .filter((m) => !filterLabel || m.label.toLowerCase().includes(filterLabel.toLowerCase()))
     .sort((a, b) => sortBy === "timestamp" ? a.timestamp - b.timestamp : b.confidence - a.confidence);
+
+  const eventCounts = {
+    all: rawMatches.length,
+    fire: rawMatches.filter((m) => getEventCategory(m) === "fire").length,
+    smoke: rawMatches.filter((m) => getEventCategory(m) === "smoke").length,
+    crowd: rawMatches.filter((m) => getEventCategory(m) === "crowd").length,
+    fall: rawMatches.filter((m) => getEventCategory(m) === "fall").length,
+    brawl: rawMatches.filter((m) => getEventCategory(m) === "brawl").length,
+    weapon: rawMatches.filter((m) => getEventCategory(m) === "weapon").length,
+    face: rawMatches.filter((m) => getEventCategory(m) === "face").length,
+  };
+
+  const matches = rawMatches.filter((m) => {
+    if (selectedEventFilter === "all") return true;
+    return getEventCategory(m) === selectedEventFilter;
+  });
 
   const totalDuration = matches.length > 0 ? matches[matches.length - 1].timestamp + 10 : 60;
 
@@ -673,17 +739,17 @@ export default function ResultsPage() {
         exportInvestigator || "N/A",
         caseNumber || "N/A",
         department || "N/A",
-        notes
+        notes || "Automated multi-modal forensic search report."
       );
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `visioncctv_report_${jobId}.pdf`;
+      a.download = `forensic_report_${jobId}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast("Forensic PDF report generated & downloaded", "success");
+      showToast("Forensic report PDF exported", "success");
     } catch {
-      showToast("Export failed — ensure the search completed", "error");
+      showToast("PDF export failed — ensure search completed", "error");
     } finally {
       setExporting(false);
     }
@@ -709,14 +775,23 @@ export default function ResultsPage() {
           </p>
         </div>
 
-        {/* Job Loader */}
+        {/* Job Loader & Recent Jobs Bar */}
         <div className="card" style={{ marginBottom: 20 }}>
-          <div className="section-title">Load Search Job</div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div className="section-title" style={{ margin: 0 }}>Active Forensic Investigation Job</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn btn-secondary btn-sm" onClick={loadPastJobs} disabled={loadingPastJobs} style={{ fontSize: "0.72rem" }}>
+                {loadingPastJobs ? "Refreshing..." : "Refresh Jobs"}
+              </button>
+              <a href="/incidents" className="btn btn-primary btn-sm" style={{ fontSize: "0.72rem" }}>Campus AI Incidents →</a>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <input
               className="input-field"
-              style={{ width: "350px" }}
-              placeholder="Enter Job ID from the Search page…"
+              style={{ width: "320px" }}
+              placeholder="Enter Job ID (e.g. hz_8b8712cf)…"
               value={jobId}
               onChange={(e) => setJobId(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && loadJob(jobId)}
@@ -724,8 +799,53 @@ export default function ResultsPage() {
             <button className="btn btn-secondary" onClick={() => loadJob(jobId)} disabled={loadingJob} style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {loadingJob ? <><HourglassIcon size={14} /> Loading...</> : "Load Job"}
             </button>
-            <a href="/search" className="btn btn-ghost" style={{ marginLeft: "auto" }}>New Search →</a>
           </div>
+
+          {/* Quick Switcher for Past / Recent Jobs */}
+          {Object.keys(pastJobs).length > 0 && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
+                Recent Investigation Sessions ({Object.keys(pastJobs).length}):
+              </div>
+              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+                {Object.entries(pastJobs)
+                  .sort(([, a], [, b]) => (b.created_at || 0) - (a.created_at || 0))
+                  .slice(0, 8)
+                  .map(([pId, pVal]: [string, any]) => {
+                    const isSelected = jobId === pId;
+                    return (
+                      <button
+                        key={pId}
+                        onClick={() => {
+                          setJobId(pId);
+                          loadJob(pId);
+                        }}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 6,
+                          background: isSelected ? "rgba(59,130,246,0.2)" : "rgba(255,255,255,0.03)",
+                          border: `1px solid ${isSelected ? "var(--accent)" : "rgba(255,255,255,0.08)"}`,
+                          color: isSelected ? "#FFFFFF" : "var(--text-secondary)",
+                          fontSize: "0.74rem",
+                          fontWeight: isSelected ? 800 : 500,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: pVal.status === "completed" ? "var(--green)" : pVal.status === "running" ? "#60A5FA" : "var(--yellow)" }} />
+                        <span style={{ fontFamily: "JetBrains Mono, monospace" }}>#{pId}</span>
+                        <span style={{ color: isSelected ? "#93C5FD" : "var(--text-muted)", fontSize: "0.68rem" }}>
+                          ({pVal.match_count ?? pVal.frames_matched ?? 0} hits)
+                        </span>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
         </div>
 
         {job && (
@@ -846,6 +966,94 @@ export default function ResultsPage() {
                         <span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>{b.label}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* ── Interactive Event-Specific Highlighted Footages Filter Bar ── */}
+                <div style={{
+                  background: "var(--bg-card)",
+                  border: "1px solid rgba(96,165,250,0.25)",
+                  borderRadius: "var(--radius-lg)",
+                  padding: "16px 20px",
+                  marginBottom: 20,
+                  boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: "0.92rem", color: "#FFFFFF", display: "flex", alignItems: "center", gap: 8 }}>
+                        <ShieldCheckIcon size={18} style={{ color: "var(--accent)" }} />
+                        Detected Hazard Events & Highlighted Footage Filters
+                      </div>
+                      <div style={{ fontSize: "0.74rem", color: "var(--text-secondary)", marginTop: 2 }}>
+                        Click on any event category to isolate and inspect its specific highlighted CCTV footages and forensic detections
+                      </div>
+                    </div>
+                    {selectedEventFilter !== "all" && (
+                      <button
+                        onClick={() => setSelectedEventFilter("all")}
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: "0.72rem", color: "var(--accent)" }}
+                      >
+                        Reset Filter (Show All {eventCounts.all})
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {[
+                      { id: "all", label: "All Events", icon: ActivityIcon, count: eventCounts.all, color: "var(--accent)", glow: "rgba(59,130,246,0.2)" },
+                      { id: "fire", label: "Fire Outbreaks", icon: FlameIcon, count: eventCounts.fire, color: "#EF4444", glow: "rgba(239,68,68,0.25)" },
+                      { id: "smoke", label: "Smoke Plumes", icon: SmokeIcon, count: eventCounts.smoke, color: "#94A3B8", glow: "rgba(148,163,184,0.25)" },
+                      { id: "crowd", label: "Crowd Surge & Density", icon: UsersIcon, count: eventCounts.crowd, color: "#38BDF8", glow: "rgba(56,189,248,0.25)" },
+                      { id: "fall", label: "Slip & Fall Immobility", icon: FallIcon, count: eventCounts.fall, color: "#F59E0B", glow: "rgba(245,158,11,0.25)" },
+                      { id: "brawl", label: "Violent Affray / Brawl", icon: AlertIcon, count: eventCounts.brawl, color: "#EC4899", glow: "rgba(236,72,153,0.25)" },
+                      { id: "weapon", label: "Armed Weapon Threat", icon: WeaponIcon, count: eventCounts.weapon, color: "#DC2626", glow: "rgba(220,38,38,0.25)" },
+                      { id: "face", label: "Face Identification", icon: FaceScanIcon, count: eventCounts.face, color: "#06B6D4", glow: "rgba(6,182,212,0.25)" },
+                    ].map((cat) => {
+                      const isActive = selectedEventFilter === cat.id;
+                      const IconComp = cat.icon;
+                      const hasItems = cat.count > 0;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setSelectedEventFilter(cat.id)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "8px 14px",
+                            borderRadius: "var(--radius-md)",
+                            background: isActive
+                              ? `linear-gradient(135deg, ${cat.glow} 0%, rgba(15,23,42,0.9) 100%)`
+                              : hasItems
+                              ? "rgba(255,255,255,0.03)"
+                              : "rgba(255,255,255,0.01)",
+                            border: `1.5px solid ${isActive ? cat.color : hasItems ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.04)"}`,
+                            boxShadow: isActive ? `0 0 16px ${cat.glow}` : "none",
+                            color: isActive ? "#FFFFFF" : hasItems ? "var(--text-primary)" : "var(--text-muted)",
+                            cursor: hasItems ? "pointer" : "default",
+                            opacity: hasItems || cat.id === "all" ? 1 : 0.45,
+                            transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+                            fontSize: "0.78rem",
+                            fontWeight: isActive ? 800 : 600,
+                          }}
+                        >
+                          <IconComp size={15} style={{ color: isActive ? "#FFFFFF" : cat.color }} />
+                          <span>{cat.label}</span>
+                          <span style={{
+                            padding: "2px 7px",
+                            borderRadius: 100,
+                            fontSize: "0.68rem",
+                            fontFamily: "JetBrains Mono, monospace",
+                            background: isActive ? cat.color : "rgba(255,255,255,0.08)",
+                            color: isActive ? "#FFFFFF" : cat.color,
+                            fontWeight: 800,
+                          }}>
+                            {cat.count}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1017,12 +1225,34 @@ export default function ResultsPage() {
                       </div>
                       <div style={{
                         position: "absolute", top: 8, left: 8,
-                        padding: "3px 8px", borderRadius: 100,
-                        background: "rgba(0,0,0,0.75)",
-                        display: "flex", alignItems: "center",
-                        color: "var(--text-secondary)",
+                        display: "flex", gap: 6, alignItems: "center",
                       }}>
-                        {getSearchTypeIcon(match.search_type)}
+                        <div style={{
+                          padding: "3px 8px", borderRadius: 100,
+                          background: "rgba(0,0,0,0.8)",
+                          display: "flex", alignItems: "center",
+                          color: "var(--text-secondary)",
+                        }}>
+                          {getSearchTypeIcon(match.search_type)}
+                        </div>
+                        {match.incident_type && (
+                          <div style={{
+                            padding: "3px 8px", borderRadius: 100,
+                            background: match.incident_type === "fire" ? "rgba(239,68,68,0.9)"
+                              : match.incident_type === "fall" ? "rgba(245,158,11,0.9)"
+                              : match.incident_type === "crowd" ? "rgba(56,189,248,0.9)"
+                              : match.incident_type === "brawl" ? "rgba(236,72,153,0.9)"
+                              : match.incident_type === "weapon" ? "rgba(220,38,38,0.9)"
+                              : "rgba(59,130,246,0.9)",
+                            color: "#FFFFFF",
+                            fontSize: "0.62rem",
+                            fontWeight: 900,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}>
+                            {match.incident_type}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1032,7 +1262,13 @@ export default function ResultsPage() {
                         <span className="badge badge-blue" style={{ display: "flex", alignItems: "center", gap: 4 }}>
                           <VideoIcon size={11} /> {match.camera_id}
                         </span>
-                        {match.label && <span className="badge badge-accent">{match.label}</span>}
+                        {match.label && (
+                          <span className="badge badge-accent" style={{
+                            maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+                          }}>
+                            {match.label}
+                          </span>
+                        )}
                       </div>
 
                       {/* SHA-256 display — real hash from backend */}

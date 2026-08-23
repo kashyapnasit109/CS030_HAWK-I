@@ -30,9 +30,6 @@ export async function apiFetch<T>(
     ) as ApiError;
     e.status = 0;
     e.isNetworkError = true;
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(`[apiFetch] network error for ${path}:`, (err as Error)?.message);
-    }
     throw e;
   }
   if (!res.ok) {
@@ -79,6 +76,8 @@ export interface MatchResult {
   timestamp: number;
   timestamp_str: string;
   frame_url: string;
+  all_frame_url?: string;
+  modality_frame_url?: string;
   clip_url?: string;
   confidence: number;
   label: string;
@@ -807,5 +806,36 @@ export async function escalateHazardFromSearch(payload: {
     body: JSON.stringify(payload),
   });
 }
+
+export async function exportHazardReport(
+  jobId: string,
+  title: string = "Emergency Forensic Incident Report",
+  investigator: string = "Investigator",
+  caseNumber: string = "EMERGENCY-01",
+  department: string = "Campus Safety & Emergency Response",
+  notes: string = ""
+): Promise<Blob> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("visioncctv_token") : null;
+  const res = await fetch(`${BASE_URL}/api/export/report`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      job_id: jobId,
+      title,
+      investigator,
+      case_number: caseNumber,
+      department,
+      notes,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Export failed: ${res.statusText}`);
+  }
+  return res.blob();
+}
+
 
 
