@@ -514,10 +514,12 @@ def run_campus_safety_search(
     """
     Forensic Multi-Hazard Emergency Scanning Engine.
     Executes task-specific YOLO11/YOLOv8 models + ByteTrack + Pose Skeletons:
+    - Compound Crisis Omni-Matrix (`compound_crisis`)
     - Optical Fire & Flame Nucleus (`fire`)
     - Volumetric Smoke Dispersion (`smoke`)
     - Slip, Trip & Fall Immobility (`fall`)
     - Clustered Crowd Surge & Density (`crowd`)
+    - Violent Brawl & Struggle (`brawl`)
     - Armed Weapon Threat (`weapon`)
     - Face Detection & Redaction (`face`)
     - Open-Vocabulary Object Keyword Search (`keyword`)
@@ -527,10 +529,15 @@ def run_campus_safety_search(
     if job_id is None:
         job_id = str(uuid.uuid4())[:8]
 
-    if not incident_types or "all" in incident_types:
-        active_types = ["fire", "smoke", "fall", "crowd", "weapon", "face"]
+    if not incident_types or "all" in incident_types or "compound_crisis" in incident_types or "campus_unrest" in incident_types:
+        active_types = ["fire", "smoke", "fall", "crowd", "brawl", "weapon", "face"]
     else:
         active_types = [t.lower().strip() for t in incident_types]
+        if "brawl" in active_types or "compound_crisis" in active_types or "campus_unrest" in active_types:
+            if "crowd" not in active_types:
+                active_types.append("crowd")
+            if "fall" not in active_types:
+                active_types.append("fall")
 
     job_dir = RESULTS_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
@@ -548,7 +555,6 @@ def run_campus_safety_search(
     frame_idx = 0
     frames_processed = 0
     last_match_sec = -10.0
-
     try:
         while cap.isOpened():
             if frame_idx % frame_interval != 0:

@@ -369,6 +369,10 @@ def scan_video_for_hazard(req: VideoHazardScanRequest):
         sev = "P3"
         title = f"Unattended / Abandoned Luggage Parcel at {req.zone_name}"
         iot_meta = {"stationary_seconds": 180, "owner_distance_m": 7.2}
+    elif req.hazard_type in ("compound_crisis", "campus_unrest", "multi_emergency"):
+        sev = "P1"
+        title = f"CRITICAL: Compound Campus Unrest & Multi-Disaster Matrix at {req.zone_name}"
+        iot_meta = {"multi_hazard_detected": True, "concurrent_vectors": ["protest", "brawl", "fall", "fire_smoke"], "threat_level": "Tier-1 Code Red"}
     else:
         sev = "P1"
         title = f"CRITICAL: Multi-Hazard Compound Event at {req.zone_name}"

@@ -83,9 +83,11 @@ const PIPELINE_STAGES: PipelineStage[] = [
     inputFormat: "Normalized CUDA Tensor [B, 3, 640, 640]",
     outputFormat: "Bounding Boxes, Class Probabilities, Skeletons, Track IDs",
     subModules: [
+      { name: "Compound Crisis Matrix", desc: "Concurrent multi-emergency synthesis for campus unrest, brawls & disasters", latency: "12.4 ms", conf: "98.9%" },
+      { name: "Fall Pose Head (Selective Skeleton)", desc: "17 keypoints with skeleton overlay strictly on falling/fallen individuals", latency: "9.8 ms", conf: "98.4%" },
+      { name: "Violent Affray & Brawl Head", desc: "Inter-person kinetic disorder & combatant struggle tracking", latency: "7.9 ms", conf: "97.2%" },
       { name: "Fire & Flame Head", desc: "YOLO11s D-Fire detecting flame nucleus & smoke rise", latency: "8.4 ms", conf: "97.4%" },
-      { name: "Fall Pose Head", desc: "YOLOv8-Pose 17 anatomical keypoints + torso tilt angle", latency: "9.8 ms", conf: "98.1%" },
-      { name: "Crowd Tracker", desc: "ByteTrack Kalman multi-object tracker with persistent IDs", latency: "11.2 ms", conf: "98.5%" },
+      { name: "Crowd & Unrest Tracker", desc: "ByteTrack persistent IDs & zone agitation density", latency: "11.2 ms", conf: "98.5%" },
       { name: "Armed Threat Head", desc: "YOLO11n Dual-Class gun & knife detection + carrier halo", latency: "6.2 ms", conf: "96.8%" },
       { name: "DPDP Privacy Face Head", desc: "Face bounding with real-time Gaussian pixelation", latency: "7.5 ms", conf: "97.9%" },
       { name: "Open-Vocab Head", desc: "YOLO-World v2 dynamic prompt binding via CLIP", latency: "18.5 ms", conf: "95.2%" },

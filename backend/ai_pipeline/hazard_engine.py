@@ -1,13 +1,15 @@
 """
 VIGINT / SentinelVision — Unified Hazard Detection & Tracking Engine
 Task-Specific Models:
-1. Fire & Smoke: YOLO11/YOLOv8 Fine-tuned on D-Fire (Fire, Smoke classes) with Area Growth Tracking
-2. Fall Detection: YOLOv8-Pose Keypoint Engine + Torso Angle + Aspect Ratio + Multi-frame Immobility
-3. Crowd Detection & People Counter: YOLOv8 Person Detector + ByteTrack Persistent IDs + Zone Density
-4. Weapon Detection: YOLO11 Gun & Knife Detector + Carrier Association + Strict Confirmation Window
-5. Face Detection & Privacy: YOLOv8-Face + Dynamic Blur/Pixelation Masking + Count
-6. ANPR Multi-Frame OCR: Plate Detector + Vehicle Tracker + Majority-Vote / Highest-Confidence Aggregation
-7. Open-Vocabulary Object Search: YOLO-World Dynamic Prompt Detector
+1. Compound Crisis Omni-Matrix: Concurrent multi-emergency detection for protests, brawls, falls, fire, smoke, and weapons.
+2. Fire & Smoke: YOLO11/YOLOv8 Fine-tuned on D-Fire (Fire, Smoke classes) with Area Growth Tracking
+3. Fall Detection: YOLOv8-Pose Biomechanical Keypoint Engine + Selective Skeleton Overlay (ONLY on falling/fallen persons)
+4. Violent Altercation & Brawl: Multi-person kinetic disorder and struggle detection in tight proximity clusters
+5. Crowd Detection & Campus Unrest: YOLOv8 Person Detector + ByteTrack Persistent IDs + Zone Density & Agitation
+6. Weapon Detection: YOLO11 Gun & Knife Detector + Carrier Association + Strict Confirmation Window
+7. Face Detection & Privacy: YOLOv8-Face + Dynamic Blur/Pixelation Masking + Count
+8. ANPR Multi-Frame OCR: Plate Detector + Vehicle Tracker + Majority-Vote / Highest-Confidence Aggregation
+9. Open-Vocabulary Object Search: YOLO-World Dynamic Prompt Detector
 """
 
 import os
@@ -65,7 +67,9 @@ def load_cached_model(model_key: str, custom_path: Optional[str] = None) -> Opti
             BASE_DIR / Path(path).name if path else None,
             MODELS_DIR / "fire_smoke.pt" if model_key == "fire_smoke" else None,
             MODELS_DIR / "yolov8n-pose.pt" if model_key == "fall_pose" else None,
+            BASE_DIR / "yolov8n-pose.pt" if model_key == "fall_pose" else None,
             BASE_DIR / "yolov8n.pt" if model_key in ("person_crowd", "weapon") else None,
+            BASE_DIR / "yolov8s.pt" if model_key in ("person_crowd", "weapon") else None,
         ]
         found = None
         for p in alt_paths:
@@ -105,8 +109,8 @@ def _sha256_file(path: Path) -> str:
 def verify_fire_chroma(crop_bgr: np.ndarray) -> tuple[bool, float]:
     """
     Physics-grounded chromatic flame spectral verification.
-    True flame core exhibits intense luminous red-orange-yellow radiation (HSV Hue in [0, 35] or [165, 180], Saturation > 90, Value > 120).
-    Filters out red bricks, roofs, fire engines, and clothes.
+    True flame core exhibits intense luminous red-orange-yellow radiation (HSV Hue in [0, 35] or [165, 180], Saturation > 80, Value > 115).
+    Filters out static red bricks, roofs, and apparel.
     """
     if crop_bgr is None or crop_bgr.size == 0:
         return False, 0.0
@@ -114,11 +118,11 @@ def verify_fire_chroma(crop_bgr: np.ndarray) -> tuple[bool, float]:
     if h < 8 or w < 8:
         return False, 0.0
     hsv = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2HSV)
-    mask_flame = cv2.inRange(hsv, np.array([0, 85, 115]), np.array([34, 255, 255]))
-    mask_red = cv2.inRange(hsv, np.array([168, 85, 115]), np.array([180, 255, 255]))
+    mask_flame = cv2.inRange(hsv, np.array([0, 80, 110]), np.array([36, 255, 255]))
+    mask_red = cv2.inRange(hsv, np.array([165, 80, 110]), np.array([180, 255, 255]))
     fire_pixels = cv2.bitwise_or(mask_flame, mask_red)
     ratio = float(np.count_nonzero(fire_pixels)) / float(h * w)
-    return ratio >= 0.08, ratio
+    return ratio >= 0.06, ratio
 
 
 def verify_smoke_chroma(crop_bgr: np.ndarray) -> tuple[bool, float]:
@@ -130,21 +134,21 @@ def verify_smoke_chroma(crop_bgr: np.ndarray) -> tuple[bool, float]:
     if crop_bgr is None or crop_bgr.size == 0:
         return False, 0.0
     h, w = crop_bgr.shape[:2]
-    if h < 12 or w < 12:
+    if h < 10 or w < 10:
         return False, 0.0
     hsv = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2HSV)
     h_chan, s_chan, v_chan = hsv[:, :, 0], hsv[:, :, 1], hsv[:, :, 2]
-    is_smoke = (s_chan < 70) & (v_chan > 55) & (v_chan < 245)
+    is_smoke = (s_chan < 75) & (v_chan > 50) & (v_chan < 248)
     is_blue_sky = (h_chan >= 85) & (h_chan <= 135) & (s_chan > 45)
     smoke_valid = is_smoke & (~is_blue_sky)
     ratio = float(np.count_nonzero(smoke_valid)) / float(h * w)
-    return ratio >= 0.20, ratio
+    return ratio >= 0.18, ratio
 
 
 class MultiFrameTrackBuffer:
     """
     Tracks state across video frames for multi-frame confirmation,
-    majority-voting, and persistent identification.
+    majority-voting, kinetic struggle analysis, and persistent identification.
     """
     def __init__(self, history_len: int = 30):
         self.history_len = history_len
@@ -154,6 +158,8 @@ class MultiFrameTrackBuffer:
         self.fire_regions: list[dict] = []
         self.vehicle_plates: dict[int, list[dict]] = defaultdict(list)
         self.people_count_history: deque = deque(maxlen=history_len)
+        self.prev_gray: Optional[np.ndarray] = None
+        self.brawl_history: deque = deque(maxlen=history_len)
 
     def reset(self):
         self.person_pose_history.clear()
@@ -161,13 +167,17 @@ class MultiFrameTrackBuffer:
         self.fire_regions.clear()
         self.vehicle_plates.clear()
         self.people_count_history.clear()
+        self.prev_gray = None
+        self.brawl_history.clear()
 
 
 class HazardDetectionSuite:
     """
     Unified, modular hazard detection engine supporting:
+    - Compound Crisis Omni-Matrix (Simultaneous Campus Unrest + Multi-Disaster)
     - Fire & Smoke with severity growth
-    - Fall detection via YOLO-Pose skeleton analysis
+    - Biomechanical Fall detection via YOLO-Pose with Selective Skeleton Overlay (ONLY for falling/fallen persons)
+    - Violent struggle & Brawl detection
     - Crowd analysis & live people counter with ByteTrack IDs
     - Weapon detection (Gun/Knife) with carrier association
     - Face detection with privacy blur toggle
@@ -197,25 +207,33 @@ class HazardDetectionSuite:
                 "people_count": int (total live persons with IDs),
                 "tracked_people": list of tracked person metadata,
                 "overlay_frame": np.ndarray with smart masking & HUD overlays,
-                "module_stats": dict of detections per module
+                "module_stats": dict of detections per module,
+                "is_compound_crisis": bool
             }
         """
         if frame is None or frame.size == 0:
-            return {"incidents": [], "people_count": 0, "tracked_people": [], "overlay_frame": frame, "module_stats": {}}
+            return {"incidents": [], "people_count": 0, "tracked_people": [], "overlay_frame": frame, "module_stats": {}, "is_compound_crisis": False}
 
-        if enabled_modules is None:
-            enabled_modules = ["fire", "smoke", "fall", "crowd", "weapon", "face", "anpr"]
+        if enabled_modules is None or "all" in enabled_modules or "compound_crisis" in enabled_modules or "campus_unrest" in enabled_modules:
+            enabled_modules = ["fire", "smoke", "fall", "crowd", "brawl", "weapon", "face"]
 
         active = set(enabled_modules)
+        # If compound_crisis or campus_unrest is active, ensure brawl & crowd & fall & fire are turned on
+        if "compound_crisis" in active or "campus_unrest" in active:
+            active.update(["crowd", "brawl", "fall", "fire", "smoke", "weapon"])
+
         frame_h, frame_w = frame.shape[:2]
         annotated = frame.copy()
         incidents = []
         module_stats = defaultdict(int)
 
-        # ── 1. Crowd Detection & Live People Counter (ByteTrack) ───────────────
+        curr_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        prev_gray = self.track_buffer.prev_gray
+
+        # ── 1. Crowd Detection, Live People Counter & Campus Unrest (ByteTrack) ───────────────
         tracked_people = []
         person_count = 0
-        if "crowd" in active or "fall" in active or "weapon" in active:
+        if "crowd" in active or "fall" in active or "weapon" in active or "brawl" in active:
             person_model = load_cached_model("person_crowd")
             if person_model is not None:
                 try:
@@ -223,7 +241,7 @@ class HazardDetectionSuite:
                     p_results = person_model.track(
                         frame,
                         classes=[0],  # Person class
-                        conf=max(0.30, confidence_threshold - 0.15),
+                        conf=max(0.25, confidence_threshold - 0.20),
                         persist=True,
                         tracker="bytetrack.yaml",
                         device=self.device,
@@ -237,7 +255,7 @@ class HazardDetectionSuite:
                             track_id = int(box.id[0].cpu().numpy()) if box.id is not None else (i + 1)
                             
                             bw, bh = x2 - x1, y2 - y1
-                            if bh >= 40 and bw >= 15:
+                            if bh >= 35 and bw >= 12:
                                 tracked_people.append({
                                     "id": track_id,
                                     "box": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
@@ -249,7 +267,7 @@ class HazardDetectionSuite:
                 except Exception as e:
                     # Fallback to standard detect if tracking fails
                     try:
-                        p_results = person_model(frame, classes=[0], conf=0.35, device=self.device, verbose=False)
+                        p_results = person_model(frame, classes=[0], conf=0.30, device=self.device, verbose=False)
                         if p_results and p_results[0].boxes is not None:
                             for i, box in enumerate(p_results[0].boxes):
                                 x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].cpu().numpy()]
@@ -268,42 +286,45 @@ class HazardDetectionSuite:
         person_count = len(tracked_people)
         module_stats["people_count"] = person_count
 
-        # Crowd Density & Surge evaluation
-        if "crowd" in active:
+        # Crowd Density, Protest Agitation & Unrest Surge evaluation
+        if "crowd" in active and person_count >= 1:
             density_tier = "Normal / Low"
             density_color = (0, 220, 80)
-            if person_count >= 12:
-                density_tier = "Very High (Stampede / Surge Risk)"
+            is_unrest = False
+
+            if person_count >= 10:
+                density_tier = "Campus Protest / Stampede Surge Alert"
                 density_color = (30, 30, 240)
-            elif person_count >= 7:
-                density_tier = "High Density"
+                is_unrest = True
+            elif person_count >= 6:
+                density_tier = "High Density Gathering / Agitation"
                 density_color = (20, 140, 245)
-            elif person_count >= 4:
+                is_unrest = True
+            elif person_count >= 3:
                 density_tier = "Medium Gathering"
                 density_color = (40, 210, 255)
 
-            if person_count >= 1:
-                # Find cluster bounding box
-                min_x = min(p["box"]["x1"] for p in tracked_people)
-                min_y = min(p["box"]["y1"] for p in tracked_people)
-                max_x = max(p["box"]["x2"] for p in tracked_people)
-                max_y = max(p["box"]["y2"] for p in tracked_people)
-                
-                # Draw semi-transparent zone mask
-                overlay = annotated.copy()
-                cv2.rectangle(overlay, (min_x, min_y), (max_x, max_y), density_color, -1)
-                cv2.addWeighted(overlay, 0.15, annotated, 0.85, 0, annotated)
-                cv2.rectangle(annotated, (min_x, min_y), (max_x, max_y), density_color, 2)
+            # Find cluster bounding box
+            min_x = min(p["box"]["x1"] for p in tracked_people)
+            min_y = min(p["box"]["y1"] for p in tracked_people)
+            max_x = max(p["box"]["x2"] for p in tracked_people)
+            max_y = max(p["box"]["y2"] for p in tracked_people)
+            
+            # Draw semi-transparent zone mask for crowd cluster
+            overlay = annotated.copy()
+            cv2.rectangle(overlay, (min_x, min_y), (max_x, max_y), density_color, -1)
+            cv2.addWeighted(overlay, 0.12, annotated, 0.88, 0, annotated)
+            cv2.rectangle(annotated, (min_x, min_y), (max_x, max_y), density_color, 2)
 
-                incidents.append({
-                    "incident_type": "crowd_density",
-                    "severity": "P1" if person_count >= 10 else "P2" if person_count >= 5 else "P3",
-                    "label": f"Live People Tracker: {person_count} Person(s) Detected ({density_tier})",
-                    "confidence": min(0.99, 0.65 + person_count * 0.03),
-                    "box": {"x1": min_x, "y1": min_y, "x2": max_x, "y2": max_y},
-                    "color_bgr": density_color,
-                    "iot_telemetry": {"people_count": person_count, "density_tier": density_tier, "tracked_ids": [p["id"] for p in tracked_people]}
-                })
+            incidents.append({
+                "incident_type": "crowd_unrest" if is_unrest else "crowd_density",
+                "severity": "P1" if person_count >= 8 else "P2" if person_count >= 4 else "P3",
+                "label": f"Campus Activity Tracker: {person_count} Person(s) Active ({density_tier})",
+                "confidence": min(0.99, 0.70 + person_count * 0.025),
+                "box": {"x1": min_x, "y1": min_y, "x2": max_x, "y2": max_y},
+                "color_bgr": density_color,
+                "iot_telemetry": {"people_count": person_count, "density_tier": density_tier, "tracked_ids": [p["id"] for p in tracked_people]}
+            })
 
             # Draw individual tracked people boxes with persistent ID tags
             for p in tracked_people:
@@ -311,11 +332,81 @@ class HazardDetectionSuite:
                 tid = p["id"]
                 cv2.rectangle(annotated, (bx["x1"], bx["y1"]), (bx["x2"], bx["y2"]), (0, 200, 255), 2)
                 tag = f"Person #{tid}"
-                (tw, th), _ = cv2.getTextSize(tag, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+                (tw, th), _ = cv2.getTextSize(tag, cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1)
                 cv2.rectangle(annotated, (bx["x1"], max(0, bx["y1"] - 18)), (bx["x1"] + tw + 6, max(18, bx["y1"])), (0, 200, 255), -1)
-                cv2.putText(annotated, tag, (bx["x1"] + 3, max(14, bx["y1"] - 4)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(annotated, tag, (bx["x1"] + 3, max(14, bx["y1"] - 4)), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 0, 0), 1, cv2.LINE_AA)
 
-        # ── 2. Fall & Slip Immobility Detection (Multi-Keypoint + Aspect Ratio + Height Dynamics) ──
+        # ── 2. Violent Altercation & Physical Brawl / Struggle Engine ─────────
+        if ("brawl" in active or "compound_crisis" in active) and len(tracked_people) >= 2:
+            try:
+                combats_found = []
+                for i in range(len(tracked_people)):
+                    p1 = tracked_people[i]
+                    b1 = p1["box"]
+                    c1_x = (b1["x1"] + b1["x2"]) / 2.0
+                    c1_y = (b1["y1"] + b1["y2"]) / 2.0
+
+                    for j in range(i + 1, len(tracked_people)):
+                        p2 = tracked_people[j]
+                        b2 = p2["box"]
+                        c2_x = (b2["x1"] + b2["x2"]) / 2.0
+                        c2_y = (b2["y1"] + b2["y2"]) / 2.0
+
+                        dist_px = math.hypot(c1_x - c2_x, c1_y - c2_y)
+                        if dist_px <= 110.0:
+                            bx1 = min(b1["x1"], b2["x1"])
+                            by1 = min(b1["y1"], b2["y1"])
+                            bx2 = max(b1["x2"], b2["x2"])
+                            by2 = max(b1["y2"], b2["y2"])
+
+                            kinetic_score = 0.0
+                            if prev_gray is not None and curr_gray is not None:
+                                p1_crop_curr = curr_gray[by1:by2, bx1:bx2]
+                                p1_crop_prev = prev_gray[by1:by2, bx1:bx2]
+                                if p1_crop_curr.shape == p1_crop_prev.shape and p1_crop_curr.size > 0:
+                                    diff = cv2.absdiff(p1_crop_curr, p1_crop_prev)
+                                    kinetic_score = float(np.mean(diff))
+
+                            is_brawl = (kinetic_score >= 12.0) or (dist_px < 65.0)
+                            brawl_conf = min(0.96, 0.76 + (kinetic_score / 50.0))
+
+                            if is_brawl:
+                                combats_found.append({
+                                    "p1_id": p1["id"],
+                                    "p2_id": p2["id"],
+                                    "box": {"x1": bx1, "y1": by1, "x2": bx2, "y2": by2},
+                                    "confidence": brawl_conf,
+                                    "kinetic_score": kinetic_score
+                                })
+
+                if combats_found:
+                    for cf in combats_found:
+                        c_box = cf["box"]
+                        b_lbl = f"VIOLENT AFFRAY / BRAWL DETECTED (Combatants #{cf['p1_id']} & #{cf['p2_id']})"
+                        cv2.rectangle(annotated, (c_box["x1"], c_box["y1"]), (c_box["x2"], c_box["y2"]), (0, 0, 255), 3)
+                        (lw, lh), _ = cv2.getTextSize(b_lbl, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+                        cv2.rectangle(annotated, (c_box["x1"], max(0, c_box["y1"] - 22)), (c_box["x1"] + lw + 8, max(22, c_box["y1"])), (0, 0, 255), -1)
+                        cv2.putText(annotated, b_lbl, (c_box["x1"] + 4, max(16, c_box["y1"] - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+
+                        module_stats["brawl"] += 1
+                        incidents.append({
+                            "incident_type": "violent_altercation",
+                            "severity": "P1",
+                            "label": b_lbl,
+                            "confidence": round(cf["confidence"], 3),
+                            "box": c_box,
+                            "color_bgr": (0, 0, 255),
+                            "iot_telemetry": {
+                                "combatant_ids": [cf["p1_id"], cf["p2_id"]],
+                                "kinetic_score": round(cf["kinetic_score"], 2),
+                                "inter_distance_px": round(dist_px, 1)
+                            }
+                        })
+            except Exception as brawl_err:
+                print(f"[hazard_engine] Brawl detection error: {brawl_err}")
+
+        # ── 3. Fall & Slip Immobility Detection (Selective Skeleton Overlay) ──
+        # RULE: Skeleton overlay is STRICTLY drawn ONLY on persons who are falling or fallen!
         if "fall" in active:
             pose_model = load_cached_model("fall_pose")
             person_model = load_cached_model("person_crowd")
@@ -360,9 +451,10 @@ class HazardDetectionSuite:
                 aspect_ratio = round(bw / bh, 2)  # Width / Height
                 pts = candidate_kpts[p_idx]
 
-                # Keypoint Analysis
+                # Biomechanical Keypoint Analysis
                 torso_angle = 0.0
                 kpt_fall = False
+                keypoint_inversion = False
 
                 if pts is not None and len(pts) >= 17:
                     sh_pts = [pts[i] for i in [5, 6] if pts[i][0] > 0 and pts[i][1] > 0]
@@ -378,13 +470,14 @@ class HazardDetectionSuite:
                         dy = abs(float(np.mean(hip_pts, axis=0)[1]) - float(np.mean(head_pts, axis=0)[1]))
                         torso_angle = math.degrees(math.atan2(dx, max(1e-4, dy)))
 
-                    if torso_angle > 35.0:
+                    if torso_angle > 32.0:
                         kpt_fall = True
 
                     if head_pts and hip_pts:
                         y_head = float(np.mean([p[1] for p in head_pts]))
                         y_hip = float(np.mean([p[1] for p in hip_pts]))
-                        if y_head >= (y_hip - 15):
+                        if y_head >= (y_hip - 18):
+                            keypoint_inversion = True
                             kpt_fall = True
 
                 # Associate with tracked person ID
@@ -401,7 +494,7 @@ class HazardDetectionSuite:
                 baseline_h = max(past_h) if past_h else bh
 
                 height_collapse = (bh <= 0.82 * baseline_h) and (baseline_h >= 40)
-                horizontal_body = (aspect_ratio >= 0.42)
+                horizontal_body = (aspect_ratio >= 0.40)
 
                 is_fall_candidate = horizontal_body or kpt_fall or height_collapse or (torso_angle > 30.0)
 
@@ -418,47 +511,43 @@ class HazardDetectionSuite:
                 total_frames = len(recent)
 
                 # Calibrated confidence scoring
-                if kpt_fall and (horizontal_body or height_collapse):
-                    conf = min(0.96, 0.78 + (aspect_ratio - 0.42) * 0.4)
-                elif aspect_ratio >= 0.60 or torso_angle > 45.0:
-                    conf = min(0.95, 0.80 + (aspect_ratio - 0.60) * 0.3)
-                elif aspect_ratio >= 0.42:
-                    conf = min(0.90, 0.74 + (aspect_ratio - 0.42) * 0.5)
+                if kpt_fall and (horizontal_body or height_collapse or keypoint_inversion):
+                    conf = min(0.98, 0.82 + (aspect_ratio - 0.40) * 0.45)
+                elif aspect_ratio >= 0.58 or torso_angle > 45.0:
+                    conf = min(0.96, 0.82 + (aspect_ratio - 0.58) * 0.35)
+                elif aspect_ratio >= 0.40:
+                    conf = min(0.92, 0.76 + (aspect_ratio - 0.40) * 0.50)
                 elif is_fall_candidate:
-                    conf = 0.75
+                    conf = 0.74
                 else:
-                    conf = 0.15
+                    conf = 0.10
 
                 is_confirmed_incident = is_fall_candidate and (conf >= 0.65)
 
+                # ── SELECTIVE SKELETON OVERLAY ──
+                # ONLY draw skeleton if the person is confirmed fallen or actively falling!
                 if is_confirmed_incident:
                     status = "FALL CONFIRMED"
                     state_color = (20, 20, 240)  # Alert Red
-                elif is_fall_candidate:
-                    status = "Possible Fall"
-                    state_color = (30, 210, 255)  # Amber
-                else:
-                    status = "Normal Upright"
-                    state_color = (0, 220, 80)   # Green
 
-                # Draw skeleton if keypoints available
-                if pts is not None and len(pts) >= 17:
-                    for p1, p2 in skeleton_pairs:
-                        pt1, pt2 = pts[p1], pts[p2]
-                        if pt1[0] > 0 and pt1[1] > 0 and pt2[0] > 0 and pt2[1] > 0:
-                            cv2.line(annotated, (int(pt1[0]), int(pt1[1])), (int(pt2[0]), int(pt2[1])), state_color, 2)
-                    for pt in pts:
-                        if pt[0] > 0 and pt[1] > 0:
-                            cv2.circle(annotated, (int(pt[0]), int(pt[1])), 3, (255, 255, 255), -1)
+                    # Draw high-visibility biomechanical skeleton ONLY on the fallen person
+                    if pts is not None and len(pts) >= 17:
+                        for p1, p2 in skeleton_pairs:
+                            pt1, pt2 = pts[p1], pts[p2]
+                            if pt1[0] > 0 and pt1[1] > 0 and pt2[0] > 0 and pt2[1] > 0:
+                                cv2.line(annotated, (int(pt1[0]), int(pt1[1])), (int(pt2[0]), int(pt2[1])), (20, 20, 255), 3)
+                        for pt in pts:
+                            if pt[0] > 0 and pt[1] > 0:
+                                cv2.circle(annotated, (int(pt[0]), int(pt[1])), 4, (255, 255, 255), -1)
+                                cv2.circle(annotated, (int(pt[0]), int(pt[1])), 2, (0, 0, 255), -1)
 
-                # Bounding box & HUD label
-                cv2.rectangle(annotated, (x1, y1), (x2, y2), state_color, 2)
-                lbl = f"ID #{matched_tid}: {status} | AR:{aspect_ratio} Angle:{int(torso_angle)}deg"
-                (lw, lh), _ = cv2.getTextSize(lbl, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
-                cv2.rectangle(annotated, (x1, max(0, y1 - 20)), (x1 + lw + 6, max(20, y1)), state_color, -1)
-                cv2.putText(annotated, lbl, (x1 + 3, max(15, y1 - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+                    # Bounding box & HUD label on fallen individual
+                    cv2.rectangle(annotated, (x1, y1), (x2, y2), state_color, 3)
+                    lbl = f"CASUALTY #{matched_tid}: FALL CONFIRMED | AR:{aspect_ratio} Angle:{int(torso_angle)}deg"
+                    (lw, lh), _ = cv2.getTextSize(lbl, cv2.FONT_HERSHEY_SIMPLEX, 0.48, 1)
+                    cv2.rectangle(annotated, (x1, max(0, y1 - 22)), (x1 + lw + 8, max(22, y1)), state_color, -1)
+                    cv2.putText(annotated, lbl, (x1 + 4, max(16, y1 - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.48, (255, 255, 255), 1, cv2.LINE_AA)
 
-                if is_confirmed_incident:
                     module_stats["fall"] += 1
                     incidents.append({
                         "incident_type": "fall_detected",
@@ -477,12 +566,35 @@ class HazardDetectionSuite:
                         }
                     })
 
-        # ── 3. Fire & Smoke Detection (Physics-Grounded Chromatic + YOLO) ────
+                elif is_fall_candidate and conf >= 0.50:
+                    status = "Possible Fall"
+                    state_color = (30, 210, 255)  # Amber
+
+                    # Draw skeleton for possible/imminent fall
+                    if pts is not None and len(pts) >= 17:
+                        for p1, p2 in skeleton_pairs:
+                            pt1, pt2 = pts[p1], pts[p2]
+                            if pt1[0] > 0 and pt1[1] > 0 and pt2[0] > 0 and pt2[1] > 0:
+                                cv2.line(annotated, (int(pt1[0]), int(pt1[1])), (int(pt2[0]), int(pt2[1])), (30, 210, 255), 2)
+                        for pt in pts:
+                            if pt[0] > 0 and pt[1] > 0:
+                                cv2.circle(annotated, (int(pt[0]), int(pt[1])), 3, (255, 255, 255), -1)
+
+                    cv2.rectangle(annotated, (x1, y1), (x2, y2), state_color, 2)
+                    lbl = f"ID #{matched_tid}: Possible Fall ({int(conf*100)}%)"
+                    (lw, lh), _ = cv2.getTextSize(lbl, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+                    cv2.rectangle(annotated, (x1, max(0, y1 - 20)), (x1 + lw + 6, max(20, y1)), state_color, -1)
+                    cv2.putText(annotated, lbl, (x1 + 3, max(15, y1 - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 1, cv2.LINE_AA)
+
+                # FOR NORMAL UPRIGHT PERSONS: DO NOT DRAW ANY SKELETON!
+                # Clean feed preserved.
+
+        # ── 4. Fire & Smoke Detection (Physics-Grounded Chromatic + YOLO) ────
         if "fire" in active or "smoke" in active:
             fire_model = load_cached_model("fire_smoke")
             if fire_model is not None:
                 try:
-                    f_res = fire_model(frame, conf=max(0.35, confidence_threshold - 0.05), device=self.device, verbose=False)
+                    f_res = fire_model(frame, conf=max(0.32, confidence_threshold - 0.08), device=self.device, verbose=False)
                     if f_res and f_res[0].boxes is not None:
                         for box in f_res[0].boxes:
                             x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].cpu().numpy()]
@@ -508,9 +620,9 @@ class HazardDetectionSuite:
                             smoke_verified = False
                             chroma_ratio = 0.0
 
-                            if is_fire_cls and "fire" in active:
+                            if is_fire_cls and ("fire" in active or "compound_crisis" in active):
                                 fire_verified, chroma_ratio = verify_fire_chroma(crop)
-                            elif is_smoke_cls and "smoke" in active:
+                            elif is_smoke_cls and ("smoke" in active or "compound_crisis" in active):
                                 smoke_verified, chroma_ratio = verify_smoke_chroma(crop)
 
                             if fire_verified or smoke_verified:
@@ -519,14 +631,9 @@ class HazardDetectionSuite:
                                 
                                 # Severity & Labeling
                                 if is_fire:
-                                    if area_px > 12000 or conf > 0.70:
-                                        severity = "P1"
-                                        label_str = f"Active Fire Outbreak ({int(conf*100)}%)"
-                                        box_color = (20, 20, 245)  # Bright Red
-                                    else:
-                                        severity = "P1"
-                                        label_str = f"Incipient Flame ({int(conf*100)}%)"
-                                        box_color = (20, 130, 255) # Orange
+                                    severity = "P1"
+                                    label_str = f"Active Fire Outbreak ({int(conf*100)}%)"
+                                    box_color = (20, 20, 245)  # Bright Red
                                 else:
                                     severity = "P2"
                                     label_str = f"Smoke Dispersion ({int(conf*100)}%)"
@@ -555,12 +662,12 @@ class HazardDetectionSuite:
                 except Exception as e:
                     print(f"[hazard_engine] Fire detection error: {e}")
 
-        # ── 4. Weapon Detection (Gun & Knife with Carrier Association) ─────────
+        # ── 5. Weapon Detection (Gun & Knife with Carrier Association) ─────────
         if "weapon" in active:
             weapon_model = load_cached_model("weapon")
             if weapon_model is not None:
                 try:
-                    w_res = weapon_model(frame, conf=0.35, device=self.device, verbose=False)
+                    w_res = weapon_model(frame, conf=0.30, device=self.device, verbose=False)
                     if w_res and w_res[0].boxes is not None:
                         for box in w_res[0].boxes:
                             x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].cpu().numpy()]
@@ -576,7 +683,6 @@ class HazardDetectionSuite:
 
                             for p in tracked_people:
                                 pb = p["box"]
-                                # Check if weapon is inside or adjacent to person
                                 if (pb["x1"] - 40 <= wc_x <= pb["x2"] + 40) and (pb["y1"] - 40 <= wc_y <= pb["y2"] + 40):
                                     pc_x = (pb["x1"] + pb["x2"]) / 2
                                     pc_y = (pb["y1"] + pb["y2"]) / 2
@@ -588,10 +694,8 @@ class HazardDetectionSuite:
                             carrier_str = f" | Tracked Person #{carrier_id}" if carrier_id else ""
                             weapon_label = f"WEAPON ALERT: {w_name} ({int(conf*100)}%){carrier_str}"
 
-                            # Draw highlighted box on weapon
                             cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 0, 255), 3)
                             
-                            # Draw highlighted halo on carrier if found
                             if carrier_id:
                                 for p in tracked_people:
                                     if p["id"] == carrier_id:
@@ -616,7 +720,7 @@ class HazardDetectionSuite:
                 except Exception as e:
                     print(f"[hazard_engine] Weapon detection error: {e}")
 
-        # ── 5. Face Detection & Privacy Redaction / Masking ────────────────────
+        # ── 6. Face Detection & Privacy Redaction / Masking ────────────────────
         if "face" in active:
             face_model = load_cached_model("face")
             if face_model is not None:
@@ -630,10 +734,8 @@ class HazardDetectionSuite:
                             x2, y2 = min(frame_w, x2), min(frame_h, y2)
 
                             if blur_faces:
-                                # Apply forensic privacy pixelation/blur mask
                                 face_roi = annotated[y1:y2, x1:x2]
                                 if face_roi.size > 0:
-                                    # Gaussian blur + pixelate
                                     k_size = max(15, (min(x2-x1, y2-y1) // 3) * 2 + 1)
                                     blurred = cv2.GaussianBlur(face_roi, (k_size, k_size), 30)
                                     annotated[y1:y2, x1:x2] = blurred
@@ -647,7 +749,7 @@ class HazardDetectionSuite:
                 except Exception as e:
                     print(f"[hazard_engine] Face detection error: {e}")
 
-        # ── 6. Open-Vocabulary Object Keyword Search (YOLO-World) ──────────────
+        # ── 7. Open-Vocabulary Object Keyword Search (YOLO-World) ──────────────
         if keyword_query and keyword_query.strip():
             world_model = load_cached_model("yolo_world")
             if world_model is not None:
@@ -679,16 +781,59 @@ class HazardDetectionSuite:
                 except Exception as e:
                     print(f"[hazard_engine] YOLO-World keyword search error: {e}")
 
+        # ── 8. Compound Crisis Cross-Hazard Synthesis ──────────────────────────
+        # When 2 or more distinct emergency hazards occur concurrently (e.g. crowd protest + fight + fall + fire)
+        unique_types = {inc.get("incident_type") for inc in incidents if inc.get("incident_type") != "crowd_density"}
+        is_compound = len(unique_types) >= 2 or ("violent_altercation" in unique_types and "fall_detected" in unique_types)
+
+        if is_compound:
+            hazard_names = []
+            if any("fall" in t for t in unique_types):
+                hazard_names.append("Casualty Fall")
+            if any("brawl" in t or "altercation" in t for t in unique_types):
+                hazard_names.append("Violent Fight")
+            if any("fire" in t for t in unique_types):
+                hazard_names.append("Active Fire")
+            if any("smoke" in t for t in unique_types):
+                hazard_names.append("Smoke Outbreak")
+            if any("weapon" in t for t in unique_types):
+                hazard_names.append("Armed Weapon")
+            if any("crowd" in t for t in unique_types):
+                hazard_names.append("Crowd Unrest")
+
+            compound_label = f"🚨 TIER-1 COMPOUND CRISIS: Campus Unrest with Concurrent [{', '.join(hazard_names)}]"
+            
+            # Synthesize primary compound incident at top of list
+            incidents.insert(0, {
+                "incident_type": "compound_crisis",
+                "severity": "P1",
+                "label": compound_label,
+                "confidence": 0.98,
+                "box": {"x1": 10, "y1": 10, "x2": frame_w - 10, "y2": frame_h - 10},
+                "color_bgr": (0, 0, 255),
+                "iot_telemetry": {
+                    "is_compound_crisis": True,
+                    "concurrent_hazards": hazard_names,
+                    "total_active_hazards": len(unique_types),
+                    "people_count": person_count
+                }
+            })
+
+        # Save previous frame gray for optical flow
+        self.track_buffer.prev_gray = curr_gray
+
         # ── Top HUD Live Bar ──────────────────────────────────────────────────
         time_str = time.strftime("%H:%M:%S", time.gmtime(timestamp_sec))
         hud_bg = annotated[0:36, 0:frame_w]
         if hud_bg.size > 0:
             overlay_bar = annotated.copy()
             cv2.rectangle(overlay_bar, (0, 0), (frame_w, 36), (15, 20, 25), -1)
-            cv2.addWeighted(overlay_bar, 0.82, annotated, 0.18, 0, annotated)
+            cv2.addWeighted(overlay_bar, 0.85, annotated, 0.15, 0, annotated)
 
-            hud_text = f"VIGINT AI | TIME: {time_str} | LIVE PEOPLE: {person_count} | ACTIVE HAZARDS: {len(incidents)}"
-            cv2.putText(annotated, hud_text, (14, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 240, 255), 1, cv2.LINE_AA)
+            mode_tag = "OMNI-CRISIS MATRIX" if is_compound else "HAZARD SUITE"
+            hud_text = f"VIGINT AI [{mode_tag}] | TIME: {time_str} | PEOPLE: {person_count} | HAZARDS: {len(incidents)}"
+            bar_color = (0, 0, 255) if is_compound else (0, 240, 255)
+            cv2.putText(annotated, hud_text, (14, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.52, bar_color, 1, cv2.LINE_AA)
 
         return {
             "incidents": incidents,
@@ -696,6 +841,7 @@ class HazardDetectionSuite:
             "tracked_people": tracked_people,
             "overlay_frame": annotated,
             "module_stats": dict(module_stats),
+            "is_compound_crisis": is_compound
         }
 
 

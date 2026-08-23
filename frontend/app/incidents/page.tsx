@@ -86,7 +86,7 @@ interface AvailVideo {
   thumbnail_url?: string;
 }
 
-type HazardModality = "fall" | "fire" | "smoke" | "crowd" | "weapon" | "face" | "keyword" | "all";
+type HazardModality = "compound_crisis" | "fall" | "fire" | "smoke" | "crowd" | "brawl" | "weapon" | "face" | "keyword" | "all";
 
 export default function IncidentsCommandHub() {
   const [incidents, setIncidents] = useState<IncidentItem[]>([]);
@@ -105,7 +105,7 @@ export default function IncidentsCommandHub() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Active Hazard Modality Tab (Separated specialized testing workflows)
-  const [activeHazardModality, setActiveHazardModality] = useState<HazardModality>("fall");
+  const [activeHazardModality, setActiveHazardModality] = useState<HazardModality>("compound_crisis");
 
   // Hazard Search Controls
   const [confidenceThreshold, setConfidenceThreshold] = useState<number>(0.50);
@@ -133,7 +133,13 @@ export default function IncidentsCommandHub() {
   const [triageVideoError, setTriageVideoError] = useState<boolean>(false);
 
   useEffect(() => {
-    if (activeHazardModality === "fall") {
+    if (activeHazardModality === "compound_crisis") {
+      setConfidenceThreshold(0.35);
+      setSampleFps(2.0);
+    } else if (activeHazardModality === "brawl") {
+      setConfidenceThreshold(0.35);
+      setSampleFps(2.0);
+    } else if (activeHazardModality === "fall") {
       setConfidenceThreshold(0.40);
       setSampleFps(2.0);
     } else if (activeHazardModality === "fire") {
@@ -303,8 +309,8 @@ export default function IncidentsCommandHub() {
     }
 
     const hazardTypes =
-      activeHazardModality === "all"
-        ? ["fall", "fire", "smoke", "crowd", "weapon", "face"]
+      activeHazardModality === "compound_crisis" || activeHazardModality === "all"
+        ? ["compound_crisis", "fall", "fire", "smoke", "crowd", "brawl", "weapon", "face"]
         : [activeHazardModality];
 
     setIsSearching(true);
