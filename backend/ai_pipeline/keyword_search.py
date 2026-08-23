@@ -281,6 +281,59 @@ def run_keyword_search(
                             is_match = True
                             matched_label = f"{translated_keyword.title()} ({cls_name})"
 
+                    # Apparel & Color ROI Analysis for person detections
+                    if cls_name == "person":
+                        clean_kw = translated_keyword.lower()
+                        top_words = ["shirt", "t-shirt", "top", "jacket", "coat", "hoodie", "sweater"]
+                        bottom_words = ["pants", "trousers", "jeans", "shorts"]
+                        has_top = any(w in clean_kw for w in top_words)
+                        has_bottom = any(w in clean_kw for w in bottom_words)
+                        has_color = any(c in clean_kw for c in ["black", "dark", "white", "light", "red", "blue", "green", "yellow"])
+
+                        if has_top or has_bottom or has_color:
+                            pw, ph = max(1, x2 - x1), max(1, y2 - y1)
+                            if has_bottom:
+                                ry1, ry2 = y1 + int(ph * 0.52), y1 + int(ph * 0.92)
+                            else:
+                                ry1, ry2 = y1 + int(ph * 0.15), y1 + int(ph * 0.50)
+                            rx1, rx2 = x1 + int(pw * 0.10), x2 - int(pw * 0.10)
+                            roi = frame[max(0, ry1):min(frame.shape[0], ry2), max(0, rx1):min(frame.shape[1], rx2)]
+                            if roi.size > 0:
+                                hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+                                vm = float(np.mean(hsv_roi[:, :, 2]))
+                                sm = float(np.mean(hsv_roi[:, :, 1]))
+                                bm, gm, rm = float(np.mean(roi[:, :, 0])), float(np.mean(roi[:, :, 1])), float(np.mean(roi[:, :, 2]))
+                                n_px = float(roi.shape[0] * roi.shape[1])
+                                app_match = False
+
+                                if "black" in clean_kw or "dark" in clean_kw:
+                                    dark_r = np.count_nonzero(hsv_roi[:, :, 2] < 105) / n_px
+                                    bright_r = np.count_nonzero(hsv_roi[:, :, 2] > 135) / n_px
+                                    if vm < 105 and rm < 100 and gm < 100 and bm < 100 and dark_r >= 0.38 and bright_r < 0.18:
+                                        app_match = True
+                                elif "white" in clean_kw or "light" in clean_kw:
+                                    if vm > 135 and sm < 65:
+                                        app_match = True
+                                elif "red" in clean_kw:
+                                    h_c = hsv_roi[:, :, 0]
+                                    if np.count_nonzero(((h_c <= 14) | (h_c >= 165)) & (hsv_roi[:, :, 1] >= 55) & (hsv_roi[:, :, 2] >= 55)) / n_px >= 0.18:
+                                        app_match = True
+                                elif "blue" in clean_kw:
+                                    h_c = hsv_roi[:, :, 0]
+                                    if np.count_nonzero((h_c >= 95) & (h_c <= 135) & (hsv_roi[:, :, 1] >= 50)) / n_px >= 0.18:
+                                        app_match = True
+                                elif has_top or has_bottom:
+                                    app_match = True
+
+                                if app_match:
+                                    is_match = True
+                                    matched_label = f"Found: '{translated_keyword.title()}'"
+                                    x1, y1, x2, y2 = rx1, ry1, rx2, ry2
+                                    conf = 0.92
+                                else:
+                                    if not target_coco_classes:
+                                        is_match = False
+
                     if is_match:
                         color_idx = len(frame_matching_boxes) % len(PREMIUM_PALETTE_BGR)
                         frame_matching_boxes.append({

@@ -207,32 +207,45 @@ def detect_faces(frame_bgr: np.ndarray, min_size: tuple[int, int] = (18, 18)) ->
         except Exception as yolo_err:
             print(f"[face_recognition] YOLO face detection warning: {yolo_err}")
 
-    # 2. MTCNN Deep Learning Detection (Precision + Facial Landmarks)
+    # 2. MTCNN Deep Learning Detection (Precision + Facial Landmarks with scale acceleration)
     if _TORCH_AVAILABLE and len(all_detections) < 10:
         try:
             mtcnn = _get_mtcnn()
             frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-            pil_img = Image.fromarray(frame_rgb)
+            
+            # Scale down large frames for fast CPU inference
+            max_dim = max(w_img, h_img)
+            if max_dim > 640:
+                scale = 640.0 / max_dim
+                small_w, small_h = int(w_img * scale), int(h_img * scale)
+                small_rgb = cv2.resize(frame_rgb, (small_w, small_h))
+                inv_scale = 1.0 / scale
+            else:
+                small_rgb = frame_rgb
+                inv_scale = 1.0
+
+            pil_img = Image.fromarray(small_rgb)
             boxes, probs, landmarks = mtcnn.detect(pil_img, landmarks=True)
             if boxes is not None and len(boxes) > 0:
                 for i, (box, prob) in enumerate(zip(boxes, probs)):
                     if prob is not None and prob >= 0.45:
-                        x1, y1, x2, y2 = [int(v) for v in box]
+                        x1 = int(box[0] * inv_scale)
+                        y1 = int(box[1] * inv_scale)
+                        x2 = int(box[2] * inv_scale)
+                        y2 = int(box[3] * inv_scale)
                         x1 = max(0, min(w_img - 1, x1))
                         y1 = max(0, min(h_img - 1, y1))
                         w = max(0, min(w_img - x1, x2 - x1))
                         h = max(0, min(h_img - y1, y2 - y1))
-
-                        aspect = h / max(1, w)
-                        if w >= min_size[0] and h >= min_size[1] and 0.50 <= aspect <= 1.85:
-                            lm = landmarks[i] if landmarks is not None and i < len(landmarks) else None
+                        if w >= min_size[0] and h >= min_size[1]:
+                            lm = landmarks[i] * inv_scale if landmarks is not None and i < len(landmarks) else None
                             all_detections.append({
                                 "box": (x1, y1, w, h),
                                 "prob": float(prob),
-                                "landmark": lm
+                                "landmark": lm,
                             })
         except Exception as mtcnn_err:
-            print(f"[face_recognition] MTCNN detect warning: {mtcnn_err}")
+            print(f"[face_recognition] MTCNN face detection warning: {mtcnn_err}")
 
     # 3. Fallback: OpenCV Haar Cascade if no faces found
     if not all_detections:

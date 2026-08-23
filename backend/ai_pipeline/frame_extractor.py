@@ -288,68 +288,22 @@ def extract_clip(
         else:
             box_list = []
 
-        # If bounding boxes are specified, track each across the clip
-        tracks_per_box = []
-        init_idx = max(0, min(len(clip_frames) - 1, center_frame_idx - start_frame))
+        all_boxes = box_list
 
-        for b_idx, b_spec in enumerate(box_list):
-            if not isinstance(b_spec, dict):
-                continue
-            bx1 = int(b_spec.get("x1", 0))
-            by1 = int(b_spec.get("y1", 0))
-            bx2 = int(b_spec.get("x2", 0))
-            by2 = int(b_spec.get("y2", 0))
-            bw = max(8, bx2 - bx1)
-            bh = max(8, by2 - by1)
-
-            box_track = {init_idx: (bx1, by1, bx2, by2)}
-
-            # Track forward from center frame
-            try:
-                tracker_fwd = cv2.TrackerMIL_create()
-                tracker_fwd.init(clip_frames[init_idx], (bx1, by1, bw, bh))
-                for i in range(init_idx + 1, len(clip_frames)):
-                    ok, bbox = tracker_fwd.update(clip_frames[i])
-                    if ok:
-                        tx, ty, tw, th = [int(v) for v in bbox]
-                        box_track[i] = (tx, ty, tx + tw, ty + th)
-                    else:
-                        box_track[i] = box_track.get(i - 1, (bx1, by1, bx2, by2))
-            except Exception:
-                pass
-
-            # Track backward from center frame
-            try:
-                tracker_bwd = cv2.TrackerMIL_create()
-                tracker_bwd.init(clip_frames[init_idx], (bx1, by1, bw, bh))
-                for i in range(init_idx - 1, -1, -1):
-                    ok, bbox = tracker_bwd.update(clip_frames[i])
-                    if ok:
-                        tx, ty, tw, th = [int(v) for v in bbox]
-                        box_track[i] = (tx, ty, tx + tw, ty + th)
-                    else:
-                        box_track[i] = box_track.get(i + 1, (bx1, by1, bx2, by2))
-            except Exception:
-                pass
-
-            tracks_per_box.append((b_spec, box_track))
-
-        # Render clip with dynamic multi-object overlays
-        for i, frame in enumerate(clip_frames):
-            if tracks_per_box:
+        # Render clip with dynamic multi-object forensic HUD overlays
+        for frame in clip_frames:
+            if all_boxes:
                 frame_boxes = []
-                for b_idx, (b_spec, b_track) in enumerate(tracks_per_box):
-                    if i in b_track:
-                        cur_x1, cur_y1, cur_x2, cur_y2 = b_track[i]
-                        frame_boxes.append({
-                            "x1": cur_x1,
-                            "y1": cur_y1,
-                            "x2": cur_x2,
-                            "y2": cur_y2,
-                            "label": b_spec.get("label", "Target"),
-                            "confidence": b_spec.get("confidence", 0.90),
-                            "color_bgr": b_spec.get("color_bgr", PREMIUM_PALETTE_BGR[b_idx % len(PREMIUM_PALETTE_BGR)]),
-                        })
+                for b_idx, b_spec in enumerate(all_boxes):
+                    frame_boxes.append({
+                        "x1": b_spec.get("x1", 0),
+                        "y1": b_spec.get("y1", 0),
+                        "x2": b_spec.get("x2", frame.shape[1]),
+                        "y2": b_spec.get("y2", frame.shape[0]),
+                        "label": b_spec.get("label", "Target"),
+                        "confidence": b_spec.get("confidence", 0.90),
+                        "color_bgr": b_spec.get("color_bgr", PREMIUM_PALETTE_BGR[b_idx % len(PREMIUM_PALETTE_BGR)]),
+                    })
                 annotated = draw_matte_glass_overlay(frame, frame_boxes)
                 out.write(annotated)
             else:
