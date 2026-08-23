@@ -53,3 +53,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 23, 2026 08:25:43]` **perf(evidence): accelerate canvas polygon rendering with path caching** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Aug 23, 2026 08:36:41]` **test(wall): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Aug 23, 2026 09:08:21]` **perf(wall): minimize thread context switching in camera worker pool** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
+- `[Aug 23, 2026 10:09:55]` **perf(compliance): optimize YOLOv8 inference batching for edge ring buffers** — *Verified component: compliance engine core & rule execution*
