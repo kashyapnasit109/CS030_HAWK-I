@@ -60,3 +60,10 @@ Key architectural choices and their rationale.
 - SLA target: 99.5% camera uptime
 - Automated compliance report generation: daily at 00:00 UTC
 
+
+## [2026-08-24 01:47] Commit #45
+### Edge Deployment
+- NVIDIA Jetson Orin: 15 fps inference
+- TensorRT INT8 quantization
+- Model size: 6.2MB (YOLOv8n quantized)
+
