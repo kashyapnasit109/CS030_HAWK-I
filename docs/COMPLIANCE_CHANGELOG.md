@@ -50,3 +50,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 22, 2026 20:20:36]` **docs(copilot): update compliance engine operational deployment guide** — *Verified component: prime compliance copilot & assistant integration*
 - `[Aug 22, 2026 20:52:40]` **test(detector): verify deterministic condition parser against edge timezones** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Aug 22, 2026 21:44:27]` **fix(copilot): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: prime compliance copilot & assistant integration*
+- `[Aug 23, 2026 08:25:43]` **perf(evidence): accelerate canvas polygon rendering with path caching** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
