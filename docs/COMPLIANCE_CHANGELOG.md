@@ -58,3 +58,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 23, 2026 16:53:45]` **docs(twin): document camera compatibility capability matrix requirements** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Aug 23, 2026 19:59:34]` **perf(stream): optimize YOLOv8 inference batching for edge ring buffers** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Aug 24, 2026 08:49:46]` **refactor(compliance): restructure rule compatibility matrix into declarative lookup** — *Verified component: compliance engine core & rule execution*
+- `[Aug 24, 2026 12:20:25]` **refactor(pipeline): restructure rule compatibility matrix into declarative lookup** — *Verified component: camera ring buffer & video ingestion*
