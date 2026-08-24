@@ -295,9 +295,13 @@ def run_object_detection(
             if mapped in ("weapon", "knife") or c in ("gun", "guns", "pistol", "handgun", "revolver", "rifle", "firearm"):
                 is_weapon_search = True
 
-        # If searching specifically for gun / weapon, filter ONLY for weapon & hand-held object classes (DO NOT match plain un-armed person)
+        # If searching specifically for gun / weapon, filter for all weapon, rifle, blade & hand-held firearm candidate classes
         if is_weapon_search:
-            target_set = {"gun", "guns", "pistol", "handgun", "revolver", "rifle", "firearm", "weapon", "weapons", "knife", "scissors", "blade", "baseball bat", "cell phone", "bottle"}
+            target_set = {
+                "gun", "guns", "pistol", "handgun", "revolver", "rifle", "firearm", "weapon", "weapons",
+                "knife", "scissors", "blade", "baseball bat", "cell phone", "bottle", "skis", "snowboard",
+                "skateboard", "tennis racket", "umbrella", "remote"
+            }
 
         # Expand police categories if not a specific weapon search
         if not is_weapon_search:

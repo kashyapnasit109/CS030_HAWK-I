@@ -150,7 +150,7 @@ export default function IncidentsCommandHub() {
     if (incType === "smoke" || incType === "smoke_dispersion" || label.includes("smoke") || label.includes("plume")) return "smoke";
     if (incType === "fall" || incType === "fall_detected" || label.includes("fall") || label.includes("slip") || label.includes("casualty") || label.includes("immobility")) return "fall";
     if (incType === "brawl" || incType === "violent_altercation" || label.includes("brawl") || label.includes("affray") || label.includes("altercation") || label.includes("combatant")) return "brawl";
-    if (incType === "weapon" || incType === "weapon_detected" || label.includes("weapon") || label.includes("gun") || label.includes("knife") || label.includes("armed")) return "weapon";
+    if (incType === "weapon" || incType === "weapon_detected" || label.includes("weapon") || label.includes("gun") || label.includes("knife") || label.includes("armed") || label.includes("firearm") || label.includes("rifle") || label.includes("sniper") || label.includes("handgun") || label.includes("blade")) return "weapon";
     if (incType === "face" || incType === "face_detected" || label.includes("face") || label.includes("dpdp")) return "face";
     if (incType === "crowd" || incType === "crowd_density" || incType === "crowd_unrest" || label.includes("crowd") || label.includes("gathering") || label.includes("unrest") || label.includes("density")) return "crowd";
     return "all";
@@ -1525,6 +1525,13 @@ export default function IncidentsCommandHub() {
                     >
                       {/* Frame Thumbnail Preview */}
                       <div
+                        onClick={() => {
+                          setPreviewClipUrl(clipUrl || frameUrl);
+                          setPreviewFrameUrl(frameUrl);
+                          setPreviewClipTitle(`${m.label} (${m.timestamp_str})`);
+                          setClipTab(clipUrl ? "video" : "frame");
+                          setClipError(false);
+                        }}
                         style={{
                           position: "relative",
                           width: "100%",
@@ -1535,6 +1542,7 @@ export default function IncidentsCommandHub() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
+                          cursor: "pointer",
                         }}
                       >
                         <img
@@ -1542,6 +1550,35 @@ export default function IncidentsCommandHub() {
                           alt={m.label}
                           style={{ width: "100%", height: "100%", objectFit: "contain" }}
                         />
+
+                        {/* Play Hover Overlay Beacon */}
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "rgba(0,0,0,0.35)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            opacity: 0.85,
+                            transition: "opacity 0.2s",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: "50%",
+                              background: "rgba(37,99,235,0.85)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              boxShadow: "0 0 20px rgba(59,130,246,0.6)",
+                            }}
+                          >
+                            <PlayIcon size={20} style={{ color: "#FFFFFF", marginLeft: 2 }} />
+                          </div>
+                        </div>
 
                         {/* Top Overlay Badges */}
                         <div
@@ -1675,22 +1712,20 @@ export default function IncidentsCommandHub() {
                       )}
 
                       {/* Action Buttons */}
-                      <div style={{ display: "grid", gridTemplateColumns: clipUrl ? "1fr 1fr" : "1fr", gap: 6, marginTop: 4 }}>
-                        {clipUrl && (
-                          <button
-                            onClick={() => {
-                              setPreviewClipUrl(clipUrl);
-                              setPreviewFrameUrl(frameUrl);
-                              setPreviewClipTitle(`${m.label} (${m.timestamp_str})`);
-                              setClipTab("video");
-                              setClipError(false);
-                            }}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: "0.72rem", fontWeight: 800, color: "#60A5FA", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
-                          >
-                            <PlayIcon size={12} /> Play Clip
-                          </button>
-                        )}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 4 }}>
+                        <button
+                          onClick={() => {
+                            setPreviewClipUrl(clipUrl || frameUrl);
+                            setPreviewFrameUrl(frameUrl);
+                            setPreviewClipTitle(`${m.label} (${m.timestamp_str})`);
+                            setClipTab(clipUrl ? "video" : "frame");
+                            setClipError(false);
+                          }}
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: "0.72rem", fontWeight: 800, color: "#60A5FA", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+                        >
+                          <PlayIcon size={12} /> {clipUrl ? "Play Clip" : "View Footage"}
+                        </button>
                         <button
                           onClick={() => setEnhanceMatch(m)}
                           className="btn btn-secondary btn-sm"

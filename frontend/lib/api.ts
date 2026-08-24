@@ -452,17 +452,47 @@ export async function getAllAlerts(since = 0): Promise<{ alerts: DetectionAlert[
 
 // ─── Export ──────────────────────────────────────────
 
+export interface ExportReportOptions {
+  jobId: string;
+  title?: string;
+  investigator?: string;
+  caseNumber?: string;
+  department?: string;
+  notes?: string;
+  filterType?: string;
+  minConfidence?: number;
+  groupBySections?: boolean;
+  selectedSections?: string[];
+  cameraId?: string;
+}
+
 export async function exportReport(
   jobId: string,
-  title: string,
-  investigator: string,
+  title = "VisionCCTV Investigation Report",
+  investigator = "N/A",
   caseNumber = "N/A",
   department = "N/A",
-  notes = ""
+  notes = "",
+  filterType = "all",
+  minConfidence = 0.0,
+  groupBySections = true,
+  selectedSections: string[] = [
+    "executive_summary",
+    "metrics_overview",
+    "evidence_matches",
+    "telemetry_analysis",
+    "chain_of_custody",
+    "legal_signoff"
+  ],
+  cameraId = "all"
 ): Promise<Blob> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("visioncctv_token") : null;
   const res = await fetch(`${BASE_URL}/api/export/report`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify({
       job_id: jobId,
       title,
@@ -470,6 +500,11 @@ export async function exportReport(
       case_number: caseNumber,
       department,
       notes,
+      filter_type: filterType,
+      min_confidence: minConfidence,
+      group_by_sections: groupBySections,
+      selected_sections: selectedSections,
+      camera_id: cameraId,
     }),
   });
   if (!res.ok) throw new Error(`Export failed: HTTP ${res.status}`);
@@ -817,28 +852,33 @@ export async function exportHazardReport(
   investigator: string = "Investigator",
   caseNumber: string = "EMERGENCY-01",
   department: string = "Campus Safety & Emergency Response",
-  notes: string = ""
+  notes: string = "",
+  filterType: string = "all",
+  minConfidence: number = 0.0,
+  groupBySections: boolean = true,
+  selectedSections: string[] = [
+    "executive_summary",
+    "metrics_overview",
+    "evidence_matches",
+    "telemetry_analysis",
+    "chain_of_custody",
+    "legal_signoff"
+  ],
+  cameraId: string = "all"
 ): Promise<Blob> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("visioncctv_token") : null;
-  const res = await fetch(`${BASE_URL}/api/export/report`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      job_id: jobId,
-      title,
-      investigator,
-      case_number: caseNumber,
-      department,
-      notes,
-    }),
-  });
-  if (!res.ok) {
-    throw new Error(`Export failed: ${res.statusText}`);
-  }
-  return res.blob();
+  return exportReport(
+    jobId,
+    title,
+    investigator,
+    caseNumber,
+    department,
+    notes,
+    filterType,
+    minConfidence,
+    groupBySections,
+    selectedSections,
+    cameraId
+  );
 }
 
 

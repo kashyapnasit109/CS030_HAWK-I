@@ -56,6 +56,13 @@ backend/storage/results/*
 !backend/storage/results/.gitkeep
 backend/storage/thumbnails/*
 !backend/storage/thumbnails/.gitkeep
+backend/storage/enhanced/*
+!backend/storage/enhanced/.gitkeep
+
+# Generated evidence reports
+secure_evidence_report_*.pdf
+emergency_forensic_report_*.pdf
+
 
 # Backend camera data and DB
 backend/storage/cameras/
@@ -67,4 +74,6 @@ test_search_apis.py
 *.log
 *.zip
 *.db-journal
+refvids/
+
 

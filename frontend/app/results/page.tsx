@@ -65,22 +65,23 @@ function ZoomImage({ src, alt }: { src: string; alt: string }) {
     const pctX = (x / width) * 100;
     const pctY = (y / height) * 100;
 
+    const lensRadius = 80; // 160px diameter
     setZoomStyle({
       display: "block",
       position: "absolute",
-      left: `${x - 45}px`,
-      top: `${y - 45}px`,
-      width: "90px",
-      height: "90px",
+      left: `${x - lensRadius}px`,
+      top: `${y - lensRadius}px`,
+      width: `${lensRadius * 2}px`,
+      height: `${lensRadius * 2}px`,
       borderRadius: "50%",
-      border: "2px solid var(--accent)",
-      boxShadow: "0 0 10px rgba(59,130,246,0.5), inset 0 0 8px rgba(0,0,0,0.5)",
+      border: "2.5px solid #60A5FA",
+      boxShadow: "0 0 24px rgba(59,130,246,0.65), inset 0 0 16px rgba(0,0,0,0.6)",
       pointerEvents: "none",
       backgroundImage: `url(${src})`,
       backgroundPosition: `${pctX}% ${pctY}%`,
-      backgroundSize: `${width * 2.5}px ${height * 2.5}px`,
+      backgroundSize: `${width * 3.4}px ${height * 3.4}px`,
       backgroundRepeat: "no-repeat",
-      zIndex: 10,
+      zIndex: 20,
     });
   };
 
@@ -100,180 +101,359 @@ function ZoomImage({ src, alt }: { src: string; alt: string }) {
         alt={alt}
         style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }}
       />
-      <div style={zoomStyle} />
-    </div>
-  );
-}
-
-// ── Timeline Scrubber Component ───────────────────────────────────────
-function TimelineScrubber({
-  matches,
-  totalDuration,
-  onSelect,
-  selected,
-}: {
-  matches: MatchResult[];
-  totalDuration: number;
-  onSelect: (m: MatchResult) => void;
-  selected: MatchResult | null;
-}) {
-  const duration = totalDuration || (matches.length > 0 ? matches[matches.length - 1].timestamp + 10 : 60);
-
-  return (
-    <div style={{
-      background: "var(--bg-elevated)", borderRadius: "var(--radius-md)",
-      padding: "16px 20px", marginBottom: 24,
-      border: "1px solid var(--border)",
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <div className="section-title" style={{ marginBottom: 0, display: "flex", alignItems: "center", gap: 8 }}>
-          <BarChartIcon size={16} style={{ color: "var(--accent)" }} />
-          Evidence Timeline — {matches.length} match{matches.length !== 1 ? "es" : ""}
-        </div>
-        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "JetBrains Mono, monospace" }}>
-          0s — {duration.toFixed(0)}s
-        </div>
-      </div>
-
-      {/* Track */}
-      <div style={{ position: "relative", height: 40, cursor: "pointer" }}>
-        {/* Base track */}
+      <div style={zoomStyle}>
+        {/* Tactical Crosshair Overlay */}
+        <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(96,165,250,0.4)" }} />
+        <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "rgba(96,165,250,0.4)" }} />
         <div style={{
-          position: "absolute", top: "50%", left: 0, right: 0,
-          height: 4, background: "rgba(255,255,255,0.06)",
-          borderRadius: 2, transform: "translateY(-50%)",
+          position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+          width: 8, height: 8, borderRadius: "50%", border: "1px solid #60A5FA"
         }} />
-
-        {/* Filled region */}
-        {matches.length > 0 && (
-          <div style={{
-            position: "absolute", top: "50%", left: 0,
-            width: `${(matches[matches.length - 1].timestamp / duration) * 100}%`,
-            height: 4, background: "var(--accent)",
-            borderRadius: 2, transform: "translateY(-50%)",
-          }} />
-        )}
-
-        {/* Match markers */}
-        {matches.map((m, i) => {
-          const pct = (m.timestamp / duration) * 100;
-          const isSelected = selected === m;
-          return (
-            <div
-              key={i}
-              onClick={() => onSelect(m)}
-              title={`${m.timestamp_str} — ${m.label} (${(m.confidence * 100).toFixed(0)}%)`}
-              style={{
-                position: "absolute",
-                left: `${pct}%`,
-                top: "50%",
-                transform: "translate(-50%, -50%)",
-                width: isSelected ? 14 : 10,
-                height: isSelected ? 14 : 10,
-                borderRadius: "50%",
-                background: isSelected ? "var(--accent)" : "var(--accent)",
-                border: `2px solid ${isSelected ? "white" : "rgba(59,130,246,0.5)"}`,
-                boxShadow: isSelected ? "0 0 12px var(--accent)" : "0 0 6px rgba(59,130,246,0.6)",
-                cursor: "pointer",
-                zIndex: isSelected ? 2 : 1,
-                transition: "all 0.15s ease",
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* Labels */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-        {matches.map((m, i) => (
-          <div
-            key={i}
-            onClick={() => onSelect(m)}
-            style={{
-              padding: "3px 8px", borderRadius: 100, cursor: "pointer",
-              background: selected === m ? "rgba(96,165,250,0.15)" : "rgba(59,130,246,0.08)",
-              border: `1px solid ${selected === m ? "rgba(96,165,250,0.4)" : "rgba(59,130,246,0.2)"}`,
-              fontSize: "0.68rem", fontFamily: "JetBrains Mono, monospace",
-              color: selected === m ? "var(--accent)" : "var(--text-muted)",
-              transition: "all 0.15s ease",
-            }}
-          >
-            {m.timestamp_str}
-          </div>
-        ))}
       </div>
     </div>
   );
 }
 
-// ── Camera Trail Map Component ───────────────────────────────────────────
-function CameraTrailMap({ matches }: { matches: MatchResult[] }) {
-  if (matches.length === 0) return null;
-
-  const byLabel: Record<string, MatchResult[]> = {};
-  matches.forEach((m) => {
-    if (!byLabel[m.label]) byLabel[m.label] = [];
-    byLabel[m.label].push(m);
+// ── Export Evidence PDF Modal Component ───────────────────────────────
+function ExportEvidenceModal({
+  isOpen,
+  onClose,
+  jobId,
+  jobType,
+  matches,
+  defaultCaseNumber = "",
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  jobId: string;
+  jobType?: string;
+  matches: MatchResult[];
+  defaultCaseNumber?: string;
+}) {
+  const [title, setTitle] = useState("Forensic Investigation & Evidence Report");
+  const [investigator, setInvestigator] = useState("Investigating Officer");
+  const [caseNumber, setCaseNumber] = useState(defaultCaseNumber || "CASE-2026-085");
+  const [department, setDepartment] = useState("Cyber Cell & Forensic CCTV Analysis Unit");
+  const [notes, setNotes] = useState("Automated multi-modal forensic search report with cryptographically verified Section 65B audit trail.");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [minConfidence, setMinConfidence] = useState<number>(0.0);
+  const [groupBySections, setGroupBySections] = useState<boolean>(true);
+  const [selectedCamera, setSelectedCamera] = useState<string>("all");
+  const [selectedSections, setSelectedSections] = useState<Record<string, boolean>>({
+    executive_summary: true,
+    metrics_overview: true,
+    evidence_matches: true,
+    telemetry_analysis: true,
+    chain_of_custody: true,
+    legal_signoff: true,
   });
+  const [exporting, setExporting] = useState(false);
+
+  if (!isOpen) return null;
+
+  // Extract unique cameras from matches
+  const uniqueCameras = Array.from(new Set(matches.map((m) => m.camera_id).filter(Boolean)));
+
+  const handleRunExport = async () => {
+    if (!jobId) {
+      showToast("No active job selected for export", "error");
+      return;
+    }
+    setExporting(true);
+    try {
+      const activeSecList = Object.entries(selectedSections)
+        .filter(([, v]) => v)
+        .map(([k]) => k);
+
+      const blob = await exportReport(
+        jobId,
+        title,
+        investigator,
+        caseNumber,
+        department,
+        notes,
+        filterType,
+        minConfidence,
+        groupBySections,
+        activeSecList,
+        selectedCamera
+      );
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `secure_evidence_report_${jobId}_${filterType}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Secure Evidence PDF exported successfully!", "success");
+      onClose();
+    } catch (err: any) {
+      showToast(`Export failed: ${err.message || "Unknown error"}`, "error");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
-    <div style={{
-      background: "var(--bg-card)",
-      border: "1px solid rgba(96,165,250,0.2)",
-      borderRadius: "var(--radius-lg)", padding: "20px 24px", marginBottom: 24,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <MapIcon size={20} style={{ color: "var(--accent)" }} />
-        <div>
-          <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>Suspect Camera Trail Map</div>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-            Tracking chronological sightings across cameras to map path of movement
+    <div
+      style={{
+        position: "fixed", inset: 0,
+        background: "rgba(0,0,0,0.85)",
+        zIndex: 350,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 20,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: "var(--bg-card)",
+          border: "1px solid rgba(59,130,246,0.3)",
+          borderRadius: "var(--radius-xl)",
+          maxWidth: 680, width: "100%",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          boxShadow: "0 25px 60px rgba(0,0,0,0.85), 0 0 50px rgba(59,130,246,0.15)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div style={{
+          padding: "16px 22px",
+          background: "linear-gradient(135deg, rgba(37,99,235,0.15) 0%, rgba(15,23,42,0.9) 100%)",
+          borderBottom: "1px solid var(--border)",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+        }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 900, fontSize: "1.05rem", color: "#FFFFFF" }}>
+              <ShieldCheckIcon size={20} style={{ color: "var(--accent)" }} />
+              Export Secure Evidence PDF Report
+            </div>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: 2 }}>
+              Indian Evidence Act §65B Compliant · Tamper-Evident SHA-256 / MD5 Hash Registration
+            </div>
           </div>
+          <button onClick={onClose} className="btn btn-ghost btn-sm" style={{ color: "var(--text-muted)" }}>
+            <CloseIcon size={16} />
+          </button>
         </div>
-      </div>
 
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 0, overflowX: "auto", paddingBottom: 10 }}>
-        {matches.map((m, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 6,
-              background: "rgba(255, 255, 255, 0.02)",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              padding: "10px 14px",
-              minWidth: 100
-            }}>
-              {/* Camera Node */}
-              <div style={{
-                width: 32, height: 32, borderRadius: "50%",
-                background: "var(--accent-dim)", border: "1.5px solid var(--accent)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontWeight: 800, fontSize: "0.68rem", color: "var(--accent)"
-              }}>
-                {m.camera_id.split("-").pop() || m.camera_id}
+        {/* Modal Body */}
+        <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Filter Modality Selector */}
+          <div>
+            <label style={{ fontSize: "0.76rem", fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 6 }}>
+              1. Filter Evidence by Modality / Category:
+            </label>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[
+                { id: "all", label: "All Detected Evidence", color: "var(--accent)" },
+                { id: "fire", label: "Fire & Thermal", color: "#EF4444" },
+                { id: "smoke", label: "Smoke Plumes", color: "#94A3B8" },
+                { id: "fall", label: "Slip & Fall", color: "#F59E0B" },
+                { id: "crowd", label: "Crowd Surge", color: "#3B82F6" },
+                { id: "brawl", label: "Violent Affray", color: "#EC4899" },
+                { id: "weapon", label: "Weapons", color: "#DC2626" },
+                { id: "face", label: "Face Re-ID", color: "#06B6D4" },
+                { id: "lpr", label: "License Plate (LPR)", color: "#10B981" },
+                { id: "object", label: "Object Detection", color: "#8B5CF6" },
+                { id: "activity", label: "Activity Dynamics", color: "#F97316" },
+              ].map((cat) => {
+                const isSel = filterType === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setFilterType(cat.id)}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: 6,
+                      fontSize: "0.72rem",
+                      fontWeight: isSel ? 800 : 500,
+                      background: isSel ? "rgba(59,130,246,0.2)" : "rgba(255,255,255,0.03)",
+                      border: `1px solid ${isSel ? cat.color : "rgba(255,255,255,0.08)"}`,
+                      color: isSel ? "#FFFFFF" : "var(--text-secondary)",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Multi-Section Grouping Toggle */}
+          <div style={{
+            background: "rgba(59,130,246,0.06)",
+            border: "1px solid rgba(59,130,246,0.2)",
+            borderRadius: 8,
+            padding: "12px 14px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}>
+            <div>
+              <div style={{ fontSize: "0.8rem", fontWeight: 800, color: "#FFFFFF" }}>
+                Generate Multi-Section Separated Chapters
               </div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "0.7rem", fontWeight: 700 }}>{m.camera_id}</div>
-                <div style={{ fontSize: "0.65rem", fontFamily: "JetBrains Mono, monospace", color: "var(--text-muted)", marginTop: 2 }}>
-                  {m.timestamp_str}
-                </div>
-                <div style={{ fontSize: "0.62rem", color: "var(--accent)", fontWeight: 700, marginTop: 2 }}>
-                  {m.label}
-                </div>
+              <div style={{ fontSize: "0.70rem", color: "var(--text-muted)", marginTop: 2 }}>
+                Structures the PDF into dedicated numbered sections with category headers and individual telemetry tables
               </div>
             </div>
-            {/* Connection line */}
-            {i < matches.length - 1 && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 8px" }}>
-                <div style={{ width: 36, height: 2, background: "var(--accent)" }} />
-                <div style={{ fontSize: "0.6rem", color: "var(--text-muted)", marginTop: 3 }}>→</div>
-              </div>
-            )}
+            <input
+              type="checkbox"
+              checked={groupBySections}
+              onChange={(e) => setGroupBySections(e.target.checked)}
+              style={{ width: 18, height: 18, accentColor: "#3B82F6", cursor: "pointer" }}
+            />
           </div>
-        ))}
+
+          {/* Sensitivity & Camera Filter Row */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 4 }}>
+                <span>Min. Confidence Threshold:</span>
+                <strong style={{ color: "#60A5FA" }}>{(minConfidence * 100).toFixed(0)}%</strong>
+              </div>
+              <input
+                type="range"
+                min="0.0"
+                max="0.90"
+                step="0.05"
+                value={minConfidence}
+                onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
+                style={{ width: "100%", accentColor: "#3B82F6" }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
+                Camera Source Filter:
+              </label>
+              <select
+                className="input-field"
+                style={{ width: "100%", fontSize: "0.75rem", padding: "6px 8px" }}
+                value={selectedCamera}
+                onChange={(e) => setSelectedCamera(e.target.value)}
+              >
+                <option value="all">All Cameras ({uniqueCameras.length || "All"})</option>
+                {uniqueCameras.map((cam) => (
+                  <option key={cam} value={cam}>{cam}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Section Inclusion Checkboxes */}
+          <div>
+            <label style={{ fontSize: "0.76rem", fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 6 }}>
+              2. Report Modules & Sections to Include:
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {[
+                { id: "executive_summary", label: "Executive AI Summary & Narrative" },
+                { id: "metrics_overview", label: "Category Breakdown & Metrics Table" },
+                { id: "evidence_matches", label: "Detailed Evidence Frames & Hashes" },
+                { id: "telemetry_analysis", label: "Forensic IoT Telemetry (Angles/Temp)" },
+                { id: "chain_of_custody", label: "Chain of Custody Audit Log (CoC)" },
+                { id: "legal_signoff", label: "Courtroom §65B Sign-Off & Official Seal" },
+              ].map((sec) => (
+                <label key={sec.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.74rem", color: "var(--text-primary)", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedSections[sec.id] || false}
+                    onChange={(e) => setSelectedSections({ ...selectedSections, [sec.id]: e.target.checked })}
+                    style={{ accentColor: "#3B82F6" }}
+                  />
+                  <span>{sec.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Case & Investigator Details */}
+          <div>
+            <label style={{ fontSize: "0.76rem", fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 6 }}>
+              3. Case & Legal Metadata:
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Report Title:</span>
+                <input
+                  className="input-field"
+                  style={{ width: "100%", fontSize: "0.76rem" }}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+              <div>
+                <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Case Reference Number:</span>
+                <input
+                  className="input-field"
+                  style={{ width: "100%", fontSize: "0.76rem" }}
+                  value={caseNumber}
+                  onChange={(e) => setCaseNumber(e.target.value)}
+                />
+              </div>
+              <div>
+                <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Lead Investigator:</span>
+                <input
+                  className="input-field"
+                  style={{ width: "100%", fontSize: "0.76rem" }}
+                  value={investigator}
+                  onChange={(e) => setInvestigator(e.target.value)}
+                />
+              </div>
+              <div>
+                <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Department / Agency:</span>
+                <input
+                  className="input-field"
+                  style={{ width: "100%", fontSize: "0.76rem" }}
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Forensic Notes:</span>
+              <textarea
+                className="input-field"
+                rows={2}
+                style={{ width: "100%", fontSize: "0.74rem", resize: "none" }}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div style={{
+          padding: "14px 22px",
+          background: "var(--bg-elevated)",
+          borderTop: "1px solid var(--border)",
+          display: "flex", justifyContent: "flex-end", gap: 10,
+        }}>
+          <button onClick={onClose} className="btn btn-ghost btn-sm" disabled={exporting}>
+            Cancel
+          </button>
+          <button
+            onClick={handleRunExport}
+            disabled={exporting}
+            className="btn btn-primary btn-sm"
+            style={{
+              background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
+              fontWeight: 800,
+              display: "flex", alignItems: "center", gap: 6,
+              boxShadow: "0 0 15px rgba(37,99,235,0.4)",
+            }}
+          >
+            <FileTextIcon size={14} />
+            {exporting ? "Generating PDF..." : "Generate & Download PDF Report"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -290,7 +470,9 @@ function VideoPlayerModal({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [videoError, setVideoError] = useState(false);
-  const [activeTab, setActiveTab] = useState<"video" | "frame">(match.clip_url ? "video" : "frame");
+  const hasClip = Boolean(match.clip_url && !match.clip_url.endsWith(".jpg") && !match.clip_url.endsWith(".png"));
+  const [activeTab, setActiveTab] = useState<"video" | "frame">(hasClip ? "video" : "frame");
+  const router = useRouter();
 
   useEffect(() => {
     const el = videoRef.current;
@@ -322,6 +504,11 @@ function VideoPlayerModal({
     a.click();
   };
 
+  const jumpToTimeline = () => {
+    const t = Math.max(0, Math.floor(match.timestamp || 0));
+    router.push(`/playback?camera=${encodeURIComponent(match.camera_id || "")}&t=${t}`);
+  };
+
   return (
     <div
       style={{
@@ -337,7 +524,7 @@ function VideoPlayerModal({
         style={{
           background: "var(--bg-card)", border: "1px solid var(--border)",
           borderRadius: "var(--radius-xl)", overflow: "hidden",
-          maxWidth: 820, width: "100%",
+          maxWidth: 840, width: "100%",
           boxShadow: "0 32px 80px rgba(0,0,0,0.85), 0 0 60px rgba(96,165,250,0.15)",
         }}
         onClick={(e) => e.stopPropagation()}
@@ -386,9 +573,9 @@ function VideoPlayerModal({
           >
             <ImageIcon size={14} /> Detection Overlay Frame
           </button>
-          {match.clip_url && (
+          {hasClip ? (
             <button
-              onClick={() => setActiveTab("video")}
+              onClick={() => { setActiveTab("video"); setVideoError(false); }}
               style={{
                 padding: "6px 14px", borderRadius: 6, fontSize: "0.75rem", fontWeight: 700,
                 background: activeTab === "video" ? "var(--accent-dim)" : "transparent",
@@ -397,17 +584,30 @@ function VideoPlayerModal({
                 cursor: "pointer", display: "flex", alignItems: "center", gap: 6
               }}
             >
-              <FilmIcon size={14} /> Video Stream Playback
+              <FilmIcon size={14} /> Video Clip Playback
+            </button>
+          ) : (
+            <button
+              onClick={jumpToTimeline}
+              style={{
+                padding: "6px 14px", borderRadius: 6, fontSize: "0.75rem", fontWeight: 700,
+                background: "rgba(59,130,246,0.1)",
+                border: "1px solid rgba(59,130,246,0.3)",
+                color: "#60A5FA",
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+              }}
+            >
+              <ClockIcon size={14} /> Play Footage on Camera Timeline →
             </button>
           )}
         </div>
 
         {/* Media Content */}
         <div style={{ background: "#000", position: "relative", minHeight: 320, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {activeTab === "video" && match.clip_url && !videoError ? (
+          {activeTab === "video" && hasClip && !videoError ? (
             <video
               ref={videoRef}
-              src={resolveStorageUrl(match.clip_url)}
+              src={resolveStorageUrl(match.clip_url!)}
               controls
               autoPlay
               onError={() => setVideoError(true)}
@@ -455,16 +655,19 @@ function VideoPlayerModal({
             ))}
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
-            <button className="btn btn-primary" onClick={downloadFrame} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <ImageIcon size={14} /> Download Evidence Frame
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <button className="btn btn-primary btn-sm" onClick={downloadFrame} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <ImageIcon size={14} /> Download Frame
             </button>
-            {match.clip_url && (
-              <button className="btn btn-secondary" onClick={downloadClip} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <FilmIcon size={14} /> Download Evidence Clip
+            {hasClip && (
+              <button className="btn btn-secondary btn-sm" onClick={downloadClip} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <FilmIcon size={14} /> Download Clip (MP4)
               </button>
             )}
-            <button className="btn btn-ghost" onClick={onClose} style={{ marginLeft: "auto" }}>Close</button>
+            <button className="btn btn-secondary btn-sm" onClick={jumpToTimeline} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <ClockIcon size={14} /> Open Timeline Playback
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ marginLeft: "auto" }}>Close</button>
           </div>
         </div>
       </div>
@@ -543,13 +746,11 @@ export default function ResultsPage() {
   const [enhanceMatch, setEnhanceMatch] = useState<{ match: MatchResult; mode?: "general" | "face" | "lpr" | "super_res"; scale?: number } | null>(null);
   const [addSuspectMatch, setAddSuspectMatch] = useState<MatchResult | null>(null);
   const [selectedTimeline, setSelectedTimeline] = useState<MatchResult | null>(null);
-  const [exporting, setExporting] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportModalJobId, setExportModalJobId] = useState("");
+  const [exportModalJobType, setExportModalJobType] = useState<string | undefined>(undefined);
+  const [exportModalMatches, setExportModalMatches] = useState<MatchResult[]>([]);
   const [zipping, setZipping] = useState(false);
-  const [exportTitle, setExportTitle] = useState("VisionCCTV Investigation Report");
-  const [exportInvestigator, setExportInvestigator] = useState("");
-  const [caseNumber, setCaseNumber] = useState("");
-  const [department, setDepartment] = useState("");
-  const [notes, setNotes] = useState("");
   const [filterLabel, setFilterLabel] = useState("");
   const [sortBy, setSortBy] = useState<"timestamp" | "confidence">("timestamp");
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -838,13 +1039,39 @@ export default function ResultsPage() {
               </p>
             </div>
             {job && (
-              <button
-                onClick={handleReturnToLibrary}
-                className="btn btn-secondary btn-sm"
-                style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 800, background: "rgba(59,130,246,0.12)", color: "#60A5FA", border: "1px solid rgba(59,130,246,0.3)" }}
-              >
-                ← Back to All Batches Library
-              </button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <button
+                  onClick={() => {
+                    setExportModalJobId(jobId);
+                    setExportModalJobType(job.type);
+                    setExportModalMatches(job.matches || []);
+                    setIsExportModalOpen(true);
+                  }}
+                  className="btn btn-primary btn-sm"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6, fontWeight: 800,
+                    background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
+                    boxShadow: "0 0 14px rgba(37,99,235,0.4)"
+                  }}
+                >
+                  <FileTextIcon size={14} /> Export Secure Evidence PDF
+                </button>
+                <button
+                  onClick={handleExportZip}
+                  disabled={zipping}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700 }}
+                >
+                  <DownloadIcon size={14} /> {zipping ? "Zipping..." : "Export ZIP"}
+                </button>
+                <button
+                  onClick={handleReturnToLibrary}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 800, background: "rgba(59,130,246,0.12)", color: "#60A5FA", border: "1px solid rgba(59,130,246,0.3)" }}
+                >
+                  ← Back to All Batches
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -1520,7 +1747,7 @@ export default function ResultsPage() {
                         </span>
                       </div>
 
-                      {/* Action Button Footer */}
+                        {/* Action Button Footer */}
                       <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                         {(details.status === "running" || details.status === "queued") && (
                           <button
@@ -1531,6 +1758,28 @@ export default function ResultsPage() {
                             <CloseIcon size={12} /> Stop
                           </button>
                         )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExportModalJobId(id);
+                            setExportModalJobType(details.type);
+                            setExportModalMatches(details.matches || []);
+                            setIsExportModalOpen(true);
+                          }}
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                            fontSize: "0.74rem",
+                            fontWeight: 700,
+                            background: "rgba(59,130,246,0.12)",
+                            color: "#60A5FA",
+                            border: "1px solid rgba(59,130,246,0.3)",
+                          }}
+                        >
+                          <FileTextIcon size={12} /> Export PDF
+                        </button>
                         <button
                           onClick={() => {
                             setJobId(id);
@@ -1558,6 +1807,16 @@ export default function ResultsPage() {
             )}
           </div>
         )}
+
+        {/* Secure Evidence PDF Export Modal */}
+        <ExportEvidenceModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          jobId={exportModalJobId || jobId}
+          jobType={exportModalJobType || job?.type}
+          matches={exportModalMatches.length > 0 ? exportModalMatches : (job?.matches || [])}
+          defaultCaseNumber={activeCase.number || ""}
+        />
 
         {/* Inline Video Player Modal */}
         {videoPlayer && (

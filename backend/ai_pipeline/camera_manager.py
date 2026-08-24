@@ -51,14 +51,53 @@ RTSP_PORTS = [554, 8554, 8080, 80, 443, 9000]
 HTTP_PORTS = [80, 8080, 8888, 9000, 443]
 
 
+def _seed_default_cameras() -> dict[str, dict]:
+    """Seed 4 default active CCTV channels using uploaded/sample videos and webcam."""
+    uploads_dir = STORAGE_DIR / "uploads"
+    video_files = list(uploads_dir.glob("*.mp4")) if uploads_dir.exists() else []
+
+    defaults = {}
+    default_configs = [
+        ("cam-01", "CAM-01 · North Entrance & Security Gate", "subway.mp4"),
+        ("cam-02", "CAM-02 · Main Lobby & Concourse", "5638efce.mp4"),
+        ("cam-03", "CAM-03 · Quad & Research Labs", "f724299b.mp4"),
+        ("cam-04", "CAM-04 · East Perimeter Fence", "00289bcb.mp4"),
+    ]
+
+    for idx, (cid, name, preferred_vid) in enumerate(default_configs):
+        target_file = uploads_dir / preferred_vid
+        if not target_file.exists() and video_files:
+            target_file = video_files[idx % len(video_files)]
+
+        url_str = str(target_file) if target_file.exists() else "/storage/uploads/subway.mp4"
+        defaults[cid] = {
+            "id": cid,
+            "name": name,
+            "url": url_str,
+            "brand": "generic",
+            "added_at": time.time(),
+            "is_connected": True,
+            "is_looping": True,
+            "width": 1280,
+            "height": 720,
+            "fps": 25.0,
+            "error": None,
+        }
+
+    _save_cameras(defaults)
+    return defaults
+
+
 def _load_cameras() -> dict[str, dict]:
-    """Load camera registry from disk."""
+    """Load camera registry from disk or seed defaults."""
     if CAMERAS_FILE.exists():
         try:
-            return json.loads(CAMERAS_FILE.read_text())
+            data = json.loads(CAMERAS_FILE.read_text())
+            if data and len(data) > 0:
+                return data
         except Exception:
-            return {}
-    return {}
+            pass
+    return _seed_default_cameras()
 
 
 def _save_cameras(cameras: dict[str, dict]):
@@ -67,7 +106,7 @@ def _save_cameras(cameras: dict[str, dict]):
 
 
 class CameraStream:
-    """Manages a single camera connection and frame capture."""
+    """Manages a single camera connection and frame capture with infinite loop support."""
 
     def __init__(self, camera_id: str, url: str, name: str = ""):
         self.camera_id = camera_id
@@ -78,55 +117,64 @@ class CameraStream:
         self.last_frame_time: float = 0
         self.is_connected = False
         self.is_running = False
+        self.is_looping = True
         self.error: Optional[str] = None
         self._lock = threading.Lock()
         self._thread: Optional[threading.Thread] = None
-        self.fps: float = 0
-        self.width: int = 0
-        self.height: int = 0
+        self.fps: float = 25.0
+        self.width: int = 1280
+        self.height: int = 720
         self.reconnect_attempts = 0
         self.max_reconnect_attempts = 5
+        self.active_overlay_boxes: list[dict] = []
+        self.active_hud_banner: Optional[dict] = None
+
+    def _resolve_stream_url(self) -> str:
+        """Resolve storage URLs and relative paths to absolute filesystem paths."""
+        url_to_open = str(self.url)
+        if url_to_open.startswith("/storage/uploads/"):
+            filename = url_to_open.replace("/storage/uploads/", "")
+            return str(STORAGE_DIR / "uploads" / filename)
+        if not url_to_open.isdigit() and not (url_to_open.startswith("rtsp://") or url_to_open.startswith("http://")):
+            p = Path(url_to_open)
+            if not p.is_absolute():
+                resolved = STORAGE_DIR / "uploads" / url_to_open
+                if resolved.exists():
+                    return str(resolved)
+        return url_to_open
 
     def connect(self) -> bool:
-        """Attempt to connect to the camera stream."""
+        """Attempt to connect to the camera stream or video file."""
         try:
-            # Handle webcam index
-            if self.url.isdigit():
-                self.cap = cv2.VideoCapture(int(self.url))
+            resolved_url = self._resolve_stream_url()
+            if resolved_url.isdigit():
+                self.cap = cv2.VideoCapture(int(resolved_url))
             else:
-                self.cap = cv2.VideoCapture(self.url)
+                self.cap = cv2.VideoCapture(resolved_url)
 
             if not self.cap.isOpened():
-                fallback_path = STORAGE_DIR / "uploads" / "subway.mp4"
-                if fallback_path.exists():
-                    print(f"[camera_manager] RTSP connection failed for {self.camera_id}. Falling back to demo video.")
-                    self.cap = cv2.VideoCapture(str(fallback_path))
-                    self.url = str(fallback_path)
-                    self.error = None
+                # Fallback to any uploaded mp4 in storage
+                uploads_vids = list((STORAGE_DIR / "uploads").glob("*.mp4"))
+                if uploads_vids:
+                    fallback = str(uploads_vids[0])
+                    print(f"[camera_manager] Failed to open {resolved_url}. Falling back to: {fallback}")
+                    self.cap = cv2.VideoCapture(fallback)
+                    self.url = fallback
                 else:
-                    self.error = "Failed to open stream"
+                    self.error = "Failed to open video stream"
                     self.is_connected = False
                     return False
 
-            # Set reasonable buffer size to reduce latency
             self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-
             self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 25.0
-            self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 1920
-            self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 1080
+            self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 1280
+            self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 720
 
-            # Read test frame
+            # Read initial frame
             ok, frame = self.cap.read()
             if not ok:
-                fallback_path = STORAGE_DIR / "uploads" / "subway.mp4"
-                if fallback_path.exists() and self.url != str(fallback_path):
-                    self.cap = cv2.VideoCapture(str(fallback_path))
-                    self.url = str(fallback_path)
-                    ok, frame = self.cap.read()
-                    if ok:
-                        self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 25.0
-                        self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 1920
-                        self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 1080
+                self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                ok, frame = self.cap.read()
 
             if not ok:
                 self.error = "Could not read frame from stream"
@@ -138,7 +186,7 @@ class CameraStream:
             self.is_connected = True
             self.error = None
             self.reconnect_attempts = 0
-            print(f"[camera_manager] Connected to {self.camera_id}: {self.width}x{self.height} @ {self.fps:.1f}fps")
+            print(f"[camera_manager] Connected to {self.camera_id} ({self.name}): {self.width}x{self.height} @ {self.fps:.1f}fps")
             return True
 
         except Exception as e:
@@ -150,12 +198,17 @@ class CameraStream:
         """Disconnect from camera stream."""
         self.is_running = False
         if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=3)
+            try:
+                self._thread.join(timeout=2)
+            except Exception:
+                pass
         if self.cap:
-            self.cap.release()
+            try:
+                self.cap.release()
+            except Exception:
+                pass
             self.cap = None
         self.is_connected = False
-        self.last_frame = None
 
     def start_capture(self):
         """Start background frame capture thread."""
@@ -170,44 +223,47 @@ class CameraStream:
         self._thread.start()
 
     def _capture_loop(self):
-        """Background thread: continuously capture frames."""
+        """Background thread: continuously capture frames with infinite looping."""
         while self.is_running:
             try:
                 if not self.cap or not self.cap.isOpened():
-                    # Attempt reconnection
                     self.reconnect_attempts += 1
                     if self.reconnect_attempts > self.max_reconnect_attempts:
                         self.error = "Max reconnection attempts exceeded"
                         self.is_running = False
                         break
-                    print(f"[camera_manager] Reconnecting {self.camera_id} (attempt {self.reconnect_attempts})")
-                    time.sleep(2)
+                    time.sleep(1.0)
                     self.connect()
                     continue
 
                 ok, frame = self.cap.read()
                 if not ok:
-                    # Rewind if it's a local video file (e.g. subway.mp4 fallback)
-                    if not self.url.isdigit() and (self.url.endswith(".mp4") or self.url.endswith(".avi") or self.url.endswith(".mov") or Path(self.url).exists()):
-                        self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                        ok, frame = self.cap.read()
+                    # End of video reached: loop back to frame 0 immediately
+                    self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    ok, frame = self.cap.read()
                     if not ok:
-                        self.is_connected = False
-                        time.sleep(0.1)
-                        continue
+                        resolved_url = self._resolve_stream_url()
+                        self.cap.release()
+                        self.cap = cv2.VideoCapture(int(resolved_url) if resolved_url.isdigit() else resolved_url)
+                        ok, frame = self.cap.read()
 
-                with self._lock:
-                    self.last_frame = frame
-                    self.last_frame_time = time.time()
-                    self.is_connected = True
-                    self.reconnect_attempts = 0
+                if ok and frame is not None:
+                    with self._lock:
+                        self.last_frame = frame
+                        self.last_frame_time = time.time()
+                        self.is_connected = True
+                        self.error = None
+                        self.reconnect_attempts = 0
+                else:
+                    time.sleep(0.04)
 
-                # Limit capture rate to reduce CPU
-                time.sleep(max(0.01, 1.0 / min(self.fps, 30) - 0.005))
+                # Regulate capture rate smoothly matching video FPS
+                sleep_time = max(0.015, (1.0 / max(10.0, min(self.fps, 30.0))) - 0.005)
+                time.sleep(sleep_time)
 
             except Exception as e:
                 self.error = str(e)
-                time.sleep(1)
+                time.sleep(0.5)
 
     def get_frame(self) -> Optional[np.ndarray]:
         """Get the latest captured frame."""
@@ -215,7 +271,7 @@ class CameraStream:
             return self.last_frame.copy() if self.last_frame is not None else None
 
     def change_source(self, new_url_or_path: str, new_name: str = ""):
-        """Dynamically switch video source (e.g. trump_speech.mp4, subway.mp4) or RTSP feed."""
+        """Dynamically switch video source (e.g. uploaded video, RTSP, or webcam) and persist."""
         print(f"[camera_manager] Changing source for {self.camera_id} to: {new_url_or_path}")
         self.disconnect()
         self.url = str(new_url_or_path)
@@ -226,11 +282,18 @@ class CameraStream:
         self.connect()
         self.start_capture()
 
+        # Persist updated source in cameras.json
+        cameras = _load_cameras()
+        if self.camera_id in cameras:
+            cameras[self.camera_id]["url"] = self.url
+            cameras[self.camera_id]["name"] = self.name
+            cameras[self.camera_id]["is_connected"] = self.is_connected
+            _save_cameras(cameras)
+
     def get_snapshot_jpeg(self, quality: int = 80) -> Optional[bytes]:
         """Get latest frame with live AI HUD overlays as JPEG bytes."""
         frame = self.get_frame()
         if frame is None:
-            # Try a direct capture if no background thread
             if self.cap and self.cap.isOpened():
                 ok, frame = self.cap.read()
                 if not ok:
@@ -711,16 +774,17 @@ def start_live_detection(
                             "box": {"x1": int(x), "y1": int(y), "x2": int(x+w), "y2": int(y+h)},
                         })
 
-                elif detection_type in ("hazard", "hazard_suite", "fall", "fire", "smoke", "weapon"):
+                elif detection_type in ("hazard", "hazard_suite", "fall", "fire", "smoke", "weapon", "blood"):
                     try:
                         from ai_pipeline.hazard_engine import get_hazard_engine
                         h_engine = get_hazard_engine()
+                        active_mods = ["fire", "smoke", "fall", "crowd", "weapon", "face"] if detection_type in ("hazard", "hazard_suite") else [detection_type]
                         h_res = h_engine.process_frame(
                             frame=frame,
                             frame_idx=int(time.time()),
                             timestamp_sec=time.time(),
-                            enabled_modules=["fire", "smoke", "fall", "crowd", "weapon", "face"],
-                            confidence_threshold=0.45,
+                            enabled_modules=active_mods,
+                            confidence_threshold=0.30,
                         )
                         for inc in h_res.get("incidents", []):
                             detections.append({

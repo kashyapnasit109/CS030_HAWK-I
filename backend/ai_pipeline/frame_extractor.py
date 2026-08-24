@@ -63,21 +63,13 @@ def draw_matte_glass_overlay(
     default_color_bgr: tuple[int, int, int] | None = None,
 ) -> np.ndarray:
     """
-    Render investor-grade, high-definition matte glass overlays with solid outlines
-    and glassmorphic header pills on all detected objects in the frame.
-    
-    Features:
-    - Matte glass semi-transparent fill: Frosted glass dispersion tint inside object ROI
-    - Solid anti-aliased vector outlines (2px)
-    - High-visibility corner targeting L-brackets (3px)
-    - Glassmorphic dark badge pill with status beacon and confidence percentage
-    - Distinct premium color coding per object instance
+    Render forensic tactical HUD bounding boxes with solid anti-aliased outlines,
+    corner targeting L-brackets, and glassmorphic badge pills without muddy blur.
     """
     if boxes is None:
         return image
 
     if isinstance(boxes, dict):
-        # Could be a single box dict or a dict containing a 'boxes' list
         if "boxes" in boxes and isinstance(boxes["boxes"], list):
             boxes_list = boxes["boxes"]
         else:
@@ -120,25 +112,17 @@ def draw_matte_glass_overlay(
         else:
             color_bgr = PREMIUM_PALETTE_BGR[idx % len(PREMIUM_PALETTE_BGR)]
 
-        # 1. Matte Glass Semi-Transparent Frosted Fill
+        # 1. Subtle High-Clarity Illumination Tint (No blur to preserve evidence integrity)
         roi = annotated[y1:y2, x1:x2]
         if roi.size > 0:
-            # Slight Gaussian blur to simulate frosted glass dispersion
-            ksize = max(3, (min(box_w, box_h) // 16) | 1)
-            blurred_roi = cv2.GaussianBlur(roi, (ksize, ksize), 0)
-            
-            # Colored matte tint
             tint = np.full_like(roi, color_bgr, dtype=np.uint8)
-            
-            # Blend: 65% blurred image + 28% tint + slight illumination boost
-            matte_glass_roi = cv2.addWeighted(blurred_roi, 0.65, tint, 0.28, 6)
-            annotated[y1:y2, x1:x2] = cv2.addWeighted(roi, 0.25, matte_glass_roi, 0.75, 0)
+            annotated[y1:y2, x1:x2] = cv2.addWeighted(roi, 0.90, tint, 0.10, 2)
 
         # 2. Solid Crisp Outline
         cv2.rectangle(annotated, (x1, y1), (x2, y2), color_bgr, 2, cv2.LINE_AA)
 
-        # 3. Glowing Corner L-Brackets
-        corner_len = max(8, min(28, int(min(box_w, box_h) * 0.25)))
+        # 3. Glowing Corner L-Brackets (3px thickness)
+        corner_len = max(8, min(24, int(min(box_w, box_h) * 0.25)))
         thick = 3
         # Top-Left
         cv2.line(annotated, (x1, y1), (x1 + corner_len, y1), color_bgr, thick, cv2.LINE_AA)
@@ -153,7 +137,7 @@ def draw_matte_glass_overlay(
         cv2.line(annotated, (x2, y2), (x2 - corner_len, y2), color_bgr, thick, cv2.LINE_AA)
         cv2.line(annotated, (x2, y2), (x2 - corner_len, y2), color_bgr, thick, cv2.LINE_AA)
 
-        # 4. Glassmorphic Header Badge Pill
+        # 4. Tactical Header Badge Pill
         font = cv2.FONT_HERSHEY_SIMPLEX
         scale = 0.44
         text_thick = 1
@@ -202,7 +186,7 @@ def save_frame(
     draw_boxes: list[dict] | None = None,
 ) -> None:
     """
-    Save a frame as JPEG with high-definition matte glass HUD overlay.
+    Save a frame as JPEG with high-definition tactical HUD overlay.
     Accepts either single box dict or list of box dicts.
     """
     boxes_to_draw = draw_boxes if draw_boxes is not None else draw_box
@@ -225,6 +209,124 @@ def _get_ffmpeg_cmd() -> str:
     return "ffmpeg"
 
 
+def _track_boxes_across_frames(clip_frames: list[np.ndarray], initial_boxes: list[dict], center_idx: int) -> list[list[dict]]:
+    """
+    Track bounding boxes dynamically across clip frames using optical flow and centroid continuity.
+    Returns a list of boxes for each frame index.
+    """
+    num_frames = len(clip_frames)
+    if num_frames == 0 or not initial_boxes:
+        return [[] for _ in range(num_frames)]
+
+    frame_boxes_result = [[] for _ in range(num_frames)]
+    h_img, w_img = clip_frames[0].shape[:2]
+
+    # For each initial box, compute tracked trajectory
+    for b_idx, b_spec in enumerate(initial_boxes):
+        x1_0 = max(0, min(w_img - 1, int(b_spec.get("x1", 0))))
+        y1_0 = max(0, min(h_img - 1, int(b_spec.get("y1", 0))))
+        x2_0 = max(0, min(w_img - 1, int(b_spec.get("x2", w_img))))
+        y2_0 = max(0, min(h_img - 1, int(b_spec.get("y2", h_img))))
+        label = b_spec.get("label", "Target")
+        conf = b_spec.get("confidence", 0.90)
+        color_bgr = b_spec.get("color_bgr", PREMIUM_PALETTE_BGR[b_idx % len(PREMIUM_PALETTE_BGR)])
+
+        box_w = max(10, x2_0 - x1_0)
+        box_h = max(10, y2_0 - y1_0)
+
+        # Track trajectory array of (cx, cy)
+        centers = [None] * num_frames
+        c_idx = max(0, min(num_frames - 1, center_idx))
+        centers[c_idx] = (x1_0 + box_w / 2.0, y1_0 + box_h / 2.0)
+
+        # Forward tracking from center_idx
+        prev_gray = cv2.cvtColor(clip_frames[c_idx], cv2.COLOR_BGR2GRAY)
+        for i in range(c_idx + 1, num_frames):
+            curr_gray = cv2.cvtColor(clip_frames[i], cv2.COLOR_BGR2GRAY)
+            prev_cx, prev_cy = centers[i - 1]
+
+            # Track keypoints inside box ROI
+            rx1 = max(0, int(prev_cx - box_w / 2))
+            ry1 = max(0, int(prev_cy - box_h / 2))
+            rx2 = min(w_img, int(prev_cx + box_w / 2))
+            ry2 = min(h_img, int(prev_cy + box_h / 2))
+
+            roi_prev = prev_gray[ry1:ry2, rx1:rx2]
+            p0 = cv2.goodFeaturesToTrack(roi_prev, maxCorners=12, qualityLevel=0.15, minDistance=5)
+            shift_x, shift_y = 0.0, 0.0
+
+            if p0 is not None and len(p0) >= 3:
+                p0[:, :, 0] += rx1
+                p0[:, :, 1] += ry1
+                p1, st, _ = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, p0, None, winSize=(15, 15), maxLevel=2)
+                if p1 is not None and st is not None:
+                    good_new = p1[st == 1]
+                    good_old = p0[st == 1]
+                    if len(good_new) >= 3:
+                        dx = np.median(good_new[:, 0] - good_old[:, 0])
+                        dy = np.median(good_new[:, 1] - good_old[:, 1])
+                        shift_x = float(np.clip(dx, -25.0, 25.0))
+                        shift_y = float(np.clip(dy, -25.0, 25.0))
+
+            new_cx = max(box_w / 2.0, min(w_img - box_w / 2.0, prev_cx + shift_x))
+            new_cy = max(box_h / 2.0, min(h_img - box_h / 2.0, prev_cy + shift_y))
+            centers[i] = (new_cx, new_cy)
+            prev_gray = curr_gray
+
+        # Backward tracking from center_idx
+        prev_gray = cv2.cvtColor(clip_frames[c_idx], cv2.COLOR_BGR2GRAY)
+        for i in range(c_idx - 1, -1, -1):
+            curr_gray = cv2.cvtColor(clip_frames[i], cv2.COLOR_BGR2GRAY)
+            prev_cx, prev_cy = centers[i + 1]
+
+            rx1 = max(0, int(prev_cx - box_w / 2))
+            ry1 = max(0, int(prev_cy - box_h / 2))
+            rx2 = min(w_img, int(prev_cx + box_w / 2))
+            ry2 = min(h_img, int(prev_cy + box_h / 2))
+
+            roi_prev = prev_gray[ry1:ry2, rx1:rx2]
+            p0 = cv2.goodFeaturesToTrack(roi_prev, maxCorners=12, qualityLevel=0.15, minDistance=5)
+            shift_x, shift_y = 0.0, 0.0
+
+            if p0 is not None and len(p0) >= 3:
+                p0[:, :, 0] += rx1
+                p0[:, :, 1] += ry1
+                p1, st, _ = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, p0, None, winSize=(15, 15), maxLevel=2)
+                if p1 is not None and st is not None:
+                    good_new = p1[st == 1]
+                    good_old = p0[st == 1]
+                    if len(good_new) >= 3:
+                        dx = np.median(good_new[:, 0] - good_old[:, 0])
+                        dy = np.median(good_new[:, 1] - good_old[:, 1])
+                        shift_x = float(np.clip(dx, -25.0, 25.0))
+                        shift_y = float(np.clip(dy, -25.0, 25.0))
+
+            new_cx = max(box_w / 2.0, min(w_img - box_w / 2.0, prev_cx + shift_x))
+            new_cy = max(box_h / 2.0, min(h_img - box_h / 2.0, prev_cy + shift_y))
+            centers[i] = (new_cx, new_cy)
+            prev_gray = curr_gray
+
+        # Write tracked boxes into frame list
+        for f_i in range(num_frames):
+            cx, cy = centers[f_i]
+            bx1 = max(0, min(w_img - 1, int(cx - box_w / 2.0)))
+            by1 = max(0, min(h_img - 1, int(cy - box_h / 2.0)))
+            bx2 = max(0, min(w_img - 1, int(cx + box_w / 2.0)))
+            by2 = max(0, min(h_img - 1, int(cy + box_h / 2.0)))
+
+            frame_boxes_result[f_i].append({
+                "x1": bx1,
+                "y1": by1,
+                "x2": bx2,
+                "y2": by2,
+                "label": label,
+                "confidence": conf,
+                "color_bgr": color_bgr,
+            })
+
+    return frame_boxes_result
+
+
 def extract_clip(
     video_path: str | Path,
     output_path: str | Path,
@@ -235,7 +337,7 @@ def extract_clip(
 ) -> bool:
     """
     Extract a short video clip centered around a timestamp, dynamically tracking
-    ALL detected bounding boxes across frames with matte glass overlays and H.264 transcoding.
+    ALL detected bounding boxes across frames with tactical HUD overlays and H.264 transcoding.
     """
     cap = cv2.VideoCapture(str(video_path))
     try:
@@ -250,7 +352,6 @@ def extract_clip(
 
         start_frame = int(start_t * fps)
         end_frame = int(end_t * fps)
-        center_frame_idx = int(center_timestamp * fps)
 
         if end_frame <= start_frame:
             end_frame = start_frame + int(fps * 2)
@@ -289,21 +390,18 @@ def extract_clip(
             box_list = []
 
         all_boxes = box_list
+        center_frame_offset = int((center_timestamp - start_t) * fps)
+
+        # Dynamic tracking across all frames
+        if all_boxes:
+            tracked_per_frame = _track_boxes_across_frames(clip_frames, all_boxes, center_frame_offset)
+        else:
+            tracked_per_frame = [[] for _ in clip_frames]
 
         # Render clip with dynamic multi-object forensic HUD overlays
-        for frame in clip_frames:
-            if all_boxes:
-                frame_boxes = []
-                for b_idx, b_spec in enumerate(all_boxes):
-                    frame_boxes.append({
-                        "x1": b_spec.get("x1", 0),
-                        "y1": b_spec.get("y1", 0),
-                        "x2": b_spec.get("x2", frame.shape[1]),
-                        "y2": b_spec.get("y2", frame.shape[0]),
-                        "label": b_spec.get("label", "Target"),
-                        "confidence": b_spec.get("confidence", 0.90),
-                        "color_bgr": b_spec.get("color_bgr", PREMIUM_PALETTE_BGR[b_idx % len(PREMIUM_PALETTE_BGR)]),
-                    })
+        for f_idx, frame in enumerate(clip_frames):
+            frame_boxes = tracked_per_frame[f_idx]
+            if frame_boxes:
                 annotated = draw_matte_glass_overlay(frame, frame_boxes)
                 out.write(annotated)
             else:

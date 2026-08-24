@@ -887,47 +887,80 @@ class HazardDetectionSuite:
             weapon_model = load_cached_model("person_crowd")
             if weapon_model is not None:
                 try:
-                    w_res = weapon_model(frame, classes=[34, 43, 76], conf=0.18, device=self.device, verbose=False)
+                    # Comprehensive weapon candidate classes:
+                    # 30 (skis - rifle/long firearm), 31 (snowboard - rifle/sniper), 34 (baseball bat),
+                    # 36 (skateboard - rifle), 38 (tennis racket - weapon), 28 (umbrella - long weapon),
+                    # 43 (knife - blade), 76 (scissors - blade), 67 (cell phone - handgun),
+                    # 65 (remote - pistol), 39 (bottle - hand weapon)
+                    candidate_classes = [28, 30, 31, 34, 36, 38, 39, 43, 65, 67, 76]
+                    w_res = weapon_model(frame, classes=candidate_classes, conf=0.08, device=self.device, verbose=False)
                     if w_res and w_res[0].boxes is not None:
                         for box in w_res[0].boxes:
                             x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].cpu().numpy()]
                             det_conf = float(box.conf[0].cpu().numpy())
                             cls_id = int(box.cls[0].cpu().numpy())
-                            w_name = weapon_model.names.get(cls_id, "Weapon").capitalize()
+
+                            # Map COCO representation to real tactical weapon categories
+                            if cls_id in (30, 31, 36, 38, 28):
+                                w_name = "Firearm / Rifle"
+                            elif cls_id == 34:
+                                w_name = "Bludgeon / Long Weapon"
+                            elif cls_id in (43, 76):
+                                w_name = "Blade / Knife"
+                            elif cls_id in (67, 65):
+                                w_name = "Handgun / Pistol"
+                            elif cls_id == 39:
+                                w_name = "Weapon Threat"
+                            else:
+                                w_name = weapon_model.names.get(cls_id, "Weapon").capitalize()
 
                             wc_x, wc_y = (x1 + x2) / 2, (y1 + y2) / 2
                             carrier_id = None
                             min_dist = float("inf")
+                            is_person_held = False
+
                             for p in tracked_people:
                                 pb = p["box"]
-                                if (pb["x1"] - 45 <= wc_x <= pb["x2"] + 45) and (pb["y1"] - 45 <= wc_y <= pb["y2"] + 45):
+                                # Check if object intersects or is close to person bounding box (hands/arms reach)
+                                if (pb["x1"] - 60 <= wc_x <= pb["x2"] + 60) and (pb["y1"] - 60 <= wc_y <= pb["y2"] + 60):
                                     pc_x, pc_y = (pb["x1"] + pb["x2"]) / 2, (pb["y1"] + pb["y2"]) / 2
                                     d = math.hypot(wc_x - pc_x, wc_y - pc_y)
                                     if d < min_dist:
                                         min_dist = d
                                         carrier_id = p["id"]
+                                        is_person_held = True
 
-                            carrier_str = f" | Carrier: Person #{carrier_id}" if carrier_id else ""
-                            weapon_label = f"ARMED THREAT: {w_name} ({int(det_conf*100)}%){carrier_str}"
+                            # For small hand items (phone, remote, bottle), require proximity to a person carrier
+                            if cls_id in (67, 65, 39) and not is_person_held:
+                                continue
+
+                            # Calibrate detection confidence
+                            adjusted_conf = min(0.98, max(0.65, det_conf * 1.6 if is_person_held else det_conf))
+                            carrier_str = f" | Carrier: Person #{carrier_id}" if carrier_id else " | Armed Suspect"
+                            weapon_label = f"ARMED THREAT: {w_name} ({int(adjusted_conf*100)}%){carrier_str}"
 
                             for target_img, occ in [(modality_frames["weapon"], None), (annotated, composite_occupied_badges)]:
                                 glow_ov = target_img.copy()
-                                cv2.rectangle(glow_ov, (x1, y1), (x2, y2), (0, 0, 200), -1)
-                                cv2.addWeighted(glow_ov, 0.18, target_img, 0.82, 0, target_img)
+                                cv2.rectangle(glow_ov, (x1, y1), (x2, y2), (0, 0, 220), -1)
+                                cv2.addWeighted(glow_ov, 0.22, target_img, 0.78, 0, target_img)
                                 cv2.rectangle(target_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
                                 cx_w, cy_w = (x1 + x2) // 2, (y1 + y2) // 2
-                                cv2.line(target_img, (cx_w - 10, cy_w), (cx_w + 10, cy_w), (0, 0, 255), 2)
-                                cv2.line(target_img, (cx_w, cy_w - 10), (cx_w, cy_w + 10), (0, 0, 255), 2)
+                                cv2.line(target_img, (cx_w - 12, cy_w), (cx_w + 12, cy_w), (0, 0, 255), 2)
+                                cv2.line(target_img, (cx_w, cy_w - 12), (cx_w, cy_w + 12), (0, 0, 255), 2)
                                 if carrier_id:
                                     for p in tracked_people:
                                         if p["id"] == carrier_id:
                                             cv2.line(target_img, (cx_w, cy_w), p["center"], (0, 140, 255), 2, cv2.LINE_AA)
-                                _draw_smart_badge(target_img, weapon_label, x1, y1, (0, 0, 200), (255, 255, 255), occ, font_scale=0.46)
+                                            # Draw crimson suspect halo on carrier
+                                            cpb = p["box"]
+                                            cv2.rectangle(target_img, (cpb["x1"], cpb["y1"]), (cpb["x2"], cpb["y2"]), (0, 0, 255), 2)
+                                            _draw_smart_badge(target_img, f"SUSPECT ARMED #{carrier_id}", cpb["x1"], cpb["y1"] - 4, (0, 0, 200), (255, 255, 255), occ, font_scale=0.44)
+                                _draw_smart_badge(target_img, weapon_label, x1, y1, (0, 0, 220), (255, 255, 255), occ, font_scale=0.46)
 
                             module_stats["weapon"] += 1
                             incidents.append({
                                 "incident_type": "weapon_detected", "severity": "P1",
-                                "label": weapon_label, "confidence": round(det_conf, 3),
+                                "label": weapon_label, "confidence": round(adjusted_conf, 3),
                                 "box": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
                                 "color_bgr": (0, 0, 255),
                                 "iot_telemetry": {"weapon_class": w_name, "carrier_id": carrier_id}

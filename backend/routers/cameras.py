@@ -280,23 +280,46 @@ class SetSourceRequest(BaseModel):
 @router.post("/{camera_id}/set-source")
 def set_camera_source(camera_id: str, req: SetSourceRequest):
     """Switch camera source to any uploaded video or RTSP URL."""
-    from ai_pipeline.camera_manager import get_camera_stream  # noqa: PLC0415
+    from ai_pipeline.camera_manager import get_camera_stream, _load_cameras, _save_cameras, STORAGE_DIR  # noqa: PLC0415
     stream = get_camera_stream(camera_id)
-    if not stream:
-        raise HTTPException(status_code=404, detail=f"Camera {camera_id} not found")
 
     # Resolve local path if filename or storage URL given
     src = req.source_url
     if src.startswith("/storage/uploads/"):
-        from pathlib import Path
-        from ai_pipeline.camera_manager import STORAGE_DIR
         filename = src.replace("/storage/uploads/", "")
         resolved = STORAGE_DIR / "uploads" / filename
         if resolved.exists():
             src = str(resolved)
+    elif not src.isdigit() and not (src.startswith("rtsp://") or src.startswith("http://")):
+        resolved = STORAGE_DIR / "uploads" / src
+        if resolved.exists():
+            src = str(resolved)
 
-    stream.change_source(src, req.source_name or stream.name)
+    if stream:
+        stream.change_source(src, req.source_name or stream.name)
+    else:
+        # Camera not yet in active streams, update registry directly
+        cameras = _load_cameras()
+        if camera_id in cameras:
+            cameras[camera_id]["url"] = src
+            if req.source_name:
+                cameras[camera_id]["name"] = req.source_name
+            _save_cameras(cameras)
+        else:
+            raise HTTPException(status_code=404, detail=f"Camera {camera_id} not found")
+
     return {"success": True, "camera_id": camera_id, "new_source": src}
+
+
+@router.post("/reset-defaults")
+def api_reset_default_cameras():
+    """Reset cameras to the 4 default multi-channel CCTV streams."""
+    from ai_pipeline.camera_manager import _seed_default_cameras, _active_streams  # noqa: PLC0415
+    for stream in list(_active_streams.values()):
+        stream.disconnect()
+    _active_streams.clear()
+    defaults = _seed_default_cameras()
+    return {"success": True, "cameras": list(defaults.values()), "count": len(defaults)}
 
 
 @router.get("/videos/available")
@@ -313,5 +336,17 @@ def get_available_simulation_videos():
                 videos.append(data)
             except Exception:
                 pass
+        # Also include any raw .mp4 without meta
+        for mp4_file in uploads_dir.glob("*.mp4"):
+            v_id = mp4_file.stem
+            if not any(v.get("id") == v_id or v.get("stored_filename") == mp4_file.name for v in videos):
+                videos.append({
+                    "id": v_id,
+                    "original_filename": mp4_file.name,
+                    "stored_filename": mp4_file.name,
+                    "video_url": f"/storage/uploads/{mp4_file.name}",
+                    "duration_seconds": 60,
+                })
     return {"success": True, "count": len(videos), "videos": videos}
+
 
