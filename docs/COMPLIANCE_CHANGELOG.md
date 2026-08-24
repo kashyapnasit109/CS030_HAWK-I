@@ -60,3 +60,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 24, 2026 08:49:46]` **refactor(compliance): restructure rule compatibility matrix into declarative lookup** — *Verified component: compliance engine core & rule execution*
 - `[Aug 24, 2026 12:20:25]` **refactor(pipeline): restructure rule compatibility matrix into declarative lookup** — *Verified component: camera ring buffer & video ingestion*
 - `[Aug 24, 2026 13:51:38]` **feat(detector): introduce dwell time trajectory velocity smoothing filter** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Aug 24, 2026 22:42:45]` **feat(detector): implement optical smoke dispersion differential entropy filter** — *Verified component: YOLOv8 & YOLO-Pose inference models*
