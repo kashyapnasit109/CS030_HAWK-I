@@ -527,3 +527,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 22, 2026 15:36:30]` **fix(wall): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Oct 22, 2026 20:57:03]` **test(detector): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 23, 2026 09:09:13]` **docs(assignment): document camera compatibility capability matrix requirements** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+
+## [2026-08-24 17:15] feat(hazard-engine): integrate dark channel prior for fog and low-visibility atmospheric estimation
+- Calculated minimum intensity across RGB color channels in local patches
+- Computed atmospheric transmission map to estimate optical range
+- Issued dynamic sensor sensitivity adjustment during heavy haze
