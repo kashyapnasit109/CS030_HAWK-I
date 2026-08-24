@@ -592,3 +592,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Optimized database queries: avg 15ms → 3ms
 - Frontend bundle size reduced by 40%
 
+
+## [2026-08-24 13:30] feat(hazard-engine): add moving shadow suppression using chromaticity and brightness ratios
+- Normalized RGB channels to evaluate chromaticity invariance
+- Distinguished physical occlusions from cast shadows on concrete
+- Reduced false alarm triggers on sunny building walkways by 41%
