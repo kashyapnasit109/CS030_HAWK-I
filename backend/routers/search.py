@@ -76,12 +76,43 @@ def _resolve_reference(ref_id: str) -> Path:
     return ref_path
 
 
+def _update_progress(
+    job_id: str,
+    frames_p: int,
+    frames_m: int,
+    current_matches: list | None = None,
+    total_f: int | None = None,
+    frames_r: int | None = None,
+    pct: float | None = None,
+    fps_spd: float | None = None,
+    cur_ts: str | None = None,
+):
+    """Update live progress and frame metrics for background search tasks."""
+    if job_id in _jobs:
+        _jobs[job_id]["frames_processed"] = frames_p
+        _jobs[job_id]["frames_matched"] = frames_m
+        if total_f is not None:
+            _jobs[job_id]["total_frames"] = total_f
+        if frames_r is not None:
+            _jobs[job_id]["frames_remaining"] = frames_r
+        if pct is not None:
+            _jobs[job_id]["progress_percent"] = pct
+        if fps_spd is not None:
+            _jobs[job_id]["fps_speed"] = fps_spd
+        if cur_ts is not None:
+            _jobs[job_id]["current_timestamp_str"] = cur_ts
+        if current_matches is not None:
+            _jobs[job_id]["matches"] = list(current_matches)
+            _jobs[job_id]["match_count"] = len(current_matches)
+
+
 def _run_face_search_task(job_id: str, request: ImageSearchRequest):
     """Background task for face recognition search."""
     from ai_pipeline.face_recognition import run_face_recognition_search  # noqa: PLC0415
 
     _jobs[job_id]["status"] = "running"
     _jobs[job_id]["started_at"] = time.time()
+
     all_matches = []
 
     try:

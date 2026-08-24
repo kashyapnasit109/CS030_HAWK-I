@@ -3,9 +3,21 @@
  * Default endpoint: http://localhost:8000
  */
 
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const getBaseUrl = (): string => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== "undefined") {
+    // If accessing from another device or hostname, use same hostname with backend port 8000
+    const host = window.location.hostname || "localhost";
+    const proto = window.location.protocol || "http:";
+    return `${proto}//${host}:8000`;
+  }
+  return "http://localhost:8000";
+};
+
+export const BASE_URL = typeof window !== "undefined" ? getBaseUrl() : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
 
 export type ApiError = Error & { status: number; isNetworkError?: boolean };
+
 
 export async function apiFetch<T>(
   path: string,
@@ -513,9 +525,14 @@ export async function exportReport(
 
 export function resolveStorageUrl(path: string): string {
   if (!path) return "";
-  if (path.startsWith("http")) return path;
-  return `${BASE_URL}${path}`;
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:") || path.startsWith("blob:")) {
+    return path;
+  }
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const base = getBaseUrl();
+  return `${base}${cleanPath}`;
 }
+
 
 export async function downloadFramesZip(jobId: string): Promise<Blob> {
   const res = await fetch(`${BASE_URL}/api/export/frames-zip?job_id=${encodeURIComponent(jobId)}`);
@@ -788,6 +805,11 @@ export interface HazardSearchJob {
   match_count: number;
   frames_processed: number;
   frames_matched: number;
+  total_frames?: number;
+  frames_remaining?: number;
+  progress_percent?: number;
+  fps_speed?: number;
+  current_timestamp_str?: string;
   video_count: number;
   matches?: MatchResult[];
   error?: string;
@@ -826,6 +848,32 @@ export async function getHazardJobStatus(jobId: string): Promise<HazardSearchJob
 export async function cancelHazardJob(jobId: string): Promise<{ success: boolean; message: string }> {
   return apiFetch(`/api/safety/cancel-hazard/${jobId}`, { method: "POST" });
 }
+
+export async function generateClipOnDemand(params: {
+  jobId?: string;
+  videoId?: string;
+  timestamp: number;
+  window?: number;
+  box?: { x1: number; y1: number; x2: number; y2: number };
+  label?: string;
+  confidence?: number;
+}): Promise<{ success: boolean; clip_url: string; cached: boolean; clip_hash?: string }> {
+  const query = new URLSearchParams();
+  if (params.jobId) query.set("job_id", params.jobId);
+  if (params.videoId) query.set("video_id", params.videoId);
+  query.set("timestamp", String(params.timestamp || 0));
+  if (params.window) query.set("window", String(params.window));
+  if (params.label) query.set("label", params.label);
+  if (params.confidence !== undefined) query.set("confidence", String(params.confidence));
+  if (params.box) {
+    query.set("x1", String(params.box.x1));
+    query.set("y1", String(params.box.y1));
+    query.set("x2", String(params.box.x2));
+    query.set("y2", String(params.box.y2));
+  }
+  return apiFetch(`/api/safety/generate-clip?${query.toString()}`);
+}
+
 
 export async function escalateHazardFromSearch(payload: {
   title: string;

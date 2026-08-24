@@ -26,7 +26,22 @@ const nextConfig: NextConfig = {
     maxInactiveAge: 60 * 1000,
     pagesBufferLength: 10,
   },
+
+  // Proxy storage assets and backend API requests to backend
+  async rewrites() {
+    return [
+      {
+        source: "/storage/:path*",
+        destination: "http://127.0.0.1:8000/storage/:path*",
+      },
+      {
+        source: "/api/:path*",
+        destination: "http://127.0.0.1:8000/api/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
+
 

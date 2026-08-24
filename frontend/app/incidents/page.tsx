@@ -10,10 +10,12 @@ import {
   cancelHazardJob,
   escalateHazardFromSearch,
   exportHazardReport,
+  generateClipOnDemand,
   MatchResult,
   HazardSearchJob,
   resolveStorageUrl,
 } from "@/lib/api";
+
 import {
   AlertIcon,
   ShieldIcon,
@@ -131,15 +133,71 @@ export default function IncidentsCommandHub() {
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [exportingReport, setExportingReport] = useState(false);
 
+  // Helper to check if URL is a valid playable video (not an image)
+  const isPlayableVideo = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    const clean = url.split("?")[0].toLowerCase();
+    return (clean.endsWith(".mp4") || clean.endsWith(".webm") || clean.endsWith(".mov")) &&
+      !clean.endsWith(".jpg") && !clean.endsWith(".jpeg") && !clean.endsWith(".png");
+  };
+
   // Modals for Evidence Video & Enhancement
-  const [previewClipUrl, setPreviewClipUrl] = useState<string | null>(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
   const [previewFrameUrl, setPreviewFrameUrl] = useState<string | null>(null);
   const [previewClipTitle, setPreviewClipTitle] = useState<string>("");
   const [clipTab, setClipTab] = useState<"video" | "frame">("video");
   const [clipError, setClipError] = useState<boolean>(false);
+  const [generatingClip, setGeneratingClip] = useState<boolean>(false);
   const [enhanceMatch, setEnhanceMatch] = useState<MatchResult | null>(null);
   const [triageVideoOverride, setTriageVideoOverride] = useState<string | null>(null);
   const [triageVideoError, setTriageVideoError] = useState<boolean>(false);
+
+  const openPreviewModal = async (m: MatchResult) => {
+    const displayFrame = (selectedHazardEventFilter === "all" && m.all_frame_url)
+      ? m.all_frame_url
+      : (m.modality_frame_url || m.frame_url || m.all_frame_url || "");
+    const fUrl = displayFrame ? resolveStorageUrl(displayFrame) : "";
+    const hasVideo = isPlayableVideo(m.clip_url);
+    const vUrl = hasVideo ? resolveStorageUrl(m.clip_url!) : null;
+
+    setPreviewModalOpen(true);
+    setPreviewFrameUrl(fUrl);
+    setPreviewClipTitle(`${m.label} (${m.timestamp_str}) [${m.camera_id}]`);
+    setClipError(false);
+
+    if (hasVideo && vUrl) {
+      setPreviewVideoUrl(vUrl);
+      setClipTab("video");
+    } else {
+      // Show high-res frame immediately, and kick off on-demand tracked clip extraction!
+      setClipTab("frame");
+      setPreviewVideoUrl(null);
+      setGeneratingClip(true);
+      try {
+        const box = m.box || (m.boxes && m.boxes[0]);
+        const res = await generateClipOnDemand({
+          jobId: hazardJobId || undefined,
+          timestamp: m.timestamp || 0,
+          label: m.label,
+          confidence: m.confidence,
+          box: box ? { x1: box.x1, y1: box.y1, x2: box.x2, y2: box.y2 } : undefined,
+        });
+        if (res && res.clip_url) {
+          const generatedUrl = resolveStorageUrl(res.clip_url);
+          setPreviewVideoUrl(generatedUrl);
+          setClipTab("video");
+          m.clip_url = res.clip_url;
+        }
+      } catch (err) {
+        console.warn("On-demand clip extraction notice:", err);
+      } finally {
+        setGeneratingClip(false);
+      }
+    }
+  };
+
+
 
   // Categorize matches into event types
   const getHazardEventCategory = (m: MatchResult): string => {
@@ -1313,40 +1371,97 @@ export default function IncidentsCommandHub() {
             </div>
 
             {/* LIVE SCANNING PROGRESS BAR HUD */}
-            {isSearching && hazardJob && (
-              <div
-                className="card"
-                style={{
-                  padding: "16px 20px",
-                  background: "linear-gradient(90deg, rgba(37,99,235,0.12) 0%, rgba(59,130,246,0.06) 100%)",
-                  border: "1px solid #3B82F6",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span className="badge badge-blue">OPTICAL SCANNING ACTIVE</span>
-                    <span style={{ fontSize: "0.82rem", fontWeight: 800, color: "#FFFFFF" }}>
-                      Processing {hazardJob.video_count} Video Stream(s): {hazardJob.frames_processed} frame(s) analyzed
-                    </span>
-                  </div>
-                  <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.82rem", color: "#60A5FA", fontWeight: 800 }}>
-                    {hazardJob.match_count} Forensic Incident(s) Flagged
-                  </span>
-                </div>
+            {isSearching && hazardJob && (() => {
+              const totalFrames = hazardJob.total_frames || Math.max(1, Math.ceil(hazardJob.frames_processed * 1.5));
+              const framesProcessed = hazardJob.frames_processed || 0;
+              const framesRemaining = hazardJob.frames_remaining !== undefined
+                ? hazardJob.frames_remaining
+                : Math.max(0, totalFrames - framesProcessed);
+              const progressPct = hazardJob.progress_percent !== undefined
+                ? hazardJob.progress_percent
+                : Math.min(99, Math.round((framesProcessed / Math.max(1, totalFrames)) * 100));
 
-                <div style={{ width: "100%", height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 4, overflow: "hidden" }}>
-                  <div
-                    style={{
-                      width: isSearching ? "100%" : `${Math.min(100, Math.max(15, (hazardJob.frames_processed / Math.max(1, (hazardJob as any).total_frames || 15)) * 100))}%`,
-                      height: "100%",
-                      background: "linear-gradient(90deg, #3B82F6, #60A5FA)",
-                      animation: isSearching ? "pulse 1.5s infinite" : "none",
-                      transition: "width 0.3s ease",
-                    }}
-                  />
+              return (
+                <div
+                  className="card"
+                  style={{
+                    padding: "16px 20px",
+                    background: "linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(30,58,138,0.30) 100%)",
+                    border: "1px solid rgba(59,130,246,0.5)",
+                    borderRadius: "10px",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.6), 0 0 20px rgba(59,130,246,0.25)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                  }}
+                >
+                  {/* Top Header Metrics Row */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span className="badge badge-blue" style={{ animation: "pulse 1.5s infinite" }}>
+                        OPTICAL SCAN IN PROGRESS
+                      </span>
+                      <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#FFFFFF" }}>
+                        Scanning {hazardJob.video_count} Video Stream(s)
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      {hazardJob.current_timestamp_str && (
+                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.75rem", color: "#94A3B8" }}>
+                          Stream Time: <strong style={{ color: "#F8FAFC" }}>{hazardJob.current_timestamp_str}</strong>
+                        </span>
+                      )}
+                      {hazardJob.fps_speed && (
+                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.75rem", color: "#38BDF8" }}>
+                          Speed: <strong>{hazardJob.fps_speed} FPS</strong>
+                        </span>
+                      )}
+                      <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.82rem", color: "#60A5FA", fontWeight: 900 }}>
+                        {hazardJob.match_count} Threat(s) Flagged
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Frame Counter Stats Badges */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+                    <div style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.08)", padding: "8px 12px", borderRadius: 6 }}>
+                      <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Frames Analyzed</div>
+                      <div style={{ fontSize: "1.05rem", fontWeight: 900, color: "#60A5FA", fontFamily: "JetBrains Mono, monospace" }}>
+                        {framesProcessed.toLocaleString()} <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>/ {totalFrames.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.08)", padding: "8px 12px", borderRadius: 6 }}>
+                      <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Frames Remaining</div>
+                      <div style={{ fontSize: "1.05rem", fontWeight: 900, color: "#F59E0B", fontFamily: "JetBrains Mono, monospace" }}>
+                        {framesRemaining.toLocaleString()} <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>frames</span>
+                      </div>
+                    </div>
+
+                    <div style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.08)", padding: "8px 12px", borderRadius: 6 }}>
+                      <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Progress Completed</div>
+                      <div style={{ fontSize: "1.05rem", fontWeight: 900, color: "#10B981", fontFamily: "JetBrains Mono, monospace" }}>
+                        {progressPct}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Visual Progress Bar */}
+                  <div style={{ width: "100%", height: 10, background: "rgba(0,0,0,0.6)", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(59,130,246,0.3)" }}>
+                    <div
+                      style={{
+                        width: `${Math.min(100, Math.max(3, progressPct))}%`,
+                        height: "100%",
+                        background: "linear-gradient(90deg, #2563EB 0%, #3B82F6 50%, #60A5FA 100%)",
+                        boxShadow: "0 0 12px rgba(59,130,246,0.8)",
+                        transition: "width 0.3s ease",
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* FORENSIC EVIDENCE MATCH GRID */}
             <div>
@@ -1503,9 +1618,11 @@ export default function IncidentsCommandHub() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))", gap: 16 }}>
                 {displayHazardMatches.map((m, idx) => {
                   const isP1 = m.severity === "P1" || m.confidence > 0.82;
-                  const displayFrameUrl = (selectedHazardEventFilter === "all" && m.all_frame_url) ? m.all_frame_url : m.frame_url;
-                  const frameUrl = resolveStorageUrl(displayFrameUrl);
-                  const clipUrl = m.clip_url ? resolveStorageUrl(m.clip_url) : null;
+                  const displayFrame = (selectedHazardEventFilter === "all" && m.all_frame_url)
+                    ? m.all_frame_url
+                    : (m.modality_frame_url || m.frame_url || m.all_frame_url || "");
+                  const frameUrl = resolveStorageUrl(displayFrame);
+                  const hasVideo = isPlayableVideo(m.clip_url);
 
                   return (
                     <div
@@ -1525,13 +1642,7 @@ export default function IncidentsCommandHub() {
                     >
                       {/* Frame Thumbnail Preview */}
                       <div
-                        onClick={() => {
-                          setPreviewClipUrl(clipUrl || frameUrl);
-                          setPreviewFrameUrl(frameUrl);
-                          setPreviewClipTitle(`${m.label} (${m.timestamp_str})`);
-                          setClipTab(clipUrl ? "video" : "frame");
-                          setClipError(false);
-                        }}
+                        onClick={() => openPreviewModal(m)}
                         style={{
                           position: "relative",
                           width: "100%",
@@ -1545,18 +1656,33 @@ export default function IncidentsCommandHub() {
                           cursor: "pointer",
                         }}
                       >
-                        <img
-                          src={frameUrl}
-                          alt={m.label}
-                          style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                        />
+                        {frameUrl ? (
+                          <img
+                            src={frameUrl}
+                            alt={m.label}
+                            style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              if (m.frame_url && target.src !== resolveStorageUrl(m.frame_url)) {
+                                target.src = resolveStorageUrl(m.frame_url);
+                              } else if (m.all_frame_url && target.src !== resolveStorageUrl(m.all_frame_url)) {
+                                target.src = resolveStorageUrl(m.all_frame_url);
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                            <ImageIcon size={28} style={{ opacity: 0.4 }} />
+                            <span>Preview Pending</span>
+                          </div>
+                        )}
 
                         {/* Play Hover Overlay Beacon */}
                         <div
                           style={{
                             position: "absolute",
                             inset: 0,
-                            background: "rgba(0,0,0,0.35)",
+                            background: "rgba(0,0,0,0.20)",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -1569,14 +1695,18 @@ export default function IncidentsCommandHub() {
                               width: 44,
                               height: 44,
                               borderRadius: "50%",
-                              background: "rgba(37,99,235,0.85)",
+                              background: hasVideo ? "rgba(37,99,235,0.85)" : "rgba(79,70,229,0.85)",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
                               boxShadow: "0 0 20px rgba(59,130,246,0.6)",
                             }}
                           >
-                            <PlayIcon size={20} style={{ color: "#FFFFFF", marginLeft: 2 }} />
+                            {hasVideo ? (
+                              <PlayIcon size={20} style={{ color: "#FFFFFF", marginLeft: 2 }} />
+                            ) : (
+                              <ImageIcon size={18} style={{ color: "#FFFFFF" }} />
+                            )}
                           </div>
                         </div>
 
@@ -1714,17 +1844,11 @@ export default function IncidentsCommandHub() {
                       {/* Action Buttons */}
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 4 }}>
                         <button
-                          onClick={() => {
-                            setPreviewClipUrl(clipUrl || frameUrl);
-                            setPreviewFrameUrl(frameUrl);
-                            setPreviewClipTitle(`${m.label} (${m.timestamp_str})`);
-                            setClipTab(clipUrl ? "video" : "frame");
-                            setClipError(false);
-                          }}
+                          onClick={() => openPreviewModal(m)}
                           className="btn btn-secondary btn-sm"
                           style={{ fontSize: "0.72rem", fontWeight: 800, color: "#60A5FA", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
                         >
-                          <PlayIcon size={12} /> {clipUrl ? "Play Clip" : "View Footage"}
+                          <PlayIcon size={12} /> Play Tracked Clip
                         </button>
                         <button
                           onClick={() => setEnhanceMatch(m)}
@@ -1756,6 +1880,7 @@ export default function IncidentsCommandHub() {
                   );
                 })}
               </div>
+
             </div>
           </div>
         )}
@@ -1773,7 +1898,7 @@ export default function IncidentsCommandHub() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
               {[
                 { title: "Visual Optical Mass m_CV", val: "m(E) = 0.85, m(S) = 0.10, m(Theta) = 0.05", desc: "Derived from YOLOv8 multitask confidence and optical flow vectoring" },
-                { title: "Physical IoT Mass m_IoT", val: "m(E) = 0.92, m(S) = 0.03, m(Theta) = 0.05", desc: "Derived from MQ-2 smoke spike (>350ppm) and thermal rise probe (>48Â°C)" },
+                { title: "Physical IoT Mass m_IoT", val: "m(E) = 0.92, m(S) = 0.03, m(Theta) = 0.05", desc: "Derived from MQ-2 smoke spike (>350ppm) and thermal rise probe (>48°C)" },
                 { title: "Combined Fused Mass m_FUSED", val: "Bel(E) = 0.976, Pl(E) = 0.988, Conflict K = 0.021", desc: "Combined via Dempster's orthogonal sum rule yielding <1.8% false positive rate" },
               ].map((card, i) => (
                 <div key={i} style={{ background: "var(--bg-elevated)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 8, padding: 16 }}>
@@ -1815,7 +1940,7 @@ export default function IncidentsCommandHub() {
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", color: "#60A5FA", fontWeight: 800, marginBottom: 4 }}>
-                    <span>BLOCK #{b.index} Â· {b.action}</span>
+                    <span>BLOCK #{b.index} · {b.action}</span>
                     <span>{b.timestamp_str}</span>
                   </div>
                   <div style={{ color: "#94A3B8" }}>OPERATOR: {b.operator_id}</div>
@@ -1829,7 +1954,7 @@ export default function IncidentsCommandHub() {
         )}
 
         {/* FORENSIC EVIDENCE VIDEO PLAYER MODAL */}
-        {previewClipUrl && (
+        {previewModalOpen && (
           <div
             style={{
               position: "fixed",
@@ -1841,14 +1966,14 @@ export default function IncidentsCommandHub() {
               justifyContent: "center",
               padding: 20,
             }}
-            onClick={() => setPreviewClipUrl(null)}
+            onClick={() => setPreviewModalOpen(false)}
           >
             <div
               style={{
                 background: "#0A0F1D",
                 border: "1px solid rgba(59,130,246,0.4)",
                 borderRadius: 14,
-                maxWidth: 780,
+                maxWidth: 820,
                 width: "100%",
                 boxShadow: "0 24px 80px rgba(0,0,0,0.95), 0 0 40px rgba(59,130,246,0.2)",
                 overflow: "hidden",
@@ -1865,10 +1990,14 @@ export default function IncidentsCommandHub() {
                 borderBottom: "1px solid rgba(255,255,255,0.08)",
               }}>
                 <h3 style={{ fontSize: "1rem", fontWeight: 900, margin: 0, color: "white", display: "flex", alignItems: "center", gap: 8 }}>
-                  <PlayIcon size={16} style={{ color: "#3B82F6" }} />
+                  {previewVideoUrl && clipTab === "video" ? (
+                    <PlayIcon size={16} style={{ color: "#3B82F6" }} />
+                  ) : (
+                    <ImageIcon size={16} style={{ color: "#60A5FA" }} />
+                  )}
                   {previewClipTitle || "Forensic Video Evidence Clip"}
                 </h3>
-                <button onClick={() => setPreviewClipUrl(null)} className="btn btn-ghost btn-sm">
+                <button onClick={() => setPreviewModalOpen(false)} className="btn btn-ghost btn-sm">
                   <CloseIcon size={16} />
                 </button>
               </div>
@@ -1881,24 +2010,30 @@ export default function IncidentsCommandHub() {
                 padding: "6px 16px",
                 gap: 8,
               }}>
-                <button
-                  onClick={() => setClipTab("video")}
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: 6,
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    background: clipTab === "video" ? "rgba(59,130,246,0.2)" : "transparent",
-                    border: `1px solid ${clipTab === "video" ? "#3B82F6" : "transparent"}`,
-                    color: clipTab === "video" ? "#60A5FA" : "var(--text-muted)",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <FilmIcon size={14} /> Video Stream Playback
-                </button>
+                {previewVideoUrl && (
+                  <button
+                    onClick={() => {
+                      setClipTab("video");
+                      setClipError(false);
+                    }}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: 6,
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      background: clipTab === "video" ? "rgba(59,130,246,0.2)" : "transparent",
+                      border: `1px solid ${clipTab === "video" ? "#3B82F6" : "transparent"}`,
+                      color: clipTab === "video" ? "#60A5FA" : "var(--text-muted)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <FilmIcon size={14} />
+                    {generatingClip ? "Transcoding Tracked Clip..." : "Video Stream Playback"}
+                  </button>
+                )}
                 {previewFrameUrl && (
                   <button
                     onClick={() => setClipTab("frame")}
@@ -1933,25 +2068,45 @@ export default function IncidentsCommandHub() {
                   justifyContent: "center",
                 }}
               >
-                {clipTab === "video" && !clipError ? (
+                {clipTab === "video" && previewVideoUrl && !clipError && !generatingClip ? (
                   <video
-                    src={previewClipUrl}
+                    key={previewVideoUrl}
+                    src={previewVideoUrl}
                     autoPlay
                     controls
                     loop
+                    playsInline
                     onError={() => {
                       console.warn("Video failed to decode in browser, falling back to overlay frame");
                       setClipError(true);
+                      setClipTab("frame");
                     }}
-                    style={{ width: "100%", maxHeight: "460px", objectFit: "contain" }}
+                    style={{ width: "100%", maxHeight: "480px", objectFit: "contain", display: "block" }}
                   />
+                ) : clipTab === "video" && generatingClip ? (
+                  <div style={{ padding: "50px 20px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", border: "3px solid #3B82F6", borderTopColor: "transparent", animation: "spin 1s linear infinite" }} />
+                    <div style={{ fontSize: "0.9rem", fontWeight: 800, color: "#FFFFFF" }}>Extracting & Tracking Dynamic Incident Clip...</div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", maxWidth: 420 }}>
+                      Running optical flow tracking and neural HUD bounding box overlay with H.264 web transcoding.
+                    </div>
+                  </div>
                 ) : (
-                  <div style={{ width: "100%", position: "relative", display: "flex", justifyContent: "center" }}>
-                    <img
-                      src={previewFrameUrl || previewClipUrl}
-                      alt="Evidence Frame"
-                      style={{ width: "100%", maxHeight: "460px", objectFit: "contain" }}
-                    />
+                  <div style={{ width: "100%", position: "relative", display: "flex", justifyContent: "center", padding: "8px 0" }}>
+                    {previewFrameUrl ? (
+                      <img
+                        src={previewFrameUrl}
+                        alt="Evidence Frame"
+                        style={{ width: "100%", maxHeight: "480px", objectFit: "contain", display: "block" }}
+                        onError={() => {
+                          console.warn("Frame failed to load in modal:", previewFrameUrl);
+                        }}
+                      />
+                    ) : (
+                      <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-muted)" }}>
+                        No forensic frame available for this match.
+                      </div>
+                    )}
                     {clipError && (
                       <div style={{
                         position: "absolute",
@@ -1964,7 +2119,7 @@ export default function IncidentsCommandHub() {
                         fontSize: "0.72rem",
                         color: "#F87171",
                       }}>
-                        Video stream format notice â€” displaying high-res forensic detection overlay frame
+                        Notice: Transcoding video clip — displaying high-res forensic detection overlay frame
                       </div>
                     )}
                   </div>
@@ -1974,9 +2129,9 @@ export default function IncidentsCommandHub() {
               {/* Footer */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", background: "rgba(255,255,255,0.02)", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                 <div style={{ display: "flex", gap: 10 }}>
-                  {previewClipUrl && (
+                  {previewVideoUrl && (
                     <a
-                      href={previewClipUrl}
+                      href={previewVideoUrl}
                       download
                       className="btn btn-secondary btn-sm"
                       style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.72rem" }}
@@ -1995,7 +2150,7 @@ export default function IncidentsCommandHub() {
                     </a>
                   )}
                 </div>
-                <button onClick={() => setPreviewClipUrl(null)} className="btn btn-secondary btn-sm">
+                <button onClick={() => setPreviewModalOpen(false)} className="btn btn-secondary btn-sm">
                   Close Player
                 </button>
               </div>
@@ -2011,4 +2166,3 @@ export default function IncidentsCommandHub() {
     </ToastProvider>
   );
 }
-

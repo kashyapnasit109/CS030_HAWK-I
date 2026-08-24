@@ -600,7 +600,16 @@ def run_campus_safety_search(
 
     cap = cv2.VideoCapture(str(video_path))
     video_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    total_raw_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     frame_interval = max(1, int(video_fps / sample_fps))
+
+    if start_time is not None or end_time is not None:
+        start_sec = start_time or 0.0
+        end_sec = min(end_time, total_raw_frames / video_fps) if end_time else (total_raw_frames / video_fps if video_fps > 0 else 10.0)
+        dur = max(1.0, end_sec - start_sec)
+        total_sample_frames = max(1, int(dur * sample_fps))
+    else:
+        total_sample_frames = max(1, int(total_raw_frames / frame_interval)) if total_raw_frames > 0 else 100
 
     hazard_suite = get_hazard_engine()
     hazard_suite.track_buffer.reset()
@@ -609,7 +618,8 @@ def run_campus_safety_search(
     clip_tasks = []
     frame_idx = 0
     frames_processed = 0
-    last_match_sec = -10.0
+    start_time_wall = time.time()
+
     try:
         while cap.isOpened():
             if frame_idx % frame_interval != 0:
@@ -629,6 +639,10 @@ def run_campus_safety_search(
                 break
 
             frames_processed += 1
+            frames_remaining = max(0, total_sample_frames - frames_processed)
+            elapsed = time.time() - start_time_wall
+            fps_speed = round(frames_processed / max(0.001, elapsed), 1)
+            progress_pct = round(min(99.0, (frames_processed / max(1, total_sample_frames)) * 100.0), 1)
 
             # Run frame through unified task-specific hazard suite
             res = hazard_suite.process_frame(
@@ -698,6 +712,20 @@ def run_campus_safety_search(
                         frame_rel = all_rel
                         frame_hash = all_hash
 
+                    # Build annotated box dictionary with real label and confidence
+                    raw_box = inc.get("box")
+                    box_obj = None
+                    if raw_box and isinstance(raw_box, dict):
+                        box_obj = {
+                            "x1": raw_box.get("x1", 0),
+                            "y1": raw_box.get("y1", 0),
+                            "x2": raw_box.get("x2", 0),
+                            "y2": raw_box.get("y2", 0),
+                            "label": inc.get("label", "Threat Detected"),
+                            "confidence": inc.get("confidence", 0.85),
+                            "incident_type": normalized_type,
+                        }
+
                     match_obj = {
                         "camera_id": camera_id,
                         "timestamp": round(timestamp, 3),
@@ -711,7 +739,7 @@ def run_campus_safety_search(
                         "severity": inc.get("severity", "P1"),
                         "incident_type": normalized_type,
                         "search_type": "keyword" if normalized_type == "keyword" else "emergency_hazard",
-                        "box": inc.get("box"),
+                        "box": box_obj,
                         "frame_hash": frame_hash,
                         "people_count": res.get("people_count", 0),
                         "iot_telemetry": inc.get("iot_telemetry", {}),
@@ -719,11 +747,18 @@ def run_campus_safety_search(
                     matches.append(match_obj)
                     clip_tasks.append((round(timestamp, 3), len(matches) - 1))
 
-                last_match_sec = timestamp
-
             if progress_cb:
                 try:
-                    progress_cb(frames_processed, len(matches), list(matches))
+                    progress_cb(
+                        frames_processed,
+                        len(matches),
+                        list(matches),
+                        total_sample_frames,
+                        frames_remaining,
+                        progress_pct,
+                        fps_speed,
+                        format_timestamp(timestamp)
+                    )
                 except Exception:
                     pass
 
@@ -732,7 +767,7 @@ def run_campus_safety_search(
     finally:
         cap.release()
 
-    # Extract forensic evidence video clips (deduplicated per timestamp)
+    # Extract forensic evidence video clips with active dynamic box & label tracking
     if clip_tasks and video_path.exists():
         c_tasks = []
         unique_ts = {}
@@ -741,29 +776,40 @@ def run_campus_safety_search(
             clip_abs = job_dir / clip_filename
             clip_rel = f"/storage/results/{job_id}/{clip_filename}"
             matches[m_idx]["clip_url"] = clip_rel
+
             if ts not in unique_ts:
                 unique_ts[ts] = (clip_filename, clip_abs)
+                # Aggregate all bounding boxes around this timestamp for multi-target tracking
+                ts_boxes = []
+                for m_scan in matches:
+                    if abs(m_scan.get("timestamp", 0) - ts) <= 0.6 and m_scan.get("box"):
+                        ts_boxes.append(m_scan["box"])
+
                 c_tasks.append({
                     "video_path": video_path,
                     "output_path": clip_abs,
                     "center_timestamp": ts,
-                    "draw_box": matches[m_idx].get("box"),
-                    "window_seconds": 3.0,
+                    "draw_boxes": ts_boxes if ts_boxes else (matches[m_idx].get("box") or []),
+                    "window_seconds": 3.5,
                 })
-        # Extract top representative forensic clips in parallel
-        sampled_c_tasks = c_tasks[:4]
+
+        # Extract representative forensic clips in parallel (up to 30 events)
+        sample_limit = min(30, len(c_tasks))
+        sampled_c_tasks = c_tasks[:sample_limit]
         try:
-            extract_clips_parallel(sampled_c_tasks, max_workers=4)
+            extract_clips_parallel(sampled_c_tasks, max_workers=min(6, max(2, len(sampled_c_tasks))))
             for ts, m_idx in clip_tasks:
                 clip_filename = f"clip_{job_id}_{int(ts * 1000):08d}.mp4"
                 clip_abs = job_dir / clip_filename
-                if clip_abs.exists():
+                if clip_abs.exists() and clip_abs.stat().st_size > 500:
                     matches[m_idx]["clip_hash"] = _sha256_file(clip_abs)
+                    matches[m_idx]["clip_url"] = f"/storage/results/{job_id}/{clip_filename}"
                 else:
-                    # If clip wasn't sampled, fall back to high-res annotated frame
+                    # If clip wasn't pre-rendered, fall back to high-res annotated frame URL until requested
                     matches[m_idx]["clip_url"] = matches[m_idx]["frame_url"]
         except Exception as clip_err:
             print(f"[campus_safety_cv] Clip extraction notice: {clip_err}")
+
 
     # Persist job manifest for cross-module forensic inspection and report export
     try:

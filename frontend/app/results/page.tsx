@@ -716,9 +716,119 @@ function getSearchTypeLabel(type: string | undefined, query?: string) {
   return "AI Forensic Analysis";
 }
 
+function CameraTrailMap({ matches }: { matches: MatchResult[] }) {
+  if (!matches || matches.length === 0) return null;
+  const cameras = Array.from(new Set(matches.map((m) => m.camera_id).filter(Boolean)));
+  if (cameras.length === 0) return null;
+
+  return (
+    <div className="card" style={{ padding: "14px 18px", background: "rgba(10,15,29,0.8)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <MapIcon size={16} style={{ color: "#60A5FA" }} />
+          <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#FFFFFF" }}>Multi-Camera Incident Sequence & Trail</span>
+        </div>
+        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "JetBrains Mono, monospace" }}>
+          {cameras.length} Active Node(s) Detected
+        </span>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+        {cameras.map((cam, idx) => {
+          const camHits = matches.filter((m) => m.camera_id === cam);
+          const latestHit = camHits[camHits.length - 1];
+          return (
+            <div key={cam} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{
+                background: "rgba(59,130,246,0.15)",
+                border: "1px solid rgba(59,130,246,0.4)",
+                padding: "6px 12px",
+                borderRadius: 6,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3B82F6" }} />
+                <span style={{ fontSize: "0.78rem", fontWeight: 800, color: "#93C5FD", fontFamily: "JetBrains Mono, monospace" }}>{cam}</span>
+                <span style={{ fontSize: "0.68rem", color: "#60A5FA", background: "rgba(59,130,246,0.25)", padding: "1px 6px", borderRadius: 4 }}>
+                  {camHits.length} hit(s)
+                </span>
+                {latestHit && (
+                  <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", fontFamily: "JetBrains Mono, monospace" }}>
+                    @{latestHit.timestamp_str}
+                  </span>
+                )}
+              </div>
+              {idx < cameras.length - 1 && (
+                <span style={{ color: "rgba(255,255,255,0.3)", fontWeight: 900, fontSize: "0.85rem" }}>→</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TimelineScrubber({
+  matches,
+  totalDuration,
+  onSelect,
+  selected,
+}: {
+  matches: MatchResult[];
+  totalDuration: number;
+  onSelect: (m: MatchResult) => void;
+  selected: MatchResult | null;
+}) {
+  if (!matches || matches.length === 0) return null;
+  const maxTime = totalDuration > 0 ? totalDuration : Math.max(...matches.map((m) => m.timestamp), 60);
+
+  return (
+    <div className="card" style={{ padding: "14px 18px", background: "rgba(10,15,29,0.8)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <ClockIcon size={16} style={{ color: "#3B82F6" }} />
+          <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#FFFFFF" }}>Temporal Incident Timeline</span>
+        </div>
+        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "JetBrains Mono, monospace" }}>
+          {matches.length} Detections Mapped Across Timeline
+        </span>
+      </div>
+      <div style={{ position: "relative", width: "100%", height: 32, background: "rgba(255,255,255,0.04)", borderRadius: 6, display: "flex", alignItems: "center" }}>
+        <div style={{ position: "absolute", left: 0, right: 0, height: 2, background: "rgba(59,130,246,0.3)" }} />
+        {matches.map((m, i) => {
+          const pct = Math.min(100, Math.max(0, (m.timestamp / maxTime) * 100));
+          const isSel = selected === m;
+          return (
+            <div
+              key={i}
+              onClick={() => onSelect(m)}
+              title={`${m.label} at ${m.timestamp_str} (${m.camera_id})`}
+              style={{
+                position: "absolute",
+                left: `${pct}%`,
+                transform: "translateX(-50%)",
+                width: isSel ? 14 : 10,
+                height: isSel ? 24 : 18,
+                borderRadius: 3,
+                background: isSel ? "#EF4444" : "#3B82F6",
+                boxShadow: isSel ? "0 0 10px #EF4444" : "0 0 6px rgba(59,130,246,0.8)",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                zIndex: isSel ? 10 : 2,
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Results Page ─────────────────────────────────────────────────
 export default function ResultsPage() {
   const [jobId, setJobId] = useState("");
+
   const [job, setJob] = useState<SearchJob | null>(null);
   const [loadingJob, setLoadingJob] = useState(false);
   const [pastJobs, setPastJobs] = useState<Record<string, any>>({});
@@ -947,33 +1057,8 @@ export default function ResultsPage() {
     }
   };
 
-  const handleExport = async () => {
-    if (!jobId) return;
-    setExporting(true);
-    try {
-      const blob = await exportReport(
-        jobId,
-        exportTitle,
-        exportInvestigator || "N/A",
-        caseNumber || "N/A",
-        department || "N/A",
-        notes || "Automated multi-modal forensic search report."
-      );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `forensic_report_${jobId}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast("Forensic report PDF exported", "success");
-    } catch {
-      showToast("PDF export failed — ensure search completed", "error");
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const copyHash = (hash: string) => {
+
     navigator.clipboard.writeText(hash);
     showToast("Hash copied to clipboard", "success");
   };

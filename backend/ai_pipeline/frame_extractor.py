@@ -212,7 +212,7 @@ def _get_ffmpeg_cmd() -> str:
 def _track_boxes_across_frames(clip_frames: list[np.ndarray], initial_boxes: list[dict], center_idx: int) -> list[list[dict]]:
     """
     Track bounding boxes dynamically across clip frames using optical flow and centroid continuity.
-    Returns a list of boxes for each frame index.
+    Preserves exact threat labels and confidence scores across every frame.
     """
     num_frames = len(clip_frames)
     if num_frames == 0 or not initial_boxes:
@@ -223,16 +223,36 @@ def _track_boxes_across_frames(clip_frames: list[np.ndarray], initial_boxes: lis
 
     # For each initial box, compute tracked trajectory
     for b_idx, b_spec in enumerate(initial_boxes):
+        if not isinstance(b_spec, dict):
+            continue
+
         x1_0 = max(0, min(w_img - 1, int(b_spec.get("x1", 0))))
         y1_0 = max(0, min(h_img - 1, int(b_spec.get("y1", 0))))
         x2_0 = max(0, min(w_img - 1, int(b_spec.get("x2", w_img))))
         y2_0 = max(0, min(h_img - 1, int(b_spec.get("y2", h_img))))
-        label = b_spec.get("label", "Target")
-        conf = b_spec.get("confidence", 0.90)
-        color_bgr = b_spec.get("color_bgr", PREMIUM_PALETTE_BGR[b_idx % len(PREMIUM_PALETTE_BGR)])
 
-        box_w = max(10, x2_0 - x1_0)
-        box_h = max(10, y2_0 - y1_0)
+        label = str(b_spec.get("label") or b_spec.get("incident_type") or b_spec.get("class_name") or "Threat Detected")
+        conf = float(b_spec.get("confidence", 0.88))
+
+        # Modality color styling
+        lbl_lower = label.lower()
+        if "fire" in lbl_lower or "flame" in lbl_lower or "weapon" in lbl_lower or "gun" in lbl_lower:
+            derived_color = (0, 0, 240)    # Crimson Red
+        elif "fall" in lbl_lower or "slip" in lbl_lower or "immobility" in lbl_lower:
+            derived_color = (11, 158, 245) # Amber Gold
+        elif "smoke" in lbl_lower or "plume" in lbl_lower:
+            derived_color = (200, 200, 200) # Smoke Gray / Silver
+        elif "crowd" in lbl_lower or "affray" in lbl_lower or "brawl" in lbl_lower:
+            derived_color = (247, 85, 168) # Violet Pink
+        elif "face" in lbl_lower or "suspect" in lbl_lower:
+            derived_color = (22, 204, 132) # Lime Neon
+        else:
+            derived_color = PREMIUM_PALETTE_BGR[b_idx % len(PREMIUM_PALETTE_BGR)]
+
+        color_bgr = b_spec.get("color_bgr") or derived_color
+
+        box_w = max(16, x2_0 - x1_0)
+        box_h = max(16, y2_0 - y1_0)
 
         # Track trajectory array of (cx, cy)
         centers = [None] * num_frames
@@ -252,21 +272,21 @@ def _track_boxes_across_frames(clip_frames: list[np.ndarray], initial_boxes: lis
             ry2 = min(h_img, int(prev_cy + box_h / 2))
 
             roi_prev = prev_gray[ry1:ry2, rx1:rx2]
-            p0 = cv2.goodFeaturesToTrack(roi_prev, maxCorners=12, qualityLevel=0.15, minDistance=5)
+            p0 = cv2.goodFeaturesToTrack(roi_prev, maxCorners=16, qualityLevel=0.10, minDistance=4)
             shift_x, shift_y = 0.0, 0.0
 
             if p0 is not None and len(p0) >= 3:
                 p0[:, :, 0] += rx1
                 p0[:, :, 1] += ry1
-                p1, st, _ = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, p0, None, winSize=(15, 15), maxLevel=2)
+                p1, st, _ = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, p0, None, winSize=(19, 19), maxLevel=2)
                 if p1 is not None and st is not None:
                     good_new = p1[st == 1]
                     good_old = p0[st == 1]
                     if len(good_new) >= 3:
                         dx = np.median(good_new[:, 0] - good_old[:, 0])
                         dy = np.median(good_new[:, 1] - good_old[:, 1])
-                        shift_x = float(np.clip(dx, -25.0, 25.0))
-                        shift_y = float(np.clip(dy, -25.0, 25.0))
+                        shift_x = float(np.clip(dx, -30.0, 30.0))
+                        shift_y = float(np.clip(dy, -30.0, 30.0))
 
             new_cx = max(box_w / 2.0, min(w_img - box_w / 2.0, prev_cx + shift_x))
             new_cy = max(box_h / 2.0, min(h_img - box_h / 2.0, prev_cy + shift_y))
@@ -285,21 +305,21 @@ def _track_boxes_across_frames(clip_frames: list[np.ndarray], initial_boxes: lis
             ry2 = min(h_img, int(prev_cy + box_h / 2))
 
             roi_prev = prev_gray[ry1:ry2, rx1:rx2]
-            p0 = cv2.goodFeaturesToTrack(roi_prev, maxCorners=12, qualityLevel=0.15, minDistance=5)
+            p0 = cv2.goodFeaturesToTrack(roi_prev, maxCorners=16, qualityLevel=0.10, minDistance=4)
             shift_x, shift_y = 0.0, 0.0
 
             if p0 is not None and len(p0) >= 3:
                 p0[:, :, 0] += rx1
                 p0[:, :, 1] += ry1
-                p1, st, _ = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, p0, None, winSize=(15, 15), maxLevel=2)
+                p1, st, _ = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, p0, None, winSize=(19, 19), maxLevel=2)
                 if p1 is not None and st is not None:
                     good_new = p1[st == 1]
                     good_old = p0[st == 1]
                     if len(good_new) >= 3:
                         dx = np.median(good_new[:, 0] - good_old[:, 0])
                         dy = np.median(good_new[:, 1] - good_old[:, 1])
-                        shift_x = float(np.clip(dx, -25.0, 25.0))
-                        shift_y = float(np.clip(dy, -25.0, 25.0))
+                        shift_x = float(np.clip(dx, -30.0, 30.0))
+                        shift_y = float(np.clip(dy, -30.0, 30.0))
 
             new_cx = max(box_w / 2.0, min(w_img - box_w / 2.0, prev_cx + shift_x))
             new_cy = max(box_h / 2.0, min(h_img - box_h / 2.0, prev_cy + shift_y))

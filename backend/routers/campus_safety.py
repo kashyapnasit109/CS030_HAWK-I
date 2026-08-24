@@ -233,7 +233,9 @@ def _run_hazard_search_task(job_id: str, req: HazardSearchRequest):
                 sample_fps=req.sample_fps,
                 start_time=req.start_time,
                 end_time=req.end_time,
-                progress_cb=lambda p, m, cur=None: _update_hazard_progress(job_id, p, m, cur),
+                progress_cb=lambda p, m, cur=None, tf=None, rem=None, pct=None, spd=None, cur_t=None: _update_hazard_progress(
+                    job_id, p, m, cur, tf, rem, pct, spd, cur_t
+                ),
                 keyword_query=req.keyword_query,
                 blur_faces=req.blur_faces,
             )
@@ -264,11 +266,31 @@ def _run_hazard_search_task(job_id: str, req: HazardSearchRequest):
             _search_router._jobs[job_id]["error"] = str(err)
 
 
-def _update_hazard_progress(job_id: str, frames_p: int, frames_m: int, current_matches: list | None = None):
+def _update_hazard_progress(
+    job_id: str,
+    frames_p: int,
+    frames_m: int,
+    current_matches: list | None = None,
+    total_f: int | None = None,
+    frames_r: int | None = None,
+    pct: float | None = None,
+    fps_spd: float | None = None,
+    cur_ts: str | None = None,
+):
     import routers.search as _search_router
     if job_id in _hazard_jobs:
         _hazard_jobs[job_id]["frames_processed"] = frames_p
         _hazard_jobs[job_id]["frames_matched"] = frames_m
+        if total_f is not None:
+            _hazard_jobs[job_id]["total_frames"] = total_f
+        if frames_r is not None:
+            _hazard_jobs[job_id]["frames_remaining"] = frames_r
+        if pct is not None:
+            _hazard_jobs[job_id]["progress_percent"] = pct
+        if fps_spd is not None:
+            _hazard_jobs[job_id]["fps_speed"] = fps_spd
+        if cur_ts is not None:
+            _hazard_jobs[job_id]["current_timestamp_str"] = cur_ts
         if current_matches is not None:
             _hazard_jobs[job_id]["matches"] = list(current_matches)
             _hazard_jobs[job_id]["match_count"] = len(current_matches)
@@ -276,9 +298,20 @@ def _update_hazard_progress(job_id: str, frames_p: int, frames_m: int, current_m
     if hasattr(_search_router, "_jobs") and job_id in _search_router._jobs:
         _search_router._jobs[job_id]["frames_processed"] = frames_p
         _search_router._jobs[job_id]["frames_matched"] = frames_m
+        if total_f is not None:
+            _search_router._jobs[job_id]["total_frames"] = total_f
+        if frames_r is not None:
+            _search_router._jobs[job_id]["frames_remaining"] = frames_r
+        if pct is not None:
+            _search_router._jobs[job_id]["progress_percent"] = pct
+        if fps_spd is not None:
+            _search_router._jobs[job_id]["fps_speed"] = fps_spd
+        if cur_ts is not None:
+            _search_router._jobs[job_id]["current_timestamp_str"] = cur_ts
         if current_matches is not None:
             _search_router._jobs[job_id]["matches"] = list(current_matches)
             _search_router._jobs[job_id]["match_count"] = len(current_matches)
+
 
 
 @router.post("/search-hazard")
@@ -503,3 +536,106 @@ def scan_video_for_hazard(req: VideoHazardScanRequest):
         "detections_count": len(detections),
         "detections": detections[:10]
     }
+
+
+def _sha256_file(path: Path) -> str:
+    import hashlib
+    h = hashlib.sha256()
+    try:
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except Exception:
+        return "N/A"
+
+
+@router.get("/generate-clip")
+def generate_clip_on_demand(
+    video_id: str | None = None,
+    job_id: str | None = None,
+    timestamp: float = 0.0,
+    window: float = 3.5,
+    x1: int | None = None,
+    y1: int | None = None,
+    x2: int | None = None,
+    y2: int | None = None,
+    label: str = "Threat Detected",
+    confidence: float = 0.88,
+):
+    """
+    On-demand extraction and optical flow tracking of forensic video clip
+    for any incident frame in real-time.
+    """
+    from ai_pipeline.frame_extractor import extract_clip
+    BASE_STORAGE = Path(__file__).parent.parent / "storage"
+    RESULTS_DIR = BASE_STORAGE / "results"
+    UPLOADS_DIR = BASE_STORAGE / "uploads"
+
+    # 1. Check if already cached on disk
+    if job_id:
+        clip_name = f"clip_{job_id}_{int(timestamp * 1000):08d}.mp4"
+        clip_path = RESULTS_DIR / job_id / clip_name
+        if clip_path.exists() and clip_path.stat().st_size > 500:
+            return {
+                "success": True,
+                "clip_url": f"/storage/results/{job_id}/{clip_name}",
+                "cached": True,
+                "clip_hash": _sha256_file(clip_path),
+            }
+
+
+    # 2. Locate source video
+    target_video_path = None
+    if video_id:
+        try:
+            target_video_path, _ = _resolve_video_path(video_id)
+        except Exception:
+            pass
+
+    if not target_video_path or not target_video_path.exists():
+        # Look in uploads directory
+        for vfile in UPLOADS_DIR.glob("*.*"):
+            if vfile.suffix.lower() in [".mp4", ".avi", ".mov", ".mkv"]:
+                target_video_path = vfile
+                break
+
+    if not target_video_path or not target_video_path.exists():
+        raise HTTPException(status_code=404, detail="Source video footage not available on server")
+
+    # Destination
+    out_dir = RESULTS_DIR / (job_id or "live_clips")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    clip_filename = f"clip_{job_id or 'gen'}_{int(timestamp * 1000):08d}.mp4"
+    out_clip_path = out_dir / clip_filename
+
+    box_spec = None
+    if x1 is not None and y1 is not None and x2 is not None and y2 is not None:
+        box_spec = {
+            "x1": x1,
+            "y1": y1,
+            "x2": x2,
+            "y2": y2,
+            "label": label,
+            "confidence": confidence,
+        }
+
+    ok = extract_clip(
+        video_path=target_video_path,
+        output_path=out_clip_path,
+        center_timestamp=timestamp,
+        window_seconds=window,
+        draw_box=box_spec,
+    )
+
+    if not ok or not out_clip_path.exists():
+        raise HTTPException(status_code=500, detail="Failed to transcode tracked video clip")
+
+    clip_rel = f"/storage/results/{job_id or 'live_clips'}/{clip_filename}"
+    return {
+        "success": True,
+        "clip_url": clip_rel,
+        "cached": False,
+        "clip_hash": _sha256_file(out_clip_path),
+    }
+

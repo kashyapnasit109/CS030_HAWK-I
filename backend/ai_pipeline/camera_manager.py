@@ -742,10 +742,19 @@ def start_live_detection(
                 if detection_type == "face":
                     from ai_pipeline.face_recognition import detect_faces, _embed_face_crop, _TORCH_AVAILABLE as FACE_TORCH
                     faces = detect_faces(frame, min_size=(25, 25))
-                    
-                    for (x, y, w, h) in faces:
+
+                    for f_item in faces:
+                        if isinstance(f_item, dict):
+                            x, y, w, h = f_item.get("box", (0, 0, 0, 0))
+                            prob_detected = f_item.get("prob", 0.72)
+                        elif isinstance(f_item, (list, tuple)) and len(f_item) == 4:
+                            x, y, w, h = f_item
+                            prob_detected = 0.72
+                        else:
+                            continue
+
                         matched_label = "Unidentified Person"
-                        matched_conf = 0.72
+                        matched_conf = prob_detected
 
                         if FACE_TORCH and db_tensor is not None:
                             try:
@@ -773,6 +782,7 @@ def start_live_detection(
                             "confidence": round(matched_conf, 3),
                             "box": {"x1": int(x), "y1": int(y), "x2": int(x+w), "y2": int(y+h)},
                         })
+
 
                 elif detection_type in ("hazard", "hazard_suite", "fall", "fire", "smoke", "weapon", "blood"):
                     try:
