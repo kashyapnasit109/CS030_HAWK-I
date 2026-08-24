@@ -592,3 +592,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Grafana dashboards for system observability
 - PagerDuty integration for on-call alerts
 
+
+## [2026-08-24 16:00] feat(hazard-engine): implement flare suppression filter for night-time vehicle headlights
+- Modeled horizontal elliptical aspect ratio of specular headlight beams
+- Rejected non-combustion reflective surfaces from flame candidate list
+- Suppressed false alerts in campus parking lots during night hours
