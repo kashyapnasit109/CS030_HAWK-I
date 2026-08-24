@@ -592,3 +592,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - W&B integration for experiment tracking
 - Automatic hyperparameter tuning with Optuna
 
+
+## [2026-08-24 19:30] feat(hazard-engine): add electrical arc flash detector with high-frequency temporal flicker analysis
+- Detected micro-bursts (<100ms) with high color temperature (>6500K)
+- Correlated localized pixel saturation with rapid decay envelopes
+- Protected campus electrical substations and switchgear rooms
