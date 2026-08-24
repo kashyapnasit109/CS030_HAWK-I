@@ -592,3 +592,8 @@ Key architectural choices and their rationale.
 - Screen reader support for all interactive elements
 - Keyboard navigation for dashboard controls
 
+
+## [2026-08-24 10:15] feat(hazard-engine): implement incandescent core thermal thresholding in HSV color space
+- Segmented high-luminance core (>220) with high red-orange saturation
+- Suppressed static amber sodium lamps via localized temporal variance
+- Calibrated core-to-envelope area ratio to reject small transient reflections
