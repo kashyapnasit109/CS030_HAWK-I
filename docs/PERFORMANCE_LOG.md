@@ -592,3 +592,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Full backup weekly with 30-day retention
 - Video archive: S3 Glacier after 90 days
 
+
+## [2026-08-24 11:45] feat(hazard-engine): calibrate atmospheric smoke plume vertical dispersion estimator
+- Calculated vertical velocity gradient of gray segmented contours
+- Distinguished expanding upward convection from wind-blown dust
+- Integrated dual-confirmation logic with optical flame detector
