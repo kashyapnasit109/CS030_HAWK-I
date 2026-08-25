@@ -602,3 +602,8 @@ Key architectural choices and their rationale.
 - Monitored distance between pressurized gas cylinders and heat sources
 - Flagged storage violations within 5 meters of active boiler units
 - Dispatched high-priority warning to facilities management
+
+## [2026-08-25 19:30] feat(hazard-engine): calibrate pyrolytic cable insulation smoke color classification
+- Distinguished dense white pyrolytic smoke from dark hydrocarbon soot
+- Alerted on electrical cable overheating before open flames erupt
+- Integrated into campus underground utility tunnel monitoring matrix
