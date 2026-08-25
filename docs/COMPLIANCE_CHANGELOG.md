@@ -68,3 +68,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 25, 2026 15:01:16]` **refactor(pipeline): standardize statutory evidence payload schema across jurisdictions** — *Verified component: camera ring buffer & video ingestion*
 - `[Aug 25, 2026 15:21:37]` **refactor(diagnostics): extract reusable canvas drawing primitives into utility layer** — *Verified component: hardware decoders & operational telemetry*
 - `[Aug 25, 2026 18:00:04]` **test(compliance): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: compliance engine core & rule execution*
+- `[Aug 25, 2026 19:17:13]` **fix(assignment): correct bounding box clipping on frame border intersections** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
