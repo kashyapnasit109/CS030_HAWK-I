@@ -81,3 +81,10 @@ Tracking inference latency, throughput, and resource utilization.
 - Point-in-polygon: ray casting algorithm
 - Support for nested and overlapping zones
 
+
+## [2026-08-26 03:41] Commit #58
+### Backup Strategy
+- Incremental database backups every 6 hours
+- Full backup weekly with 30-day retention
+- Video archive: S3 Glacier after 90 days
+
