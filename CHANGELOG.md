@@ -597,3 +597,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Detected micro-bursts (<100ms) with high color temperature (>6500K)
 - Correlated localized pixel saturation with rapid decay envelopes
 - Protected campus electrical substations and switchgear rooms
+
+## [2026-08-25 18:15] feat(hazard-engine): implement forest boundary ember ignition monitoring using infrared contrast
+- Scanned dry brush perimeter along campus boundary fence
+- Identified isolated high-temperature ember signatures (>400C)
+- Automated early wildfire warning dispatch to campus security
