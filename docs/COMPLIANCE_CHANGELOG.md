@@ -64,3 +64,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 24, 2026 23:44:28]` **fix(perf): guard against race conditions in bulk rule commit transactions** — *Verified component: tensor memory management & latency optimization*
 - `[Aug 25, 2026 09:20:41]` **docs(pipeline): document camera compatibility capability matrix requirements** — *Verified component: camera ring buffer & video ingestion*
 - `[Aug 25, 2026 10:42:30]` **test(stream): add stress test for concurrent multi-stream ingest degradation** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Aug 25, 2026 11:06:30]` **test(rules): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: deterministic rule evaluator & spatial logic*
