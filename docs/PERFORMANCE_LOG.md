@@ -602,3 +602,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Measured 8-12 Hz characteristic flame boundary oscillation frequency
 - Distinguished genuine turbulent combustion from oscillating signage
 - Improved flame detection specificity to 98.6% on test footage
+
+## [2026-08-25 21:45] feat(hazard-engine): add rooftop ledge proximity detector for campus high-rise buildings
+- Defined high-risk polygonal safety zones along exterior parapets
+- Tracked person dwell time near unprotected rooftop edges
+- Dispatched urgent patrol intervention to prevent fall incidents
