@@ -532,3 +532,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Calculated minimum intensity across RGB color channels in local patches
 - Computed atmospheric transmission map to estimate optical range
 - Issued dynamic sensor sensitivity adjustment during heavy haze
+
+## [2026-08-25 15:00] feat(hazard-engine): add chemical solvent vapor plume detection via optical distortion shimmer
+- Segmented refractive index background shimmer using temporal optical flow
+- Localized volatile organic compound (VOC) release points in labs
+- Triggered emergency laboratory ventilation interlock system
