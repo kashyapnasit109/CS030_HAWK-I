@@ -234,6 +234,27 @@ CREATE TABLE IF NOT EXISTS audit_log (
   detail TEXT NOT NULL
 );
 
+-- Active Learning & Re-ID Human Feedback Store
+CREATE TABLE IF NOT EXISTS model_feedback (
+  feedback_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_id TEXT,
+  search_type TEXT DEFAULT 'face_recognition',
+  reference_label TEXT NOT NULL,
+  predicted_label TEXT NOT NULL,
+  rating TEXT NOT NULL, -- 'good' (true positive match) or 'bad' (false positive match)
+  correction_label TEXT NULL,
+  frame_url TEXT,
+  frame_hash TEXT,
+  camera_id TEXT,
+  timestamp_val REAL,
+  timestamp_str TEXT,
+  box_json TEXT,
+  embedding_json TEXT,
+  notes TEXT,
+  created_at REAL NOT NULL,
+  updated_at REAL NOT NULL
+);
+
 -- Create Indexes for fast visual lookup and reports integrity
 CREATE INDEX IF NOT EXISTS idx_events_camera_time ON detection_events(camera_id, detected_at);
 CREATE INDEX IF NOT EXISTS idx_reid_ref_score ON reid_matches(ref_id, similarity_score);
@@ -241,3 +262,6 @@ CREATE INDEX IF NOT EXISTS idx_custody_media ON chain_of_custody(media_id);
 CREATE INDEX IF NOT EXISTS idx_recordings_camera_time ON recordings(camera_id, start_time);
 CREATE INDEX IF NOT EXISTS idx_case_media_case ON case_media(case_id);
 CREATE INDEX IF NOT EXISTS idx_case_evidence_case ON case_evidence(case_id, added_at);
+CREATE INDEX IF NOT EXISTS idx_feedback_rating ON model_feedback(rating);
+CREATE INDEX IF NOT EXISTS idx_feedback_label ON model_feedback(reference_label);
+

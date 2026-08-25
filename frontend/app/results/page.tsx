@@ -6,7 +6,9 @@ import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import EnhanceModal from "@/components/EnhanceModal";
 import AddSuspectModal from "@/components/AddSuspectModal";
-import { getJobStatus, cancelSearchJob, cancelAllSearchJobs, exportReport, resolveStorageUrl, downloadFramesZip, MatchResult, SearchJob, apiFetch, addCaseEvidence, getActiveCase } from "@/lib/api";
+import FeedbackModal from "@/components/FeedbackModal";
+import { getJobStatus, cancelSearchJob, cancelAllSearchJobs, exportReport, resolveStorageUrl, downloadFramesZip, submitModelFeedback, MatchResult, SearchJob, apiFetch, addCaseEvidence, getActiveCase } from "@/lib/api";
+
 import {
   TargetIcon,
   SearchIcon,
@@ -872,12 +874,43 @@ export default function ResultsPage() {
   const [pinningKey, setPinningKey] = useState<string | null>(null);
   const [pinnedKeys, setPinnedKeys] = useState<Set<string>>(new Set());
 
+  // Active Learning & Model Feedback state
+  const [feedbackModalMatch, setFeedbackModalMatch] = useState<{ match: MatchResult; initialRating: "good" | "bad" } | null>(null);
+  const [ratedMatches, setRatedMatches] = useState<Record<string, { rating: "good" | "bad"; correction?: string }>>({});
+
+  const handleQuickRating = async (m: MatchResult, rating: "good" | "bad", key: string) => {
+    setRatedMatches((prev) => ({ ...prev, [key]: { rating } }));
+    try {
+      const box = m.box || (m.boxes && m.boxes[0]);
+      await submitModelFeedback({
+        reference_label: m.label,
+        predicted_label: m.label,
+        rating,
+        search_type: m.search_type || job?.type || "face_recognition",
+        frame_url: m.frame_url || undefined,
+        frame_hash: m.frame_hash || undefined,
+        camera_id: m.camera_id || undefined,
+        timestamp_val: m.timestamp,
+        timestamp_str: m.timestamp_str,
+        box: box ? { x1: box.x1, y1: box.y1, x2: box.x2, y2: box.y2 } : undefined,
+      });
+      if (rating === "bad") {
+        showToast(`Active Learning: Hard negative rule created. Model will suppress this false positive for '${m.label}'.`, "success");
+      } else {
+        showToast(`Active Learning: Confirmed true match. Prototype added for '${m.label}'.`, "success");
+      }
+    } catch (err: any) {
+      showToast(err.message || "Failed to record feedback", "error");
+    }
+  };
+
   useEffect(() => {
     const sync = () => setActiveCase(getActiveCase());
     sync();
     window.addEventListener("activeCaseChanged", sync);
     return () => window.removeEventListener("activeCaseChanged", sync);
   }, []);
+
 
   const kindForType = (t: MatchResult["search_type"]): string => {
     if (t === "face_recognition") return "face";
@@ -1574,6 +1607,69 @@ export default function ResultsPage() {
                           );
                         })()}
                       </div>
+
+                      {/* Active Learning AI Accuracy Feedback */}
+                      {(() => {
+                        const key = `grid|${match.camera_id}|${match.timestamp}|${i}`;
+                        const rated = ratedMatches[key];
+
+                        return (
+                          <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                            {rated ? (
+                              <div style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "4px 8px",
+                                borderRadius: 4,
+                                background: rated.rating === "good" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
+                                border: `1px solid ${rated.rating === "good" ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
+                                fontSize: "0.66rem",
+                                fontWeight: 700,
+                                color: rated.rating === "good" ? "#34D399" : "#F87171",
+                              }}>
+                                <span>{rated.rating === "good" ? "✓ LEARNED: TRUE MATCH" : "✕ SUPPRESSED FALSE MATCH"}</span>
+                                <button
+                                  onClick={() => setFeedbackModalMatch({ match, initialRating: rated.rating })}
+                                  style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "0.65rem", textDecoration: "underline" }}
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+                                <span style={{ fontSize: "0.64rem", color: "var(--text-muted)", fontWeight: 600 }}>Teach AI:</span>
+                                <div style={{ display: "flex", gap: 4 }}>
+                                  <button
+                                    onClick={() => handleQuickRating(match, "good", key)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ padding: "2px 7px", fontSize: "0.66rem", color: "#34D399", borderColor: "rgba(16,185,129,0.3)" }}
+                                    title="Confirm true match (Teach model positive exemplar)"
+                                  >
+                                    👍 Good
+                                  </button>
+                                  <button
+                                    onClick={() => handleQuickRating(match, "bad", key)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ padding: "2px 7px", fontSize: "0.66rem", color: "#F87171", borderColor: "rgba(239,68,68,0.3)" }}
+                                    title="Mark false positive (Teach model to suppress this match)"
+                                  >
+                                    👎 Bad
+                                  </button>
+                                  <button
+                                    onClick={() => setFeedbackModalMatch({ match, initialRating: "bad" })}
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ padding: "2px 5px", fontSize: "0.66rem", color: "var(--accent)" }}
+                                    title="Provide suggestion / correct person identity"
+                                  >
+                                    <SparklesIcon size={11} />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 ))}
@@ -1581,73 +1677,113 @@ export default function ResultsPage() {
             ) : (
               /* List View */
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {matches.map((match, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 14,
-                      padding: "12px 16px",
-                      background: "var(--bg-card)", border: `1px solid ${selectedTimeline === match ? "var(--accent)" : "var(--border)"}`,
-                      borderRadius: "var(--radius-md)", cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}
-                    onClick={() => { setVideoPlayer(match); setSelectedTimeline(match); }}
-                  >
-                    <div style={{ width: 80, height: 52, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: "var(--bg-elevated)" }}>
-                      {match.frame_url && (
-                        <img src={resolveStorageUrl(match.frame_url)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      )}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", fontWeight: 600, marginBottom: 4 }}>{match.timestamp_str}</div>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <span className="badge badge-blue" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          <VideoIcon size={11} /> {match.camera_id}
-                        </span>
-                        <span className="badge badge-accent">{match.label}</span>
+                {matches.map((match, i) => {
+                  const key = `list|${match.camera_id}|${match.timestamp}|${i}`;
+                  const rated = ratedMatches[key];
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => setSelectedTimeline(match)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+                        background: "var(--bg-card)",
+                        border: `1px solid ${selectedTimeline === match ? "var(--accent)" : "var(--border)"}`,
+                        borderRadius: "var(--radius-md)", cursor: "pointer",
+                        boxShadow: selectedTimeline === match ? "0 0 12px rgba(96,165,250,0.25)" : "none",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div style={{ width: 56, height: 42, background: "var(--bg-elevated)", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}>
+                        {match.frame_url && (
+                          <img src={resolveStorageUrl(match.frame_url)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        )}
                       </div>
+                      <div style={{ flex: 1, minWidth: 140 }}>
+                        <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.85rem", fontWeight: 600, marginBottom: 4 }}>{match.timestamp_str}</div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          <span className="badge badge-blue" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <VideoIcon size={11} /> {match.camera_id}
+                          </span>
+                          <span className="badge badge-accent">{match.label}</span>
+                          {rated && (
+                            <span className={rated.rating === "good" ? "badge badge-green" : "badge badge-red"} style={{ fontSize: "0.62rem" }}>
+                              {rated.rating === "good" ? "✓ LEARNED" : "✕ SUPPRESSED"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ color: confidenceColor(match.confidence), fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>
+                        {(match.confidence * 100).toFixed(0)}%
+                      </div>
+
+                      {/* Quick AI Feedback */}
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={(e) => { e.stopPropagation(); handleQuickRating(match, "good", key); }}
+                          style={{ padding: "3px 8px", fontSize: "0.68rem", color: "#34D399" }}
+                          title="Confirm true match (Teach model positive exemplar)"
+                        >
+                          👍
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={(e) => { e.stopPropagation(); handleQuickRating(match, "bad", key); }}
+                          style={{ padding: "3px 8px", fontSize: "0.68rem", color: "#F87171" }}
+                          title="Mark false positive (Teach model to suppress this match)"
+                        >
+                          👎
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={(e) => { e.stopPropagation(); setFeedbackModalMatch({ match, initialRating: "bad" }); }}
+                          style={{ padding: "3px 6px", fontSize: "0.68rem", color: "var(--accent)" }}
+                          title="Detailed AI feedback & suggestions"
+                        >
+                          <SparklesIcon size={12} />
+                        </button>
+                      </div>
+
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={(e) => { e.stopPropagation(); setAddSuspectMatch(match); }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 4,
+                          background: "rgba(34,197,94,0.12)", color: "var(--green)",
+                          border: "1px solid rgba(34,197,94,0.3)"
+                        }}
+                        title="Save as labeled suspect reference"
+                      >
+                        <TagIcon size={12} /> Label Suspect
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={(e) => { e.stopPropagation(); setEnhanceMatch({ match, mode: "face", scale: 2.0 }); }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 4,
+                          background: "rgba(96,165,250,0.12)", color: "var(--accent)",
+                          border: "1px solid rgba(96,165,250,0.3)"
+                        }}
+                      >
+                        <SparklesIcon size={12} /> Enhance
+                      </button>
+                      <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setVideoPlayer(match); }} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <PlayIcon size={12} /> Play
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={(e) => { e.stopPropagation(); handleJumpToPlayback(match); }}
+                        style={{ display: "flex", alignItems: "center", gap: 4 }}
+                        title="Open the playback timeline at this camera and timestamp"
+                      >
+                        <ClockIcon size={12} /> Playback
+                      </button>
                     </div>
-                    <div style={{ color: confidenceColor(match.confidence), fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>
-                      {(match.confidence * 100).toFixed(0)}%
-                    </div>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={(e) => { e.stopPropagation(); setAddSuspectMatch(match); }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 4,
-                        background: "rgba(34,197,94,0.12)", color: "var(--green)",
-                        border: "1px solid rgba(34,197,94,0.3)"
-                      }}
-                      title="Save as labeled suspect reference"
-                    >
-                      <TagIcon size={12} /> Label Suspect
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={(e) => { e.stopPropagation(); setEnhanceMatch({ match, mode: "face", scale: 2.0 }); }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 4,
-                        background: "rgba(96,165,250,0.12)", color: "var(--accent)",
-                        border: "1px solid rgba(96,165,250,0.3)"
-                      }}
-                    >
-                      <SparklesIcon size={12} /> Enhance
-                    </button>
-                    <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setVideoPlayer(match); }} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <PlayIcon size={12} /> Play
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={(e) => { e.stopPropagation(); handleJumpToPlayback(match); }}
-                      style={{ display: "flex", alignItems: "center", gap: 4 }}
-                      title="Open the playback timeline at this camera and timestamp"
-                    >
-                      <ClockIcon size={12} /> Playback
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
+
           </>
         )}
 
@@ -1930,6 +2066,27 @@ export default function ResultsPage() {
           />
         )}
 
+        {/* Active Learning AI Feedback Modal */}
+        {feedbackModalMatch && (
+
+          <FeedbackModal
+            match={feedbackModalMatch.match}
+            searchType={job?.type || "face_recognition"}
+            initialRating={feedbackModalMatch.initialRating}
+            onClose={() => setFeedbackModalMatch(null)}
+            onSuccess={(rating, correction) => {
+              const m = feedbackModalMatch.match;
+              const gKey = `grid|${m.camera_id}|${m.timestamp}`;
+              const lKey = `list|${m.camera_id}|${m.timestamp}`;
+              setRatedMatches((prev) => ({
+                ...prev,
+                [gKey]: { rating, correction },
+                [lKey]: { rating, correction },
+              }));
+            }}
+          />
+        )}
+
         <style>{`
           .result-card:hover .play-icon { opacity: 1 !important; }
         `}</style>
@@ -1937,5 +2094,6 @@ export default function ResultsPage() {
     </ToastProvider>
   );
 }
+
 
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import EnhanceModal from "@/components/EnhanceModal";
+import FeedbackModal from "@/components/FeedbackModal";
 import {
   startHazardSearch,
   getHazardJobStatus,
@@ -11,6 +12,7 @@ import {
   escalateHazardFromSearch,
   exportHazardReport,
   generateClipOnDemand,
+  submitModelFeedback,
   MatchResult,
   HazardSearchJob,
   resolveStorageUrl,
@@ -152,6 +154,37 @@ export default function IncidentsCommandHub() {
   const [enhanceMatch, setEnhanceMatch] = useState<MatchResult | null>(null);
   const [triageVideoOverride, setTriageVideoOverride] = useState<string | null>(null);
   const [triageVideoError, setTriageVideoError] = useState<boolean>(false);
+
+  // Active Learning & Model Feedback state
+  const [feedbackModalMatch, setFeedbackModalMatch] = useState<{ match: MatchResult; initialRating: "good" | "bad" } | null>(null);
+  const [ratedMatches, setRatedMatches] = useState<Record<string, { rating: "good" | "bad"; correction?: string }>>({});
+
+  const handleQuickRating = async (m: MatchResult, rating: "good" | "bad", key: string) => {
+    setRatedMatches((prev) => ({ ...prev, [key]: { rating } }));
+    try {
+      const box = m.box || (m.boxes && m.boxes[0]);
+      await submitModelFeedback({
+        reference_label: m.label,
+        predicted_label: m.label,
+        rating,
+        search_type: "campus_safety",
+        frame_url: m.frame_url || undefined,
+        frame_hash: m.frame_hash || undefined,
+        camera_id: m.camera_id || undefined,
+        timestamp_val: m.timestamp,
+        timestamp_str: m.timestamp_str,
+        box: box ? { x1: box.x1, y1: box.y1, x2: box.x2, y2: box.y2 } : undefined,
+      });
+      if (rating === "bad") {
+        showToast(`Active Learning: Hard negative rule created for '${m.label}'. Model will suppress false alarms in future scans.`, "success");
+      } else {
+        showToast(`Active Learning: Confirmed incident prototype registered for '${m.label}'.`, "success");
+      }
+    } catch (err: any) {
+      showToast(err.message || "Failed to record feedback", "error");
+    }
+  };
+
 
   const openPreviewModal = async (m: MatchResult) => {
     const displayFrame = (selectedHazardEventFilter === "all" && m.all_frame_url)
@@ -1859,6 +1892,68 @@ export default function IncidentsCommandHub() {
                         </button>
                       </div>
 
+                      {/* Active Learning AI Accuracy Feedback */}
+                      {(() => {
+                        const key = `inc|${m.camera_id}|${m.timestamp}|${idx}`;
+                        const rated = ratedMatches[key];
+                        return (
+                          <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                            {rated ? (
+                              <div style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "4px 8px",
+                                borderRadius: 4,
+                                background: rated.rating === "good" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
+                                border: `1px solid ${rated.rating === "good" ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
+                                fontSize: "0.66rem",
+                                fontWeight: 700,
+                                color: rated.rating === "good" ? "#34D399" : "#F87171",
+                              }}>
+                                <span>{rated.rating === "good" ? "✓ LEARNED: TRUE HAZARD" : "✕ FALSE POSITIVE SUPPRESSED"}</span>
+                                <button
+                                  onClick={() => setFeedbackModalMatch({ match: m, initialRating: rated.rating })}
+                                  style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "0.65rem", textDecoration: "underline" }}
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+                                <span style={{ fontSize: "0.64rem", color: "var(--text-muted)", fontWeight: 600 }}>Teach AI:</span>
+                                <div style={{ display: "flex", gap: 4 }}>
+                                  <button
+                                    onClick={() => handleQuickRating(m, "good", key)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ padding: "2px 7px", fontSize: "0.66rem", color: "#34D399", borderColor: "rgba(16,185,129,0.3)" }}
+                                    title="Confirm true incident (Teach model positive exemplar)"
+                                  >
+                                    👍 Good
+                                  </button>
+                                  <button
+                                    onClick={() => handleQuickRating(m, "bad", key)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ padding: "2px 7px", fontSize: "0.66rem", color: "#F87171", borderColor: "rgba(239,68,68,0.3)" }}
+                                    title="Mark false alarm (Teach model to suppress this match)"
+                                  >
+                                    👎 Bad
+                                  </button>
+                                  <button
+                                    onClick={() => setFeedbackModalMatch({ match: m, initialRating: "bad" })}
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ padding: "2px 5px", fontSize: "0.66rem", color: "var(--accent)" }}
+                                    title="Provide suggestion / re-label incident"
+                                  >
+                                    <SparklesIcon size={11} />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       {/* 1-Click C4ISR Escalation Button */}
                       <button
                         onClick={() => handleEscalateMatch(m)}
@@ -1872,6 +1967,7 @@ export default function IncidentsCommandHub() {
                           alignItems: "center",
                           justifyContent: "center",
                           gap: 6,
+                          marginTop: 6,
                         }}
                       >
                         <AlertIcon size={14} /> Escalate to C4ISR Triage
@@ -1952,6 +2048,7 @@ export default function IncidentsCommandHub() {
             </div>
           </div>
         )}
+
 
         {/* FORENSIC EVIDENCE VIDEO PLAYER MODAL */}
         {previewModalOpen && (
@@ -2161,6 +2258,24 @@ export default function IncidentsCommandHub() {
         {/* ENHANCE MODAL INTEGRATION */}
         {enhanceMatch && (
           <EnhanceModal match={enhanceMatch} onClose={() => setEnhanceMatch(null)} />
+        )}
+
+        {/* ACTIVE LEARNING AI FEEDBACK MODAL */}
+        {feedbackModalMatch && (
+          <FeedbackModal
+            match={feedbackModalMatch.match}
+            searchType="campus_safety"
+            initialRating={feedbackModalMatch.initialRating}
+            onClose={() => setFeedbackModalMatch(null)}
+            onSuccess={(rating, correction) => {
+              const m = feedbackModalMatch.match;
+              const incKey = `inc|${m.camera_id}|${m.timestamp}`;
+              setRatedMatches((prev) => ({
+                ...prev,
+                [incKey]: { rating, correction },
+              }));
+            }}
+          />
         )}
       </AppLayout>
     </ToastProvider>

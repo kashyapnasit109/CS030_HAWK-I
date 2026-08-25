@@ -390,12 +390,25 @@ def build_reference_embeddings(reference_image_paths: list) -> tuple:
                 print(f"[face_recognition] Failed to embed reference image {img_path.name}: {e}")
                 continue
 
+        # Ingest Active Learning confirmed positive exemplars for this suspect
+        try:
+            from ai_pipeline.active_learning import get_feedback_exemplars
+            pos_exemplars, _ = get_feedback_exemplars(label)
+            for p_emb in pos_exemplars:
+                embeddings.append(p_emb)
+                labels.append(label)
+            if pos_exemplars:
+                print(f"[face_recognition] Loaded {len(pos_exemplars)} Active Learning positive exemplars for '{label}'")
+        except Exception as al_err:
+            print(f"[face_recognition] Active learning prototype loader note: {al_err}")
+
     if not embeddings:
         raise ValueError("No valid reference images found or face embedding failed.")
 
     import torch
     tensors = [torch.from_numpy(e) for e in embeddings]
     return torch.cat(tensors, dim=0).to(_get_device()), labels
+
 
 
 # ─── Main Face Recognition Search Execution ─────────────────────────────
@@ -446,6 +459,20 @@ def run_face_recognition_search(
 
         # Calibrate effective similarity matching threshold (Default >= 0.48 to reject random crowd faces)
         effective_sim_thresh = max(0.46, float(similarity_threshold))
+
+        # Ingest Active Learning hard negative rejection banks for targets
+        neg_tensor_dict = {}
+        try:
+            from ai_pipeline.active_learning import get_feedback_exemplars
+            unique_labels = set(db_labels)
+            for u_lbl in unique_labels:
+                _, neg_exemplars = get_feedback_exemplars(u_lbl)
+                if neg_exemplars:
+                    t_negs = [torch.from_numpy(ne) for ne in neg_exemplars]
+                    neg_tensor_dict[u_lbl] = torch.cat(t_negs, dim=0).to(_get_device())
+                    print(f"[face_recognition] Loaded {len(neg_exemplars)} Active Learning hard negative rules for '{u_lbl}'")
+        except Exception as al_neg_err:
+            print(f"[face_recognition] Active learning negative bank notice: {al_neg_err}")
 
         try:
             while cap.isOpened():
@@ -511,6 +538,21 @@ def run_face_recognition_search(
                     raw_sim = float(sims[max_idx].item())
                     best_label = db_labels[max_idx]
 
+                    # Active Learning Hard Negative Rejection Check
+                    if best_label in neg_tensor_dict:
+                        neg_tensor = neg_tensor_dict[best_label]
+                        neg_sims = torch.nn.functional.cosine_similarity(
+                            neg_tensor, face_emb.expand_as(neg_tensor), dim=1
+                        )
+                        max_neg_sim = float(torch.max(neg_sims).item())
+
+                        # If candidate closely matches a known false positive, suppress it
+                        if max_neg_sim >= 0.70 or max_neg_sim >= raw_sim - 0.05:
+                            continue  # Suppress false positive based on human feedback
+                        else:
+                            # Apply soft active learning penalty
+                            raw_sim = max(0.0, raw_sim - 0.15 * max(0.0, max_neg_sim - 0.35))
+
                     # Strict suspect match check: only accept if similarity meets calibrated threshold
                     if raw_sim >= effective_sim_thresh:
                         calibrated_conf = float(np.clip(0.65 + (raw_sim - effective_sim_thresh) * 1.25, 0.65, 0.99))
@@ -525,6 +567,7 @@ def run_face_recognition_search(
                             "raw_sim": round(raw_sim, 4),
                             "color_bgr": PREMIUM_PALETTE_BGR[color_idx],
                         })
+
 
                 if frame_matching_boxes:
                     frame_filename = f"face_{job_id}_{frame_idx:06d}.jpg"

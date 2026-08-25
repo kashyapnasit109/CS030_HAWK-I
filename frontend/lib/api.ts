@@ -929,5 +929,130 @@ export async function exportHazardReport(
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// ACTIVE LEARNING & MODEL FEEDBACK CLIENT
+// ─────────────────────────────────────────────────────────────
+
+export interface ModelFeedbackItem {
+  feedback_id: number;
+  job_id?: string;
+  search_type: string;
+  reference_label: string;
+  predicted_label: string;
+  rating: "good" | "bad";
+  correction_label?: string | null;
+  frame_url?: string | null;
+  frame_hash?: string | null;
+  camera_id?: string | null;
+  timestamp_val?: number | null;
+  timestamp_str?: string | null;
+  box?: { x1: number; y1: number; x2: number; y2: number } | null;
+  notes?: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ModelFeedbackStats {
+  success: boolean;
+  total_feedbacks: number;
+  positive_anchors: number;
+  hard_negative_rules: number;
+  calibrated_targets: number;
+  accuracy_boost_pct: number;
+  top_targets: Array<{
+    reference_label: string;
+    pos_count: number;
+    neg_count: number;
+  }>;
+}
+
+export async function submitModelFeedback(payload: {
+  reference_label: string;
+  predicted_label: string;
+  rating: "good" | "bad";
+  job_id?: string;
+  search_type?: string;
+  correction_label?: string;
+  frame_url?: string;
+  frame_hash?: string;
+  camera_id?: string;
+  timestamp_val?: number;
+  timestamp_str?: string;
+  box?: { x1: number; y1: number; x2: number; y2: number };
+  embedding?: number[];
+  notes?: string;
+}): Promise<{ success: boolean; feedback_id: number; message: string }> {
+  return apiFetch("/api/feedback/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getModelFeedbackList(params?: {
+  search_type?: string;
+  rating?: string;
+  reference_label?: string;
+  query?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ success: boolean; total: number; items: ModelFeedbackItem[] }> {
+  const query = new URLSearchParams();
+  if (params?.search_type) query.set("search_type", params.search_type);
+  if (params?.rating) query.set("rating", params.rating);
+  if (params?.reference_label) query.set("reference_label", params.reference_label);
+  if (params?.query) query.set("query", params.query);
+  if (params?.limit !== undefined) query.set("limit", String(params.limit));
+  if (params?.offset !== undefined) query.set("offset", String(params.offset));
+  return apiFetch(`/api/feedback/list?${query.toString()}`);
+}
+
+export async function getModelFeedbackStats(): Promise<ModelFeedbackStats> {
+  return apiFetch("/api/feedback/stats");
+}
+
+export async function updateModelFeedback(
+  feedbackId: number,
+  payload: {
+    rating?: "good" | "bad";
+    correction_label?: string;
+    notes?: string;
+  }
+): Promise<{ success: boolean; message: string }> {
+  return apiFetch(`/api/feedback/${feedbackId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteModelFeedback(
+  feedbackId: number
+): Promise<{ success: boolean; message: string }> {
+  return apiFetch(`/api/feedback/${feedbackId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function clearAllModelFeedback(
+  referenceLabel?: string
+): Promise<{ success: boolean; message: string }> {
+  const query = referenceLabel ? `?reference_label=${encodeURIComponent(referenceLabel)}` : "";
+  return apiFetch(`/api/feedback/clear${query}`, {
+    method: "POST",
+  });
+}
+
+export async function recalibrateActiveLearning(): Promise<{
+  success: boolean;
+  message: string;
+  stats: ModelFeedbackStats;
+}> {
+  return apiFetch("/api/feedback/recalibrate", {
+    method: "POST",
+  });
+}
+
+
 
 
