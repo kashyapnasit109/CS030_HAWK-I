@@ -66,3 +66,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 25, 2026 10:42:30]` **test(stream): add stress test for concurrent multi-stream ingest degradation** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Aug 25, 2026 11:06:30]` **test(rules): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Aug 25, 2026 15:01:16]` **refactor(pipeline): standardize statutory evidence payload schema across jurisdictions** — *Verified component: camera ring buffer & video ingestion*
+- `[Aug 25, 2026 15:21:37]` **refactor(diagnostics): extract reusable canvas drawing primitives into utility layer** — *Verified component: hardware decoders & operational telemetry*
