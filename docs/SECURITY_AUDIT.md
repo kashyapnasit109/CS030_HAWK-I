@@ -607,3 +607,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Correlated high-frequency acoustic hiss with expanding vapor plumes
 - Automated emergency boiler isolation valve shutdown trigger
 - Minimized thermal burn risks in campus central heating plant
+
+## [2026-08-26 22:45] feat(anpr): implement license plate character confidence visualization in audit UI
+- Assigned individual character confidence scores from OCR softmax layer
+- Rendered color-coded confidence indicators (green, amber, red) per character
+- Allowed forensic operators to quickly inspect low-confidence readings
