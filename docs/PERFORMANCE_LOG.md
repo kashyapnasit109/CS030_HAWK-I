@@ -607,3 +607,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Defined high-risk polygonal safety zones along exterior parapets
 - Tracked person dwell time near unprotected rooftop edges
 - Dispatched urgent patrol intervention to prevent fall incidents
+
+## [2026-08-26 19:30] feat(anpr): add state code and district prefix parser with regional distribution mapping
+- Parsed regional prefixes (GJ-01, GJ-06, MH-02, DL-01) from recognized plates
+- Aggregated real-time campus visitor origin statistics on dashboard
+- Flagged unauthorized out-of-state commercial vehicles during night
