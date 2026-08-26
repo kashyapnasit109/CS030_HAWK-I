@@ -71,3 +71,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 25, 2026 19:17:13]` **fix(assignment): correct bounding box clipping on frame border intersections** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Aug 26, 2026 10:04:02]` **test(assignment): verify deterministic condition parser against edge timezones** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Aug 26, 2026 11:52:45]` **perf(copilot): vectorize dwell time trajectory state transitions with numpy** — *Verified component: prime compliance copilot & assistant integration*
+- `[Aug 26, 2026 13:26:49]` **docs(pipeline): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: camera ring buffer & video ingestion*
