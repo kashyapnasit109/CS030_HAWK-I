@@ -602,3 +602,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Scanned dry brush perimeter along campus boundary fence
 - Identified isolated high-temperature ember signatures (>400C)
 - Automated early wildfire warning dispatch to campus security
+
+## [2026-08-26 15:00] feat(anpr): implement vehicle transit speed estimation between sequential ANPR gates
+- Calculated average velocity using road corridor distance and timestamps
+- Flagged vehicles traveling faster than campus limit (>25 km/h)
+- Automated generation of speed violation records with photo evidence
