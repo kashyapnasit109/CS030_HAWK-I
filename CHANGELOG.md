@@ -607,3 +607,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Calculated average velocity using road corridor distance and timestamps
 - Flagged vehicles traveling faster than campus limit (>25 km/h)
 - Automated generation of speed violation records with photo evidence
+
+## [2026-08-27 14:30] feat(anpr): add electric vehicle green registration plate classification filter
+- Segmented distinctive green background of Indian EV registration plates
+- Tracked campus zero-emission vehicle transit metrics and charging stall use
+- Enforced priority access rules at dedicated EV charging stations
