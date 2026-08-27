@@ -84,3 +84,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 27, 2026 13:53:23]` **test(perf): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: tensor memory management & latency optimization*
 - `[Aug 27, 2026 14:41:36]` **docs(copilot): update compliance engine operational deployment guide** — *Verified component: prime compliance copilot & assistant integration*
 - `[Aug 27, 2026 15:15:44]` **fix(wall): correct bounding box clipping on frame border intersections** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
+- `[Aug 27, 2026 18:53:05]` **perf(copilot): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: prime compliance copilot & assistant integration*
