@@ -80,3 +80,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 27, 2026 11:26:46]` **feat(perf): introduce dwell time trajectory velocity smoothing filter** — *Verified component: tensor memory management & latency optimization*
 - `[Aug 27, 2026 11:33:34]` **fix(perf): align normalized coordinate projection on ultra-wide aspect ratios** — *Verified component: tensor memory management & latency optimization*
 - `[Aug 27, 2026 11:35:38]` **docs(copilot): add sequence diagram for ring buffer frame ingestion** — *Verified component: prime compliance copilot & assistant integration*
+- `[Aug 27, 2026 13:11:34]` **perf(compliance): reduce tensor copy overhead in optical flow frame differencing** — *Verified component: compliance engine core & rule execution*
