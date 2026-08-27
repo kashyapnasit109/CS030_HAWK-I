@@ -542,3 +542,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Resolved ambiguous O/0, I/1, and B/8 pairs using plate position syntax
 - Enforced standard Indian HSRP state code and district number templates
 - Lowered plate reading error rate from 4.2% to 0.8% across fleet
+
+## [2026-08-27 11:45] feat(anpr): implement fake and cloned plate tampering anomaly detector
+- Flagged duplicate plates observed simultaneously across distant gates
+- Detected non-standard font kerning, missing hologram stamps, and size errors
+- Alerted gate sentry to potential cloned registration plates
