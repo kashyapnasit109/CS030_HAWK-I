@@ -612,3 +612,8 @@ Key architectural choices and their rationale.
 - Stored blacklisted license plates in in-memory hash set structure
 - Achieved O(1) watchlist query execution in under 0.05 milliseconds
 - Triggered immediate priority popup alert on campus gate terminals
+
+## [2026-08-27 16:00] feat(anpr): implement Richardson-Lucy blind deconvolution for high-speed plate motion deblurring
+- Estimated linear motion blur kernel from vehicle speed vector
+- Restored character sharpness on vehicles moving up to 60 km/h
+- Improved night-time plate legibility under low shutter speeds
