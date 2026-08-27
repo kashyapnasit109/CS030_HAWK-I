@@ -612,3 +612,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Assigned individual character confidence scores from OCR softmax layer
 - Rendered color-coded confidence indicators (green, amber, red) per character
 - Allowed forensic operators to quickly inspect low-confidence readings
+
+## [2026-08-27 19:30] feat(anpr): implement multi-vehicle convoy detection based on sequential gate time deltas
+- Identified groups of vehicles maintaining consistent follow distance (<4s)
+- Flagged coordinated multi-vehicle unauthorized entry through gates
+- Mapped convoy trajectory across campus roadway corridor cameras
