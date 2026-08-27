@@ -75,3 +75,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 26, 2026 14:24:49]` **refactor(assignment): restructure rule compatibility matrix into declarative lookup** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Aug 26, 2026 16:04:33]` **test(diagnostics): test bulk assignment atomic rollback upon constraint failure** — *Verified component: hardware decoders & operational telemetry*
 - `[Aug 26, 2026 22:46:08]` **docs(stream): document camera compatibility capability matrix requirements** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Aug 27, 2026 08:28:49]` **docs(rules): update compliance engine operational deployment guide** — *Verified component: deterministic rule evaluator & spatial logic*
