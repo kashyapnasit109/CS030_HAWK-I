@@ -102,3 +102,10 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Cosine similarity threshold: 0.72
 - MTCNN face detection as preprocessing step
 
+
+## [2026-08-28 05:06] Commit #71
+### Threat Scoring Model
+- Feature vector: velocity, trajectory deviation, zone proximity
+- Logistic regression ensemble with 5-fold CV
+- AUC-ROC: 0.94 on validation set
+
