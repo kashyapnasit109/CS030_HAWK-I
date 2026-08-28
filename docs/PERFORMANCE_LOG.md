@@ -617,3 +617,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Recorded vehicle entry and exit timestamps across campus parking zones
 - Flagged unauthorized overnight parking and prolonged parking stall hogging
 - Automated daily parking occupancy utilization reporting
+
+## [2026-08-28 16:00] feat(ai-pipeline): implement dynamic batching queue with configurable microsecond timeout
+- Batched incoming frames from up to 8 RTSP streams into single tensor
+- Configured maximum wait timeout of 12ms to preserve real-time throughput
+- Increased GPU compute utilization from 42% to 88% on RTX 3060
