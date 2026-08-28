@@ -91,3 +91,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 28, 2026 10:39:56]` **feat(wall): implement optical smoke dispersion differential entropy filter** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Aug 28, 2026 16:57:58]` **refactor(pipeline): isolate optical hazard detectors into standalone inference module** — *Verified component: camera ring buffer & video ingestion*
 - `[Aug 28, 2026 17:59:15]` **feat(security): introduce rolling ring buffer for zero-drop video ingestion** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Aug 28, 2026 19:25:32]` **test(stream): add stress test for concurrent multi-stream ingest degradation** — *Verified component: low-latency MJPEG & WebSocket stream transport*
