@@ -552,3 +552,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Evaluated vehicle motion vector against permitted roadway direction
 - Triggered audio-visual alert at security kiosk within 1.5 seconds
 - Recorded video clip evidence with directional arrow overlay
+
+## [2026-08-28 22:45] feat(ai-pipeline): add automated GPU memory defragmentation and PyTorch cache collector
+- Monitored PyTorch memory fragmentation ratio in background thread
+- Executed torch.cuda.empty_cache during idle inter-frame intervals
+- Prevented CUDA out-of-memory exceptions during continuous 72-hour tests
