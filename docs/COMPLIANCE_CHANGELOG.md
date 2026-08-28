@@ -87,3 +87,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 27, 2026 18:53:05]` **perf(copilot): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: prime compliance copilot & assistant integration*
 - `[Aug 27, 2026 21:21:02]` **feat(pipeline): introduce 12-toggle overlay control panel for real-time vision masks** — *Verified component: camera ring buffer & video ingestion*
 - `[Aug 28, 2026 09:57:02]` **feat(copilot): support asynchronous multi-threaded camera inference workers** — *Verified component: prime compliance copilot & assistant integration*
+- `[Aug 28, 2026 10:16:02]` **refactor(copilot): standardize statutory evidence payload schema across jurisdictions** — *Verified component: prime compliance copilot & assistant integration*
