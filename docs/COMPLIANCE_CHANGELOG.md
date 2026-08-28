@@ -89,3 +89,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 28, 2026 09:57:02]` **feat(copilot): support asynchronous multi-threaded camera inference workers** — *Verified component: prime compliance copilot & assistant integration*
 - `[Aug 28, 2026 10:16:02]` **refactor(copilot): standardize statutory evidence payload schema across jurisdictions** — *Verified component: prime compliance copilot & assistant integration*
 - `[Aug 28, 2026 10:39:56]` **feat(wall): implement optical smoke dispersion differential entropy filter** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
+- `[Aug 28, 2026 16:57:58]` **refactor(pipeline): isolate optical hazard detectors into standalone inference module** — *Verified component: camera ring buffer & video ingestion*
