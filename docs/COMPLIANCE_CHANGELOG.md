@@ -95,3 +95,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 28, 2026 19:57:31]` **perf(wall): accelerate canvas polygon rendering with path caching** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Aug 28, 2026 21:13:02]` **test(stream): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Aug 29, 2026 09:28:23]` **perf(diagnostics): reduce memory footprint of 300-frame video buffer queue** — *Verified component: hardware decoders & operational telemetry*
+- `[Aug 29, 2026 10:37:58]` **feat(rules): add Section 63 BNSS 2023 electronic record certificate generator** — *Verified component: deterministic rule evaluator & spatial logic*
