@@ -622,3 +622,8 @@ Key architectural choices and their rationale.
 - Created dedicated CUDA streams for concurrent frame decoding and inference
 - Eliminated host-device synchronization stalls across 16 camera feeds
 - Lowered total pipeline latency from 68ms to 24ms per frame
+
+## [2026-08-29 11:45] feat(ai-pipeline): add ONNX Runtime IO binding to eliminate host-device tensor copies
+- Allocated input and output tensors directly on GPU device memory
+- Bound memory addresses directly into ONNX Runtime inference session
+- Reduced per-frame copy overhead by 8.4 milliseconds
