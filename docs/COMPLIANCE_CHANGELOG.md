@@ -97,3 +97,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 29, 2026 09:28:23]` **perf(diagnostics): reduce memory footprint of 300-frame video buffer queue** — *Verified component: hardware decoders & operational telemetry*
 - `[Aug 29, 2026 10:37:58]` **feat(rules): add Section 63 BNSS 2023 electronic record certificate generator** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Aug 29, 2026 17:39:11]` **test(rules): verify deterministic condition parser against edge timezones** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Aug 29, 2026 21:51:13]` **fix(compliance): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: compliance engine core & rule execution*
