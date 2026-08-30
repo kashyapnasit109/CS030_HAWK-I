@@ -627,3 +627,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Generated calibration dataset of 1,200 representative campus frames
 - Computed optimal activation quantization thresholds using KL-divergence
 - Boosted inference speed to 94 FPS on edge hardware with mAP loss < 0.6%
+
+## [2026-08-30 13:30] feat(ai-pipeline): add Prometheus-compatible telemetry endpoint for GPU and pipeline metrics
+- Exposed /api/metrics/ai endpoint reporting FPS, latency, and VRAM
+- Integrated real-time telemetry gauges into Grafana operations wall
+- Configured automated alert notifications for pipeline latency spikes
