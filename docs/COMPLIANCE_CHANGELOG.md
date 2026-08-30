@@ -102,3 +102,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 30, 2026 08:11:45]` **fix(security): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Aug 30, 2026 09:01:54]` **perf(pipeline): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: camera ring buffer & video ingestion*
 - `[Aug 30, 2026 09:33:36]` **fix(detector): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Aug 30, 2026 12:06:53]` **refactor(pipeline): decouple camera frame ingestion from computer vision workers** — *Verified component: camera ring buffer & video ingestion*
