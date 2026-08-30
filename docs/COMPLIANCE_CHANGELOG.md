@@ -104,3 +104,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 30, 2026 09:33:36]` **fix(detector): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Aug 30, 2026 12:06:53]` **refactor(pipeline): decouple camera frame ingestion from computer vision workers** — *Verified component: camera ring buffer & video ingestion*
 - `[Aug 30, 2026 13:22:02]` **perf(evidence): reduce memory footprint of 300-frame video buffer queue** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
+- `[Aug 30, 2026 19:32:14]` **perf(pipeline): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: camera ring buffer & video ingestion*
