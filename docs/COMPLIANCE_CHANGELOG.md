@@ -100,3 +100,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 29, 2026 21:51:13]` **fix(compliance): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: compliance engine core & rule execution*
 - `[Aug 29, 2026 23:36:47]` **docs(stream): document statutory evidence certificate generation parameters** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Aug 30, 2026 08:11:45]` **fix(security): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Aug 30, 2026 09:01:54]` **perf(pipeline): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: camera ring buffer & video ingestion*
