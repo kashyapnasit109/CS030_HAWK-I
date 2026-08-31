@@ -113,3 +113,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 31, 2026 10:00:48]` **docs(security): add sequence diagram for ring buffer frame ingestion** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Aug 31, 2026 11:48:19]` **test(pipeline): test bulk assignment atomic rollback upon constraint failure** — *Verified component: camera ring buffer & video ingestion*
 - `[Aug 31, 2026 13:05:26]` **test(security): add stress test for concurrent multi-stream ingest degradation** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Aug 31, 2026 14:03:58]` **docs(evidence): document statutory evidence certificate generation parameters** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
