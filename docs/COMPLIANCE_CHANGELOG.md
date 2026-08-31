@@ -109,3 +109,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 30, 2026 22:41:20]` **perf(stream): streamline keypoint bounding box normalization algorithms** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Aug 31, 2026 09:05:08]` **feat(copilot): implement multi-camera spatial geofence ray-casting validator** — *Verified component: prime compliance copilot & assistant integration*
 - `[Aug 31, 2026 09:39:52]` **test(perf): test bulk assignment atomic rollback upon constraint failure** — *Verified component: tensor memory management & latency optimization*
+- `[Aug 31, 2026 09:45:20]` **fix(detector): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: YOLOv8 & YOLO-Pose inference models*
