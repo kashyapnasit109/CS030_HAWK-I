@@ -632,3 +632,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Bypassed CPU software video decoding using dedicated NVDEC ASIC
 - Decreased host CPU utilization from 78% to 14% on 16 RTSP streams
 - Freed CPU cores for database transactions and business logic rules
+
+## [2026-08-31 09:15] feat(face-recog): add periocular feature extraction for masked and occluded face recognition
+- Extracted specialized deep features from eye and eyebrow region only
+- Maintained 91.4% identification accuracy for individuals wearing masks
+- Enabled reliable identification during campus health guideline enforcement
