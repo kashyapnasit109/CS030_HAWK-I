@@ -110,3 +110,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 31, 2026 09:05:08]` **feat(copilot): implement multi-camera spatial geofence ray-casting validator** — *Verified component: prime compliance copilot & assistant integration*
 - `[Aug 31, 2026 09:39:52]` **test(perf): test bulk assignment atomic rollback upon constraint failure** — *Verified component: tensor memory management & latency optimization*
 - `[Aug 31, 2026 09:45:20]` **fix(detector): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Aug 31, 2026 10:00:48]` **docs(security): add sequence diagram for ring buffer frame ingestion** — *Verified component: SHA-256 seal verification & audit log hashing*
