@@ -637,3 +637,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Extracted specialized deep features from eye and eyebrow region only
 - Maintained 91.4% identification accuracy for individuals wearing masks
 - Enabled reliable identification during campus health guideline enforcement
+
+## [2026-08-31 22:45] feat(campus-safety): implement fallen person skeleton detector using YOLO-Pose keypoints
+- Monitored spine-to-ground inclination angle (threshold < 35 degrees)
+- Added 3-second temporal persistence timer to eliminate stooping or sitting
+- Dispatched instant P1 emergency alert to campus medical team
