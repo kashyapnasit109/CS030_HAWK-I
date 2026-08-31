@@ -130,3 +130,10 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Grafana dashboards for system observability
 - PagerDuty integration for on-call alerts
 
+
+## [2026-08-31 13:50] Commit #92
+### Tracking System
+- DeepSORT with cosine distance metric
+- Track confirmation: 3 consecutive detections required
+- Max age: 70 frames before track deletion
+
