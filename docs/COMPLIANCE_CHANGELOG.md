@@ -116,3 +116,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 31, 2026 14:03:58]` **docs(evidence): document statutory evidence certificate generation parameters** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Aug 31, 2026 14:56:22]` **perf(perf): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: tensor memory management & latency optimization*
 - `[Aug 31, 2026 21:00:15]` **docs(stream): update compliance engine operational deployment guide** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Aug 31, 2026 22:01:02]` **docs(detector): add sequence diagram for ring buffer frame ingestion** — *Verified component: YOLOv8 & YOLO-Pose inference models*
