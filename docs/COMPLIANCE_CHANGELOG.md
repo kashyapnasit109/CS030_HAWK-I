@@ -120,3 +120,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Aug 31, 2026 22:38:29]` **refactor(compliance): isolate optical hazard detectors into standalone inference module** — *Verified component: compliance engine core & rule execution*
 - `[Aug 31, 2026 23:39:54]` **refactor(wall): extract reusable canvas drawing primitives into utility layer** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 01, 2026 08:07:50]` **feat(pipeline): integrate dual-envelope incandescent flame color masks** — *Verified component: camera ring buffer & video ingestion*
+- `[Sep 01, 2026 08:24:45]` **perf(copilot): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: prime compliance copilot & assistant integration*
