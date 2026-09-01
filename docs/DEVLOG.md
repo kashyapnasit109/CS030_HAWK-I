@@ -637,3 +637,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Averaged normalized embedding vectors across consecutive video track frames
 - Generated robust composite identity representation resilient to lighting
 - Reduced false identity switching across multi-camera handoffs by 58%
+
+## [2026-09-01 10:45] feat(campus-safety): implement Ray Casting polygon geofencing for virtual perimeter tripwires
+- Tested bounding box bottom-center coordinate against arbitrary polygon points
+- Evaluated crossing vector direction to distinguish authorized exits from entries
+- Configured active scheduling rules for night-time restricted zones
