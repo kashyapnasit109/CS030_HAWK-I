@@ -124,3 +124,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 01, 2026 08:43:10]` **perf(detector): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 01, 2026 08:43:29]` **feat(rules): add pre-flight compatibility matrix validator across detector classes** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 01, 2026 09:09:11]` **refactor(twin): decouple camera frame ingestion from computer vision workers** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Sep 01, 2026 10:12:48]` **docs(detector): document statutory evidence certificate generation parameters** — *Verified component: YOLOv8 & YOLO-Pose inference models*
