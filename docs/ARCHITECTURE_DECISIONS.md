@@ -642,3 +642,8 @@ Key architectural choices and their rationale.
 - Classified 7 standard facial expressions (neutral, distress, anger, etc.)
 - Correlated facial distress markers with panic motion alerts
 - Assisted emergency dispatchers in assessing victim situation severity
+
+## [2026-09-01 18:15] feat(campus-safety): add perimeter fence climbing and scaling detector using vertical keypoint velocity
+- Defined perimeter wall-top polygon zone with directional crossing filter
+- Tracked skeleton keypoints moving vertically over wall threshold
+- Triggered priority physical perimeter breach alarm to night guards
