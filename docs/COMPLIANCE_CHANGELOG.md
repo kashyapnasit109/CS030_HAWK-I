@@ -131,3 +131,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 02, 2026 11:06:39]` **fix(twin): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 02, 2026 11:17:34]` **perf(stream): cache static rule conditions to avoid redundant JSON parsing** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 02, 2026 11:18:21]` **refactor(pipeline): isolate optical hazard detectors into standalone inference module** — *Verified component: camera ring buffer & video ingestion*
+- `[Sep 02, 2026 14:49:37]` **test(diagnostics): test bulk assignment atomic rollback upon constraint failure** — *Verified component: hardware decoders & operational telemetry*
