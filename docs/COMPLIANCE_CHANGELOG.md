@@ -130,3 +130,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 01, 2026 20:15:41]` **feat(compliance): introduce rolling ring buffer for zero-drop video ingestion** — *Verified component: compliance engine core & rule execution*
 - `[Sep 02, 2026 11:06:39]` **fix(twin): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 02, 2026 11:17:34]` **perf(stream): cache static rule conditions to avoid redundant JSON parsing** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Sep 02, 2026 11:18:21]` **refactor(pipeline): isolate optical hazard detectors into standalone inference module** — *Verified component: camera ring buffer & video ingestion*
