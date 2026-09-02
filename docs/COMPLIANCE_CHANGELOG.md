@@ -134,3 +134,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 02, 2026 14:49:37]` **test(diagnostics): test bulk assignment atomic rollback upon constraint failure** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 02, 2026 15:00:36]` **refactor(detector): decouple camera frame ingestion from computer vision workers** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 02, 2026 22:03:00]` **test(stream): validate spatial polygon intersection tests across complex geometries** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Sep 02, 2026 22:48:34]` **docs(diagnostics): update compliance engine operational deployment guide** — *Verified component: hardware decoders & operational telemetry*
