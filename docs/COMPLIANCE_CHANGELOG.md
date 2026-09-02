@@ -133,3 +133,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 02, 2026 11:18:21]` **refactor(pipeline): isolate optical hazard detectors into standalone inference module** — *Verified component: camera ring buffer & video ingestion*
 - `[Sep 02, 2026 14:49:37]` **test(diagnostics): test bulk assignment atomic rollback upon constraint failure** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 02, 2026 15:00:36]` **refactor(detector): decouple camera frame ingestion from computer vision workers** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Sep 02, 2026 22:03:00]` **test(stream): validate spatial polygon intersection tests across complex geometries** — *Verified component: low-latency MJPEG & WebSocket stream transport*
