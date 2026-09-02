@@ -642,3 +642,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Tested bounding box bottom-center coordinate against arbitrary polygon points
 - Evaluated crossing vector direction to distinguish authorized exits from entries
 - Configured active scheduling rules for night-time restricted zones
+
+## [2026-09-02 09:15] feat(campus-safety): implement emergency call-box physical button activation listener
+- Integrated GPIO and HTTP webhook triggers from hardware emergency boxes
+- Automatically slewed nearest PTZ camera to emergency station coordinate
+- Displayed full-screen live feed on SOC master incident monitor
