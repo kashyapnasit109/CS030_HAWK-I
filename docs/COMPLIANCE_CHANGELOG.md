@@ -142,3 +142,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 03, 2026 10:44:05]` **feat(rules): add Section 63 BNSS 2023 electronic record certificate generator** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 03, 2026 11:03:11]` **test(rules): add mock camera RTSP connection timeout failure injection** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 03, 2026 11:05:43]` **fix(pipeline): fix edge case in polygon containment test for concave boundaries** — *Verified component: camera ring buffer & video ingestion*
+- `[Sep 03, 2026 16:40:32]` **docs(twin): add sequence diagram for ring buffer frame ingestion** — *Verified component: digital twin topology & blast radius analyzer*
