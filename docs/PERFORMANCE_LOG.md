@@ -652,3 +652,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Defined water boundary polygon with hazardous approach tripwire
 - Tracked person tracks crossing safety barrier toward water edge
 - Dispatched immediate alert to prevent accidental drowning incidents
+
+## [2026-09-03 15:00] feat(bsa-compliance): add automated NTP stratum-1 clock synchronization verification check
+- Queried local GPS stratum-1 NTP server before generating forensic timestamp
+- Flagged evidence records generated during clock drift > 50 milliseconds
+- Recorded clock uncertainty window in evidence certificate metadata
