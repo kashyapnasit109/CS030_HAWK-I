@@ -141,3 +141,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 03, 2026 10:34:46]` **refactor(evidence): isolate optical hazard detectors into standalone inference module** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Sep 03, 2026 10:44:05]` **feat(rules): add Section 63 BNSS 2023 electronic record certificate generator** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 03, 2026 11:03:11]` **test(rules): add mock camera RTSP connection timeout failure injection** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Sep 03, 2026 11:05:43]` **fix(pipeline): fix edge case in polygon containment test for concave boundaries** — *Verified component: camera ring buffer & video ingestion*
