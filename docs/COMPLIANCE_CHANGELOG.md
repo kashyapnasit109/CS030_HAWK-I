@@ -135,3 +135,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 02, 2026 15:00:36]` **refactor(detector): decouple camera frame ingestion from computer vision workers** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 02, 2026 22:03:00]` **test(stream): validate spatial polygon intersection tests across complex geometries** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 02, 2026 22:48:34]` **docs(diagnostics): update compliance engine operational deployment guide** — *Verified component: hardware decoders & operational telemetry*
+- `[Sep 03, 2026 08:53:44]` **perf(pipeline): optimize SQLite write transactions with WAL mode and indexing** — *Verified component: camera ring buffer & video ingestion*
