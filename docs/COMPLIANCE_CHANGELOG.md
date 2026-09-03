@@ -138,3 +138,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 03, 2026 08:53:44]` **perf(pipeline): optimize SQLite write transactions with WAL mode and indexing** — *Verified component: camera ring buffer & video ingestion*
 - `[Sep 03, 2026 10:00:42]` **refactor(perf): simplify WebSocket client state lifecycle management** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 03, 2026 10:13:48]` **docs(evidence): document camera compatibility capability matrix requirements** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
+- `[Sep 03, 2026 10:34:46]` **refactor(evidence): isolate optical hazard detectors into standalone inference module** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
