@@ -158,3 +158,10 @@ Tracking inference latency, throughput, and resource utilization.
 - Rate limiting on all public endpoints
 - Input sanitization with Pydantic validators
 
+
+## [2026-09-03 22:05] Commit #113
+### Geofencing Engine
+- Polygon-based zone definitions with JSON schema
+- Point-in-polygon: ray casting algorithm
+- Support for nested and overlapping zones
+
