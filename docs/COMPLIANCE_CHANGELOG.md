@@ -150,3 +150,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 04, 2026 14:22:29]` **feat(compliance): introduce 12-toggle overlay control panel for real-time vision masks** — *Verified component: compliance engine core & rule execution*
 - `[Sep 04, 2026 14:56:19]` **feat(twin): support dynamic FPS throttling based on GPU compute availability** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 04, 2026 19:10:08]` **docs(stream): document camera compatibility capability matrix requirements** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Sep 04, 2026 20:43:07]` **docs(twin): add sequence diagram for ring buffer frame ingestion** — *Verified component: digital twin topology & blast radius analyzer*
