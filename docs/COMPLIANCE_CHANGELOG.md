@@ -148,3 +148,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 04, 2026 11:16:19]` **refactor(pipeline): isolate optical hazard detectors into standalone inference module** — *Verified component: camera ring buffer & video ingestion*
 - `[Sep 04, 2026 12:06:44]` **fix(assignment): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 04, 2026 14:22:29]` **feat(compliance): introduce 12-toggle overlay control panel for real-time vision masks** — *Verified component: compliance engine core & rule execution*
+- `[Sep 04, 2026 14:56:19]` **feat(twin): support dynamic FPS throttling based on GPU compute availability** — *Verified component: digital twin topology & blast radius analyzer*
