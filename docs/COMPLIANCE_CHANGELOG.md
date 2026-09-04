@@ -149,3 +149,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 04, 2026 12:06:44]` **fix(assignment): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 04, 2026 14:22:29]` **feat(compliance): introduce 12-toggle overlay control panel for real-time vision masks** — *Verified component: compliance engine core & rule execution*
 - `[Sep 04, 2026 14:56:19]` **feat(twin): support dynamic FPS throttling based on GPU compute availability** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Sep 04, 2026 19:10:08]` **docs(stream): document camera compatibility capability matrix requirements** — *Verified component: low-latency MJPEG & WebSocket stream transport*
