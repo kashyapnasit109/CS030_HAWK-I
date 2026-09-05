@@ -662,3 +662,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Divided human bounding box into head, torso (0.2-0.6), and legs (0.6-1.0)
 - Applied center-crop margin of 15% to eliminate background foliage clutter
 - Computed dominant k-means (k=3) color clusters in LAB space
+
+## [2026-09-05 16:00] feat(search-engine): add person backpack and luggage carrying attribute classifier
+- Classified presence of backpack, shoulder bag, or handheld luggage
+- Achieved 89.4% classification accuracy on cropped person torso ROIs
+- Enabled precise filtering: 'suspect carrying backpack leaving via North Gate'
