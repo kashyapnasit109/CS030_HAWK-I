@@ -662,3 +662,8 @@ Key architectural choices and their rationale.
 - Applied RSA 2048-bit digital signature to exported courtroom PDF certificates
 - Rendered standard Adobe Acrobat blue ribbon trusted verification seal
 - Ensured tamper-evident PDF certification conforming to PAdES standards
+
+## [2026-09-05 09:15] feat(search-engine): implement suspect co-traveler association scoring from multi-camera sightings
+- Identified individuals walking together across 3 consecutive camera gates
+- Evaluated spatial distance (<1.2m) and velocity vector alignment
+- Generated suspect social graph showing companion identities
