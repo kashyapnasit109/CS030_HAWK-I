@@ -154,3 +154,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 05, 2026 09:40:25]` **feat(rules): add dynamic loitering cooldown hysteresis deduplication** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 05, 2026 09:46:33]` **docs(evidence): document camera compatibility capability matrix requirements** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Sep 05, 2026 10:01:37]` **test(twin): validate spatial polygon intersection tests across complex geometries** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Sep 05, 2026 11:25:56]` **docs(detector): add sequence diagram for ring buffer frame ingestion** — *Verified component: YOLOv8 & YOLO-Pose inference models*
