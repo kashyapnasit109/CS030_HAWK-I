@@ -151,3 +151,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 04, 2026 14:56:19]` **feat(twin): support dynamic FPS throttling based on GPU compute availability** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 04, 2026 19:10:08]` **docs(stream): document camera compatibility capability matrix requirements** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 04, 2026 20:43:07]` **docs(twin): add sequence diagram for ring buffer frame ingestion** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Sep 05, 2026 09:40:25]` **feat(rules): add dynamic loitering cooldown hysteresis deduplication** — *Verified component: deterministic rule evaluator & spatial logic*
