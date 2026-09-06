@@ -672,3 +672,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Constructed formal certificate layout with national emblem placeholder
 - Embedded high-resolution violation crop with bounding box annotations
 - Added SHA-256 seal stamp, officer signature block, and legal custody notes
+
+## [2026-09-06 22:45] feat(video-stream): add cryptographic watermark injection in keyframe JPEG EXIF user comment
+- Injected SHA-256 seal and camera UUID into standard EXIF metadata tag 0x9286
+- Ensured evidence integrity can be verified directly from image properties
+- Preserved EXIF tag across image viewing software and courtroom presentations
