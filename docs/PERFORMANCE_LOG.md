@@ -667,3 +667,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Permitted 1-character typo tolerance for obscured or muddy plates
 - Ranked search results by string edit distance and timestamp proximity
 - Optimized query execution time to under 8ms over 50,000 records
+
+## [2026-09-06 10:15] feat(video-stream): add ReportLab PDF forensic courtroom evidence exporter with signature block
+- Constructed formal certificate layout with national emblem placeholder
+- Embedded high-resolution violation crop with bounding box annotations
+- Added SHA-256 seal stamp, officer signature block, and legal custody notes
