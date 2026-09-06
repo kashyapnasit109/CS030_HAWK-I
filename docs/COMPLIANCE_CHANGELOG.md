@@ -602,3 +602,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Identified suspects who entered building in one clothing color and exited in another
 - Flagged rapid clothing change in restrooms during ongoing active incidents
 - Linked disparate sightings into unified suspect behavioral dossier
+
+## [2026-09-06 16:00] feat(video-stream): implement secure single-use download token with 15-minute expiration
+- Generated cryptographically signed JWT for forensic bundle downloads
+- Prevented unauthorized direct file URL scraping
+- Logged all evidence download events to forensic audit ledger
