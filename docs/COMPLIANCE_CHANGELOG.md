@@ -164,3 +164,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 06, 2026 09:52:45]` **feat(assignment): add Section 63 BNSS 2023 electronic record certificate generator** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 06, 2026 10:46:11]` **refactor(compliance): isolate optical hazard detectors into standalone inference module** — *Verified component: compliance engine core & rule execution*
 - `[Sep 06, 2026 11:04:08]` **docs(copilot): document statutory evidence certificate generation parameters** — *Verified component: prime compliance copilot & assistant integration*
+- `[Sep 06, 2026 11:54:38]` **refactor(compliance): modularize SQLite rule assignment transaction isolation** — *Verified component: compliance engine core & rule execution*
