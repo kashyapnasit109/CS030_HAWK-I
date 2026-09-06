@@ -667,3 +667,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Integrated multi-task convolutional classification head on person crops
 - Predicted coarse age bracket (child, youth, adult, senior) with 83% accuracy
 - Allowed investigators to narrow search queries by demographic filters
+
+## [2026-09-06 18:15] feat(video-stream): add forensic watermark and millisecond timestamp burn-in on exported videos
+- Rendered semi-transparent watermark bar on bottom 36 pixels of video
+- Included camera name, GPS coordinate, millisecond timestamp, and frame index
+- Ensured watermark burn-in cannot obscure critical center evidence region
