@@ -167,3 +167,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 06, 2026 11:54:38]` **refactor(compliance): modularize SQLite rule assignment transaction isolation** — *Verified component: compliance engine core & rule execution*
 - `[Sep 06, 2026 15:03:49]` **test(security): test bulk assignment atomic rollback upon constraint failure** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 06, 2026 20:53:04]` **refactor(assignment): unify telemetry event formats for detection frames and violations** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Sep 06, 2026 22:23:06]` **fix(diagnostics): fix edge case in polygon containment test for concave boundaries** — *Verified component: hardware decoders & operational telemetry*
