@@ -159,3 +159,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 05, 2026 12:41:09]` **perf(twin): vectorize dwell time trajectory state transitions with numpy** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 05, 2026 16:49:19]` **fix(diagnostics): guard against race conditions in bulk rule commit transactions** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 05, 2026 20:37:53]` **feat(security): add per-stream decoder latency & queue depth monitoring** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Sep 06, 2026 09:00:17]` **perf(twin): reduce memory footprint of 300-frame video buffer queue** — *Verified component: digital twin topology & blast radius analyzer*
