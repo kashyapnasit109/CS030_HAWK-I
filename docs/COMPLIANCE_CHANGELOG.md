@@ -162,3 +162,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 06, 2026 09:00:17]` **perf(twin): reduce memory footprint of 300-frame video buffer queue** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 06, 2026 09:39:27]` **feat(perf): implement optical smoke dispersion differential entropy filter** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 06, 2026 09:52:45]` **feat(assignment): add Section 63 BNSS 2023 electronic record certificate generator** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Sep 06, 2026 10:46:11]` **refactor(compliance): isolate optical hazard detectors into standalone inference module** — *Verified component: compliance engine core & rule execution*
