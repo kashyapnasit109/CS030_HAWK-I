@@ -170,3 +170,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 06, 2026 22:23:06]` **fix(diagnostics): fix edge case in polygon containment test for concave boundaries** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 07, 2026 09:50:08]` **test(diagnostics): add stress test for concurrent multi-stream ingest degradation** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 07, 2026 10:39:13]` **fix(copilot): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: prime compliance copilot & assistant integration*
+- `[Sep 07, 2026 11:26:39]` **fix(detector): correct bounding box clipping on frame border intersections** — *Verified component: YOLOv8 & YOLO-Pose inference models*
