@@ -607,3 +607,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Generated cryptographically signed JWT for forensic bundle downloads
 - Prevented unauthorized direct file URL scraping
 - Logged all evidence download events to forensic audit ledger
+
+## [2026-09-07 14:30] fix(hazard-engine): resolve edge case in implement incandescent core thermal thresholding in HSV color space
+- Segmented high-luminance core (>220) with high red-orange saturation
+- Suppressed static amber sodium lamps via localized temporal variance
+- Calibrated core-to-envelope area ratio to reject small transient reflections
