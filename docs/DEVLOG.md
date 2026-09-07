@@ -672,3 +672,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Structured archive with /video, /metadata, and /certificates directories
 - Generated root MANIFEST.json containing individual file SHA-256 hashes
 - Signed manifest with server digital key for external validation
+
+## [2026-09-07 11:45] feat(video-stream): add standardized ISO 9660 filesystem image generator for DVD submission
+- Structured evidence package into standardized ISO 9660 filesystem image
+- Included autorun HTML forensic viewer and cryptographic validation manifest
+- Prepared physical disc burning capability for direct court submission
