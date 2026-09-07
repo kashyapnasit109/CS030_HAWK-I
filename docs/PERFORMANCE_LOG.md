@@ -193,3 +193,10 @@ Tracking inference latency, throughput, and resource utilization.
 - Minimum stationary time: 30 seconds
 - Area threshold: 1000-50000 pixels
 
+
+## [2026-09-07 20:55] Commit #138
+### Security Hardening
+- OWASP Top 10 compliance audit passed
+- Rate limiting on all public endpoints
+- Input sanitization with Pydantic validators
+
