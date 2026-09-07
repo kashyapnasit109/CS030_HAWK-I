@@ -174,3 +174,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 07, 2026 11:36:03]` **docs(assignment): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 07, 2026 12:11:41]` **test(pipeline): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: camera ring buffer & video ingestion*
 - `[Sep 07, 2026 17:54:13]` **refactor(compliance): standardize statutory evidence payload schema across jurisdictions** — *Verified component: compliance engine core & rule execution*
+- `[Sep 07, 2026 19:53:23]` **fix(assignment): resolve thread-safety collision during concurrent WebSocket broadcast** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
