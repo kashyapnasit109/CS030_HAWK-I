@@ -677,3 +677,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Extracted synchronized AAC audio stream alongside MP4 video clip
 - Rendered high-resolution audio waveform visualizer in forensic investigation player
 - Highlighted acoustic scream and glass break spikes on timeline
+
+## [2026-09-07 22:45] fix(hazard-engine): resolve edge case in integrate dark channel prior for fog and low-visibility atmospheric estimation
+- Calculated minimum intensity across RGB color channels in local patches
+- Computed atmospheric transmission map to estimate optical range
+- Issued dynamic sensor sensitivity adjustment during heavy haze
