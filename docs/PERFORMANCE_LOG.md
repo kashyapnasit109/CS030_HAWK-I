@@ -682,3 +682,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Modeled horizontal elliptical aspect ratio of specular headlight beams
 - Rejected non-combustion reflective surfaces from flame candidate list
 - Suppressed false alerts in campus parking lots during night hours
+
+## [2026-09-08 17:15] fix(hazard-engine): resolve edge case in implement thermal hotspot classification using calibrated radiometric sensors
+- Converted raw 16-bit thermal sensor telemetry to Celsius values
+- Triggered alerts for localized surfaces exceeding 85 degrees Celsius
+- Correlated thermal anomalies with visual optical camera streams
