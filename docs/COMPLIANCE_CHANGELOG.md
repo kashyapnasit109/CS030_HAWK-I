@@ -176,3 +176,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 07, 2026 17:54:13]` **refactor(compliance): standardize statutory evidence payload schema across jurisdictions** — *Verified component: compliance engine core & rule execution*
 - `[Sep 07, 2026 19:53:23]` **fix(assignment): resolve thread-safety collision during concurrent WebSocket broadcast** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 08, 2026 08:22:27]` **feat(security): support dynamic FPS throttling based on GPU compute availability** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Sep 08, 2026 11:19:33]` **test(detector): add mock camera RTSP connection timeout failure injection** — *Verified component: YOLOv8 & YOLO-Pose inference models*
