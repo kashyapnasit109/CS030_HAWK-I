@@ -180,3 +180,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 08, 2026 11:34:42]` **docs(compliance): document statutory evidence certificate generation parameters** — *Verified component: compliance engine core & rule execution*
 - `[Sep 08, 2026 11:49:23]` **test(wall): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 08, 2026 13:32:47]` **docs(perf): document camera compatibility capability matrix requirements** — *Verified component: tensor memory management & latency optimization*
+- `[Sep 08, 2026 17:59:31]` **refactor(diagnostics): isolate optical hazard detectors into standalone inference module** — *Verified component: hardware decoders & operational telemetry*
