@@ -612,3 +612,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Segmented high-luminance core (>220) with high red-orange saturation
 - Suppressed static amber sodium lamps via localized temporal variance
 - Calibrated core-to-envelope area ratio to reject small transient reflections
+
+## [2026-09-08 11:45] fix(hazard-engine): resolve edge case in implement industrial gas cylinder thermal proximity monitor
+- Monitored distance between pressurized gas cylinders and heat sources
+- Flagged storage violations within 5 meters of active boiler units
+- Dispatched high-priority warning to facilities management
