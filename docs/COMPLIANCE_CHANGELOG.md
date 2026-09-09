@@ -617,3 +617,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Monitored distance between pressurized gas cylinders and heat sources
 - Flagged storage violations within 5 meters of active boiler units
 - Dispatched high-priority warning to facilities management
+
+## [2026-09-09 10:15] fix(hazard-engine): resolve edge case in calibrate pyrolytic cable insulation smoke color classification
+- Distinguished dense white pyrolytic smoke from dark hydrocarbon soot
+- Alerted on electrical cable overheating before open flames erupt
+- Integrated into campus underground utility tunnel monitoring matrix
