@@ -182,3 +182,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 08, 2026 13:32:47]` **docs(perf): document camera compatibility capability matrix requirements** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 08, 2026 17:59:31]` **refactor(diagnostics): isolate optical hazard detectors into standalone inference module** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 09, 2026 10:38:08]` **feat(stream): add pre-flight compatibility matrix validator across detector classes** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Sep 09, 2026 10:49:26]` **test(detector): validate spatial polygon intersection tests across complex geometries** — *Verified component: YOLOv8 & YOLO-Pose inference models*
