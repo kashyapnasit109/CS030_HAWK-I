@@ -214,3 +214,10 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - W&B integration for experiment tracking
 - Automatic hyperparameter tuning with Optuna
 
+
+## [2026-09-09 22:42] Commit #151
+### Detection Pipeline
+- Integrated YOLOv8n backbone with custom anchor ratios
+- Added NMS threshold tuning: IoU=0.45, conf=0.25
+- Benchmarked at 42ms/frame on RTX 4090
+
