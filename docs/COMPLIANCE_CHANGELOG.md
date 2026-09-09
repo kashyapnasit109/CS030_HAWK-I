@@ -185,3 +185,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 09, 2026 10:49:26]` **test(detector): validate spatial polygon intersection tests across complex geometries** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 09, 2026 11:38:22]` **feat(copilot): add Section 63 BNSS 2023 electronic record certificate generator** — *Verified component: prime compliance copilot & assistant integration*
 - `[Sep 09, 2026 12:00:11]` **refactor(assignment): simplify WebSocket client state lifecycle management** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Sep 09, 2026 12:27:33]` **test(pipeline): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: camera ring buffer & video ingestion*
