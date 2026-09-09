@@ -190,3 +190,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 09, 2026 14:15:41]` **test(detector): add stress test for concurrent multi-stream ingest degradation** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 09, 2026 17:13:47]` **fix(diagnostics): resolve memory leak in detached HTML5 video canvas contexts** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 09, 2026 19:29:44]` **feat(compliance): support asynchronous multi-threaded camera inference workers** — *Verified component: compliance engine core & rule execution*
+- `[Sep 09, 2026 19:37:21]` **fix(rules): align normalized coordinate projection on ultra-wide aspect ratios** — *Verified component: deterministic rule evaluator & spatial logic*
