@@ -627,3 +627,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Stored blacklisted license plates in in-memory hash set structure
 - Achieved O(1) watchlist query execution in under 0.05 milliseconds
 - Triggered immediate priority popup alert on campus gate terminals
+
+## [2026-09-10 20:30] fix(anpr): resolve edge case in implement Richardson-Lucy blind deconvolution for high-speed plate motion deblurring
+- Estimated linear motion blur kernel from vehicle speed vector
+- Restored character sharpness on vehicles moving up to 60 km/h
+- Improved night-time plate legibility under low shutter speeds
