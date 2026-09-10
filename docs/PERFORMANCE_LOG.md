@@ -692,3 +692,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Detected plate corners using convex polygon contour approximation
 - Warped perspective to standardized 300x80 planar pixel rectangle
 - Increased OCR character recognition accuracy on skewed cameras by 22%
+
+## [2026-09-10 13:30] fix(anpr): resolve edge case in add vehicle make, model, and color estimation using MobileNetV3 classifier
+- Extracted vehicle crop from surround context of license plate
+- Classified 8 standard vehicle body types and 10 common colors
+- Linked vehicle visual attributes with plate record for cross-verification
