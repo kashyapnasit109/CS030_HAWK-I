@@ -692,3 +692,8 @@ Key architectural choices and their rationale.
 - Correlated high-frequency acoustic hiss with expanding vapor plumes
 - Automated emergency boiler isolation valve shutdown trigger
 - Minimized thermal burn risks in campus central heating plant
+
+## [2026-09-10 11:45] fix(anpr): resolve edge case in implement license plate character confidence visualization in audit UI
+- Assigned individual character confidence scores from OCR softmax layer
+- Rendered color-coded confidence indicators (green, amber, red) per character
+- Allowed forensic operators to quickly inspect low-confidence readings
