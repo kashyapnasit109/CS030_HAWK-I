@@ -692,3 +692,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Parsed regional prefixes (GJ-01, GJ-06, MH-02, DL-01) from recognized plates
 - Aggregated real-time campus visitor origin statistics on dashboard
 - Flagged unauthorized out-of-state commercial vehicles during night
+
+## [2026-09-10 22:45] fix(anpr): resolve edge case in add parking lot dwell time tracker with automated overtime alerts
+- Recorded vehicle entry and exit timestamps across campus parking zones
+- Flagged unauthorized overnight parking and prolonged parking stall hogging
+- Automated daily parking occupancy utilization reporting
