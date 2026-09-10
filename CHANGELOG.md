@@ -687,3 +687,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Defined high-risk polygonal safety zones along exterior parapets
 - Tracked person dwell time near unprotected rooftop edges
 - Dispatched urgent patrol intervention to prevent fall incidents
+
+## [2026-09-10 09:15] fix(anpr): resolve edge case in add state code and district prefix parser with regional distribution mapping
+- Parsed regional prefixes (GJ-01, GJ-06, MH-02, DL-01) from recognized plates
+- Aggregated real-time campus visitor origin statistics on dashboard
+- Flagged unauthorized out-of-state commercial vehicles during night
