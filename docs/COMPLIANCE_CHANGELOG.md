@@ -198,3 +198,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 10, 2026 10:28:20]` **feat(security): integrate dual-envelope incandescent flame color masks** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 10, 2026 11:08:13]` **refactor(detector): isolate optical hazard detectors into standalone inference module** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 10, 2026 11:42:42]` **feat(pipeline): add pre-flight compatibility matrix validator across detector classes** — *Verified component: camera ring buffer & video ingestion*
+- `[Sep 10, 2026 17:21:33]` **fix(rules): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: deterministic rule evaluator & spatial logic*
