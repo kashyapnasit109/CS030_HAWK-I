@@ -200,3 +200,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 10, 2026 11:42:42]` **feat(pipeline): add pre-flight compatibility matrix validator across detector classes** — *Verified component: camera ring buffer & video ingestion*
 - `[Sep 10, 2026 17:21:33]` **fix(rules): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 10, 2026 17:40:59]` **test(stream): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Sep 10, 2026 17:45:46]` **test(wall): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
