@@ -193,3 +193,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 09, 2026 19:37:21]` **fix(rules): align normalized coordinate projection on ultra-wide aspect ratios** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 10, 2026 09:00:05]` **test(rules): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 10, 2026 09:40:05]` **test(evidence): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
+- `[Sep 10, 2026 09:44:31]` **refactor(rules): extract reusable canvas drawing primitives into utility layer** — *Verified component: deterministic rule evaluator & spatial logic*
