@@ -205,3 +205,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 11, 2026 09:00:02]` **fix(security): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 11, 2026 10:14:07]` **feat(assignment): introduce dwell time trajectory velocity smoothing filter** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 11, 2026 10:30:20]` **perf(assignment): optimize SQLite write transactions with WAL mode and indexing** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Sep 11, 2026 11:30:32]` **perf(stream): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: low-latency MJPEG & WebSocket stream transport*
