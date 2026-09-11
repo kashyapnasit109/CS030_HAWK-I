@@ -202,3 +202,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 10, 2026 17:40:59]` **test(stream): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 10, 2026 17:45:46]` **test(wall): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 10, 2026 18:16:05]` **feat(compliance): add pre-flight compatibility matrix validator across detector classes** — *Verified component: compliance engine core & rule execution*
+- `[Sep 11, 2026 09:00:02]` **fix(security): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: SHA-256 seal verification & audit log hashing*
