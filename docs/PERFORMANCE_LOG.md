@@ -697,3 +697,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Extracted vehicle crop from surround context of license plate
 - Classified 8 standard vehicle body types and 10 common colors
 - Linked vehicle visual attributes with plate record for cross-verification
+
+## [2026-09-11 11:45] fix(anpr): resolve edge case in add two-wheeler helmet compliance correlation with license plate
+- Correlated motorcycle license plate crop with rider helmet detection
+- Generated traffic safety infraction ticket with rider and plate crops
+- Sent automated notification to campus administrative safety portal
