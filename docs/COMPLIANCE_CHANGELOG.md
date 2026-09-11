@@ -203,3 +203,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 10, 2026 17:45:46]` **test(wall): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 10, 2026 18:16:05]` **feat(compliance): add pre-flight compatibility matrix validator across detector classes** — *Verified component: compliance engine core & rule execution*
 - `[Sep 11, 2026 09:00:02]` **fix(security): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Sep 11, 2026 10:14:07]` **feat(assignment): introduce dwell time trajectory velocity smoothing filter** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
