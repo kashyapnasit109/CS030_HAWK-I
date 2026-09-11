@@ -207,3 +207,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 11, 2026 10:30:20]` **perf(assignment): optimize SQLite write transactions with WAL mode and indexing** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 11, 2026 11:30:32]` **perf(stream): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 11, 2026 13:15:12]` **feat(rules): integrate cross-camera correlation graph for compound safety events** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Sep 11, 2026 14:58:42]` **refactor(security): standardize statutory evidence payload schema across jurisdictions** — *Verified component: SHA-256 seal verification & audit log hashing*
