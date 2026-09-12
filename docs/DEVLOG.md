@@ -702,3 +702,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Classified ambulances and fire rescue vehicles from visual markings
 - Automatically opened electronic boom barrier before vehicle reaches gate
 - Cleared traffic signals along designated emergency route
+
+## [2026-09-12 13:30] fix(ai-pipeline): resolve edge case in implement adaptive input resolution downscaling during GPU thermal throttling
+- Queried NVML interface for GPU core temperature and power draw
+- Dynamically downscaled input resolution from 1080p to 720p if temp > 80C
+- Maintained 100% camera stream uptime without thermal throttling crashes
