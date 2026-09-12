@@ -216,3 +216,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 12, 2026 10:22:28]` **perf(assignment): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 12, 2026 12:42:12]` **docs(security): document camera compatibility capability matrix requirements** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 12, 2026 14:30:22]` **refactor(perf): decouple camera frame ingestion from computer vision workers** — *Verified component: tensor memory management & latency optimization*
+- `[Sep 12, 2026 15:17:17]` **test(wall): test bulk assignment atomic rollback upon constraint failure** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
