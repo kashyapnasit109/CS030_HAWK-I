@@ -211,3 +211,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 11, 2026 20:43:33]` **perf(detector): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 11, 2026 23:06:53]` **feat(copilot): integrate dual-envelope incandescent flame color masks** — *Verified component: prime compliance copilot & assistant integration*
 - `[Sep 12, 2026 08:41:55]` **docs(security): add API documentation for bulk rule assignment endpoints** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Sep 12, 2026 09:14:53]` **perf(assignment): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
