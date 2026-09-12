@@ -235,3 +235,10 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Logistic regression ensemble with 5-fold CV
 - AUC-ROC: 0.94 on validation set
 
+
+## [2026-09-12 08:11] Commit #166
+### Load Testing Results
+- 50 concurrent camera streams: stable at 85% GPU
+- API p99 latency: 120ms under load
+- WebSocket: 2000 concurrent connections sustained
+
