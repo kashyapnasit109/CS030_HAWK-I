@@ -218,3 +218,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 12, 2026 14:30:22]` **refactor(perf): decouple camera frame ingestion from computer vision workers** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 12, 2026 15:17:17]` **test(wall): test bulk assignment atomic rollback upon constraint failure** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 12, 2026 16:26:59]` **perf(twin): streamline keypoint bounding box normalization algorithms** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Sep 12, 2026 19:41:39]` **fix(diagnostics): resolve thread-safety collision during concurrent WebSocket broadcast** — *Verified component: hardware decoders & operational telemetry*
