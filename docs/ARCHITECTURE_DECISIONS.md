@@ -242,3 +242,10 @@ Key architectural choices and their rationale.
 - Zustand for state management
 - Vite 6 with HMR for development
 
+
+## [2026-09-13 19:32] Commit #175
+### Data Pipeline
+- Apache Kafka for event streaming
+- 7-day retention policy for raw events
+- 90-day retention for aggregated metrics
+
