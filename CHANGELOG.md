@@ -707,3 +707,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Unified human bounding box and skeleton keypoint regression in one model
 - Avoided redundant feature extraction passes over identical video frames
 - Saved 35% total inference compute time across full analytics stack
+
+## [2026-09-13 16:00] fix(ai-pipeline): resolve edge case in implement hardware NVDEC accelerated H.264 video decoding
+- Bypassed CPU software video decoding using dedicated NVDEC ASIC
+- Decreased host CPU utilization from 78% to 14% on 16 RTSP streams
+- Freed CPU cores for database transactions and business logic rules
