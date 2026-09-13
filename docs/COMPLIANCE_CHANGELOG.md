@@ -225,3 +225,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 13, 2026 10:20:41]` **perf(twin): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 13, 2026 11:26:52]` **test(assignment): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 13, 2026 16:30:45]` **perf(rules): streamline keypoint bounding box normalization algorithms** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Sep 13, 2026 17:05:42]` **fix(perf): resolve memory leak in detached HTML5 video canvas contexts** — *Verified component: tensor memory management & latency optimization*
