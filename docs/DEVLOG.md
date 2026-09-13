@@ -707,3 +707,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Queried NVML interface for GPU core temperature and power draw
 - Dynamically downscaled input resolution from 1080p to 720p if temp > 80C
 - Maintained 100% camera stream uptime without thermal throttling crashes
+
+## [2026-09-13 11:45] fix(ai-pipeline): resolve edge case in implement thread-safe RTSP reconnect watchdog with exponential backoff
+- Monitored OpenCV stream read timeouts with 4-second deadline
+- Spawned non-blocking reconnection thread with jittered exponential delay
+- Preserved uninterrupted processing for all healthy camera channels
