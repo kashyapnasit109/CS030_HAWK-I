@@ -220,3 +220,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 12, 2026 16:26:59]` **perf(twin): streamline keypoint bounding box normalization algorithms** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 12, 2026 19:41:39]` **fix(diagnostics): resolve thread-safety collision during concurrent WebSocket broadcast** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 12, 2026 19:42:57]` **perf(security): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Sep 13, 2026 09:58:18]` **docs(diagnostics): add API documentation for bulk rule assignment endpoints** — *Verified component: hardware decoders & operational telemetry*
