@@ -236,3 +236,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 14, 2026 15:53:30]` **refactor(compliance): simplify WebSocket client state lifecycle management** — *Verified component: compliance engine core & rule execution*
 - `[Sep 14, 2026 16:40:01]` **docs(detector): document camera compatibility capability matrix requirements** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 14, 2026 23:35:35]` **perf(copilot): optimize SQLite write transactions with WAL mode and indexing** — *Verified component: prime compliance copilot & assistant integration*
+- `[Sep 14, 2026 23:48:16]` **feat(security): calibrate 17-keypoint skeleton fall detection threshold vectors** — *Verified component: SHA-256 seal verification & audit log hashing*
