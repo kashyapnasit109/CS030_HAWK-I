@@ -717,3 +717,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Extracted Local Binary Patterns (LBP) and Fourier power spectrum features
 - Detected printed photo attacks and smartphone screen replay reflections
 - Prevented spoofed face presentations from contaminating gallery database
+
+## [2026-09-14 21:45] fix(face-recog): resolve edge case in add automated face gallery template aging and expiration cleanup
+- Configured 3-year sliding window for student biometric templates
+- Automated deletion of graduated student embeddings compliant with DPDP Act
+- Logged audit proof of biometric data disposal to security ledger
