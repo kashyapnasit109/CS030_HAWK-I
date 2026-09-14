@@ -232,3 +232,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 14, 2026 09:04:13]` **feat(copilot): introduce rolling ring buffer for zero-drop video ingestion** — *Verified component: prime compliance copilot & assistant integration*
 - `[Sep 14, 2026 09:22:38]` **test(stream): validate spatial polygon intersection tests across complex geometries** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 14, 2026 11:39:44]` **feat(pipeline): add real-time WebSocket reconnect backoff with jitter** — *Verified component: camera ring buffer & video ingestion*
+- `[Sep 14, 2026 12:00:19]` **refactor(twin): modularize SQLite rule assignment transaction isolation** — *Verified component: digital twin topology & blast radius analyzer*
