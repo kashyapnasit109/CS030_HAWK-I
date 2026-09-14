@@ -230,3 +230,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 13, 2026 21:04:15]` **test(rules): test bulk assignment atomic rollback upon constraint failure** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 13, 2026 21:30:18]` **perf(pipeline): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: camera ring buffer & video ingestion*
 - `[Sep 14, 2026 09:04:13]` **feat(copilot): introduce rolling ring buffer for zero-drop video ingestion** — *Verified component: prime compliance copilot & assistant integration*
+- `[Sep 14, 2026 09:22:38]` **test(stream): validate spatial polygon intersection tests across complex geometries** — *Verified component: low-latency MJPEG & WebSocket stream transport*
