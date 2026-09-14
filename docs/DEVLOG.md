@@ -712,3 +712,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Monitored OpenCV stream read timeouts with 4-second deadline
 - Spawned non-blocking reconnection thread with jittered exponential delay
 - Preserved uninterrupted processing for all healthy camera channels
+
+## [2026-09-14 09:15] fix(face-recog): resolve edge case in add face anti-spoofing liveness detection via high-frequency texture analysis
+- Extracted Local Binary Patterns (LBP) and Fourier power spectrum features
+- Detected printed photo attacks and smartphone screen replay reflections
+- Prevented spoofed face presentations from contaminating gallery database
