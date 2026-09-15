@@ -238,3 +238,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 14, 2026 23:35:35]` **perf(copilot): optimize SQLite write transactions with WAL mode and indexing** — *Verified component: prime compliance copilot & assistant integration*
 - `[Sep 14, 2026 23:48:16]` **feat(security): calibrate 17-keypoint skeleton fall detection threshold vectors** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 15, 2026 08:56:04]` **feat(stream): support asynchronous multi-threaded camera inference workers** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Sep 15, 2026 09:18:41]` **docs(rules): document statutory evidence certificate generation parameters** — *Verified component: deterministic rule evaluator & spatial logic*
