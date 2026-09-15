@@ -722,3 +722,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Configured 3-year sliding window for student biometric templates
 - Automated deletion of graduated student embeddings compliant with DPDP Act
 - Logged audit proof of biometric data disposal to security ledger
+
+## [2026-09-15 20:30] fix(campus-safety): resolve edge case in implement unattended baggage and abandoned luggage countdown timer
+- Tracked stationary bag bounding boxes devoid of nearby human tracks (>1.5m)
+- Initiated automated countdown timer upon human abandonment
+- Dispatched P2 security alert when luggage remains stationary > 180 seconds
