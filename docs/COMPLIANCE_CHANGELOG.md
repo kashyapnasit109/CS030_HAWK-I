@@ -239,3 +239,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 14, 2026 23:48:16]` **feat(security): calibrate 17-keypoint skeleton fall detection threshold vectors** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 15, 2026 08:56:04]` **feat(stream): support asynchronous multi-threaded camera inference workers** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 15, 2026 09:18:41]` **docs(rules): document statutory evidence certificate generation parameters** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Sep 15, 2026 10:11:53]` **perf(wall): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
