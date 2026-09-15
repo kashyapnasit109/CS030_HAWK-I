@@ -241,3 +241,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 15, 2026 09:18:41]` **docs(rules): document statutory evidence certificate generation parameters** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 15, 2026 10:11:53]` **perf(wall): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 15, 2026 11:36:55]` **refactor(stream): unify telemetry event formats for detection frames and violations** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Sep 15, 2026 11:58:10]` **perf(assignment): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
