@@ -662,3 +662,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Defined perimeter wall-top polygon zone with directional crossing filter
 - Tracked skeleton keypoints moving vertically over wall threshold
 - Triggered priority physical perimeter breach alarm to night guards
+
+## [2026-09-16 20:30] fix(campus-safety): resolve edge case in add disabled person wheelchair accessibility monitor for building entrances
+- Detected wheelchair users approaching building stairwells devoid of ramps
+- Alerted building facilities staff to provide motorized elevator assistance
+- Monitored handicap parking stalls for unauthorized non-permitted vehicles
