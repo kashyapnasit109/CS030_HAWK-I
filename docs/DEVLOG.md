@@ -727,3 +727,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Tracked stationary bag bounding boxes devoid of nearby human tracks (>1.5m)
 - Initiated automated countdown timer upon human abandonment
 - Dispatched P2 security alert when luggage remains stationary > 180 seconds
+
+## [2026-09-16 17:15] fix(campus-safety): resolve edge case in implement laboratory access door propped open monitor
+- Detected sensitive research lab doors held open for longer than 60 seconds
+- Alerted security to prevent unauthorized tailgating and room climate loss
+- Sounded localized audio chime at doorway prompting personnel to close door
