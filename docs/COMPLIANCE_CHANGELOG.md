@@ -245,3 +245,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 15, 2026 17:42:32]` **refactor(compliance): simplify WebSocket client state lifecycle management** — *Verified component: compliance engine core & rule execution*
 - `[Sep 15, 2026 18:11:35]` **perf(perf): cache static rule conditions to avoid redundant JSON parsing** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 15, 2026 21:56:44]` **perf(security): accelerate canvas polygon rendering with path caching** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Sep 16, 2026 11:57:30]` **feat(perf): add pre-flight compatibility matrix validator across detector classes** — *Verified component: tensor memory management & latency optimization*
