@@ -727,3 +727,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Applied 2D Gaussian smoothing over detected head coordinates
 - Rendered alpha-blended color overlay (green, amber, red) on video wall
 - Triggered stampede alert when local density exceeds 4 persons/m^2
+
+## [2026-09-16 16:00] fix(campus-safety): resolve edge case in add bicycle and micromobility vehicle detector in pedestrian-only plazas
+- Classified two-wheeler scooters and bicycles in restricted walkway zones
+- Tracked vehicle velocity in crowded walkways to prevent collisions
+- Logged hourly pathway safety violation heatmaps for campus planners
