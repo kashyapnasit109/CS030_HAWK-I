@@ -727,3 +727,8 @@ Key architectural choices and their rationale.
 - Tracked rapid wrist-to-shoulder kinematic acceleration across targets
 - Measured interpersonal distance (<0.8m) between conflicting individuals
 - Configured 15-frame voting window to avoid false spikes from normal gestures
+
+## [2026-09-16 10:45] fix(campus-safety): resolve edge case in add construction zone safety helmet and high-visibility vest compliance checker
+- Classified hardhats and reflective vests on detected worker bounding boxes
+- Flagged workers entering hardhat mandatory zones without required gear
+- Logged hourly safety compliance percentages per contractor team
