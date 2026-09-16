@@ -247,3 +247,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 15, 2026 21:56:44]` **perf(security): accelerate canvas polygon rendering with path caching** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 16, 2026 11:57:30]` **feat(perf): add pre-flight compatibility matrix validator across detector classes** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 16, 2026 14:05:09]` **test(detector): add mock camera RTSP connection timeout failure injection** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Sep 16, 2026 14:52:17]` **test(assignment): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
