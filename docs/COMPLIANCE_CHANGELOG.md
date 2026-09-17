@@ -255,3 +255,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 17, 2026 10:42:45]` **docs(twin): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 17, 2026 10:55:52]` **test(wall): validate spatial polygon intersection tests across complex geometries** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 17, 2026 11:02:43]` **refactor(diagnostics): decouple camera frame ingestion from computer vision workers** — *Verified component: hardware decoders & operational telemetry*
+- `[Sep 17, 2026 11:21:54]` **refactor(wall): simplify WebSocket client state lifecycle management** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
