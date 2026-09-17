@@ -737,3 +737,8 @@ Key architectural choices and their rationale.
 - Monitored chemical fume hood glass sash opening height in research labs
 - Alerted laboratory supervisor when sash is left open above safe aerodynamic mark
 - Protected researchers from volatile toxic vapor exposure
+
+## [2026-09-17 21:45] fix(bsa-compliance): resolve edge case in implement HMAC-SHA256 evidence signing using hardware machine secret
+- Derived HMAC key from server TPM hardware ID and SOC master key
+- Embedded HMAC signature in exported incident JSON evidence bundles
+- Provided standalone CLI utility for independent courtroom audit validation
