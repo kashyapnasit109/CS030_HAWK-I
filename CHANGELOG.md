@@ -732,3 +732,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Defined water boundary polygon with hazardous approach tripwire
 - Tracked person tracks crossing safety barrier toward water edge
 - Dispatched immediate alert to prevent accidental drowning incidents
+
+## [2026-09-17 20:30] fix(bsa-compliance): resolve edge case in add automated NTP stratum-1 clock synchronization verification check
+- Queried local GPS stratum-1 NTP server before generating forensic timestamp
+- Flagged evidence records generated during clock drift > 50 milliseconds
+- Recorded clock uncertainty window in evidence certificate metadata
