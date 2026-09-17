@@ -262,3 +262,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 17, 2026 15:22:28]` **perf(diagnostics): accelerate canvas polygon rendering with path caching** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 17, 2026 16:06:48]` **refactor(perf): restructure rule compatibility matrix into declarative lookup** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 17, 2026 16:19:50]` **perf(diagnostics): optimize YOLOv8 inference batching for edge ring buffers** — *Verified component: hardware decoders & operational telemetry*
+- `[Sep 17, 2026 23:09:10]` **perf(security): vectorize dwell time trajectory state transitions with numpy** — *Verified component: SHA-256 seal verification & audit log hashing*
