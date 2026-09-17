@@ -260,3 +260,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 17, 2026 12:49:23]` **perf(compliance): introduce circular buffer evictions for high-FPS telemetry** — *Verified component: compliance engine core & rule execution*
 - `[Sep 17, 2026 13:54:46]` **feat(rules): support asynchronous multi-threaded camera inference workers** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 17, 2026 15:22:28]` **perf(diagnostics): accelerate canvas polygon rendering with path caching** — *Verified component: hardware decoders & operational telemetry*
+- `[Sep 17, 2026 16:06:48]` **refactor(perf): restructure rule compatibility matrix into declarative lookup** — *Verified component: tensor memory management & latency optimization*
