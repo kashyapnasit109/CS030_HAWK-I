@@ -251,3 +251,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 16, 2026 16:44:39]` **perf(assignment): vectorize dwell time trajectory state transitions with numpy** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 16, 2026 20:47:46]` **refactor(wall): unify telemetry event formats for detection frames and violations** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 16, 2026 22:49:36]` **perf(detector): optimize SQLite write transactions with WAL mode and indexing** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Sep 17, 2026 10:14:13]` **test(pipeline): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: camera ring buffer & video ingestion*
