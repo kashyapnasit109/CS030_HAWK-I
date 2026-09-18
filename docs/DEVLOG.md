@@ -737,3 +737,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Drafted statutory affidavit wording for computer-generated digital records
 - Embedded server MAC address, system clock source, and NTP offset
 - Generated courtroom-admissible evidence documentation with legal formatting
+
+## [2026-09-18 14:30] fix(bsa-compliance): resolve edge case in add digital evidence hash QR code generator in courtroom PDF certificates
+- Generated high-resolution QR code encoding deep link to verification endpoint
+- Allowed judges and attorneys to instantly verify authenticity via mobile scanner
+- Rendered crisp vector QR graphics to prevent printing degradation
