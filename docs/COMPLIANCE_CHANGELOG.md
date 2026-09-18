@@ -270,3 +270,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 18, 2026 13:37:45]` **test(diagnostics): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 18, 2026 19:43:52]` **refactor(perf): decouple camera frame ingestion from computer vision workers** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 18, 2026 21:39:25]` **docs(wall): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
+- `[Sep 18, 2026 22:22:04]` **perf(evidence): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
