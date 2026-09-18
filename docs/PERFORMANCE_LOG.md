@@ -737,3 +737,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Automated crowd headcount tallying at designated outdoor fire assembly points
 - Compared live assembly headcount against campus building check-in roster
 - Provided incident commander with real-time list of potentially trapped personnel
+
+## [2026-09-18 10:15] fix(bsa-compliance): resolve edge case in add legal chain of custody transfer log tracking in forensic database
+- Recorded physical and digital transfer of custody from SOC to Police
+- Captured receiving officer badge number, signature timestamp, and receipt hash
+- Maintained unbroken legal chain of custody required by Section 63 BSA
