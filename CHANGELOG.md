@@ -737,3 +737,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Queried local GPS stratum-1 NTP server before generating forensic timestamp
 - Flagged evidence records generated during clock drift > 50 milliseconds
 - Recorded clock uncertainty window in evidence certificate metadata
+
+## [2026-09-18 18:15] fix(bsa-compliance): resolve edge case in add standalone forensic verification script for external judicial auditors
+- Created verify_evidence.py script for offline evidence bundle validation
+- Asserted block-by-block SHA-256 integrity without needing backend server
+- Printed detailed cryptographic checklist with clear verification badges
