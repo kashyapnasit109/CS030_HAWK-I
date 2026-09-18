@@ -268,3 +268,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 18, 2026 09:37:33]` **perf(twin): minimize thread context switching in camera worker pool** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 18, 2026 10:26:54]` **test(stream): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 18, 2026 13:37:45]` **test(diagnostics): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: hardware decoders & operational telemetry*
+- `[Sep 18, 2026 19:43:52]` **refactor(perf): decouple camera frame ingestion from computer vision workers** — *Verified component: tensor memory management & latency optimization*
