@@ -277,3 +277,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 19, 2026 10:47:49]` **refactor(pipeline): unify telemetry event formats for detection frames and violations** — *Verified component: camera ring buffer & video ingestion*
 - `[Sep 19, 2026 10:47:58]` **docs(stream): document camera compatibility capability matrix requirements** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 19, 2026 17:14:58]` **docs(evidence): add API documentation for bulk rule assignment endpoints** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
+- `[Sep 19, 2026 21:50:06]` **feat(diagnostics): add real-time WebSocket reconnect backoff with jitter** — *Verified component: hardware decoders & operational telemetry*
