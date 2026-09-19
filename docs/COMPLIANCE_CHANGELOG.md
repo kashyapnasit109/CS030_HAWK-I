@@ -274,3 +274,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 19, 2026 08:24:41]` **test(security): add stress test for concurrent multi-stream ingest degradation** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 19, 2026 09:07:17]` **docs(wall): document camera compatibility capability matrix requirements** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 19, 2026 10:09:13]` **test(assignment): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Sep 19, 2026 10:47:49]` **refactor(pipeline): unify telemetry event formats for detection frames and violations** — *Verified component: camera ring buffer & video ingestion*
