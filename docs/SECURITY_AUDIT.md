@@ -298,3 +298,10 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Optimized database queries: avg 15ms → 3ms
 - Frontend bundle size reduced by 40%
 
+
+## [2026-09-20 01:08] Commit #214
+### Camera Calibration
+- Zhang's method with checkerboard pattern
+- Radial distortion: k1, k2, k3 coefficients
+- Tangential distortion: p1, p2 correction
+
