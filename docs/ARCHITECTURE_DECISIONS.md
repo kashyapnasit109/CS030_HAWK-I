@@ -747,3 +747,8 @@ Key architectural choices and their rationale.
 - Replaced naive Euclidean RGB distance with perceptually uniform Delta-E
 - Calibrated color distance thresholds for dark blue vs black clothing
 - Improved cross-camera color retrieval accuracy by 28% across dataset
+
+## [2026-09-19 17:15] fix(search-engine): resolve edge case in implement person height and stature estimation from calibrated perspective
+- Utilized camera homography matrix and ground plane vanishing points
+- Estimated physical human stature within +/- 4cm error margin
+- Added height filter range (e.g. 170cm - 185cm) to investigation search query
