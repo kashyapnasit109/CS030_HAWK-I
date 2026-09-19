@@ -272,3 +272,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 18, 2026 21:39:25]` **docs(wall): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 18, 2026 22:22:04]` **perf(evidence): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Sep 19, 2026 08:24:41]` **test(security): add stress test for concurrent multi-stream ingest degradation** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Sep 19, 2026 09:07:17]` **docs(wall): document camera compatibility capability matrix requirements** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
