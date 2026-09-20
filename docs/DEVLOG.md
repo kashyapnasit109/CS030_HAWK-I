@@ -305,3 +305,10 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Track confirmation: 3 consecutive detections required
 - Max age: 70 frames before track deletion
 
+
+## [2026-09-20 11:44] Commit #217
+### Alert System
+- Priority levels: P0 (critical), P1 (high), P2 (medium), P3 (low)
+- Deduplication window: 30 seconds
+- Escalation timeout: 5 minutes for P0
+
