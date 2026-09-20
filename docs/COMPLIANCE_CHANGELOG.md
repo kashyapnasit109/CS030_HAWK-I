@@ -682,3 +682,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Identified individuals walking together across 3 consecutive camera gates
 - Evaluated spatial distance (<1.2m) and velocity vector alignment
 - Generated suspect social graph showing companion identities
+
+## [2026-09-20 11:45] fix(video-stream): resolve edge case in implement thread-safe circular ring buffer extraction for 10s incident slices
+- Maintained rolling in-memory buffer of last 300 encoded JPEG frames per camera
+- Sliced exact pre-alarm and post-alarm footage slices without disk I/O lag
+- Handled brief transient violations with fallback frame duplication
