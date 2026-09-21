@@ -312,3 +312,10 @@ Tracking inference latency, throughput, and resource utilization.
 - Processing: downscaled to 640x480 for inference
 - Output: annotated frames at 15fps via HLS
 
+
+## [2026-09-21 10:57] Commit #223
+### Misplaced Object Detection
+- Background model: MOG2 with 500 frame history
+- Minimum stationary time: 30 seconds
+- Area threshold: 1000-50000 pixels
+
