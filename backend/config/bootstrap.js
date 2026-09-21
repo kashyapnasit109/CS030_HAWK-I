@@ -79,17 +79,30 @@ async function bootstrap() {
         await connection.query(migrateWeek2Sql);
       }
 
+      // 6. Migration: Week 6 Results & Clips
+      const migrateWeek6Path = path.join(__dirname, '../../database/migrate_week6.sql');
+      if (fs.existsSync(migrateWeek6Path)) {
+        console.log('Applying migrate_week6.sql...');
+        const migrateWeek6Sql = fs.readFileSync(migrateWeek6Path, 'utf8');
+        await connection.query(migrateWeek6Sql);
+      }
+
       console.log('[Database Success] Database bootstrap completed successfully.');
     } else {
-      // Run Week 2 migration if not already applied
+      // Run migrations if not already applied
       try {
         const migrateWeek2Path = path.join(__dirname, '../../database/migrate_week2.sql');
         if (fs.existsSync(migrateWeek2Path)) {
           const migrateWeek2Sql = fs.readFileSync(migrateWeek2Path, 'utf8');
           await connection.query(migrateWeek2Sql);
         }
+        const migrateWeek6Path = path.join(__dirname, '../../database/migrate_week6.sql');
+        if (fs.existsSync(migrateWeek6Path)) {
+          const migrateWeek6Sql = fs.readFileSync(migrateWeek6Path, 'utf8');
+          await connection.query(migrateWeek6Sql);
+        }
       } catch (mErr) {
-        // Table columns might already exist, ignore non-fatal migration warnings
+        // Table columns/indexes might already exist, ignore non-fatal migration warnings
       }
       console.log('[Database Success] Database connection established and tables verified.');
     }

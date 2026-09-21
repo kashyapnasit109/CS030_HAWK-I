@@ -148,7 +148,32 @@ async function persistDetectionEvent(eventData) {
     console.error(`[EventPersistence] Non-fatal embedding generation error for event #${eventId}:`, embErr.message);
   }
 
-  // 4. Update camera health status and last_seen
+  // 4. Video Clip persistence with duplicate prevention
+  let clipId = null;
+  const metaParsed = typeof metadata === 'string' ? JSON.parse(metadata || '{}') : (metadata || {});
+  const clipObj = eventData.clip_data || metaParsed.clip_info;
+  if (clipObj && clipObj.file_path) {
+    try {
+      const [existingClips] = await db.query('SELECT clip_id FROM clips WHERE event_id = ?', [eventId]);
+      if (existingClips.length > 0) {
+        clipId = existingClips[0].clip_id;
+      } else {
+        const durationSec = clipObj.duration_sec || 5;
+        const fileSizeKb = clipObj.file_size_kb || 500;
+        const thumbPath = clipObj.thumbnail_path || null;
+
+        const [clipResult] = await db.query(`
+          INSERT INTO clips (event_id, file_path, thumbnail_path, start_time, end_time, duration_sec, file_size_kb)
+          VALUES (?, ?, ?, NOW() - INTERVAL ? SECOND, NOW(), ?, ?)
+        `, [eventId, clipObj.file_path, thumbPath, durationSec, durationSec, fileSizeKb]);
+        clipId = clipResult.insertId;
+      }
+    } catch (clipErr) {
+      console.error(`[EventPersistence] Failed to persist clip for event #${eventId}:`, clipErr.message);
+    }
+  }
+
+  // 5. Update camera health status and last_seen
   try {
     await db.query('UPDATE cameras SET last_seen = NOW(), status = "online" WHERE camera_id = ?', [camera_id]);
     await db.query('INSERT INTO camera_health_logs (camera_id, status, checked_at) VALUES (?, "online", NOW())', [camera_id]);
@@ -160,6 +185,7 @@ async function persistDetectionEvent(eventData) {
     success: true,
     event_id: eventId,
     alert_id: alertId,
+    clip_id: clipId,
     description: descriptionText,
     severity,
     embedding_indexed: embeddingVector.length > 0
