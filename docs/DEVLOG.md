@@ -757,3 +757,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Rendered semi-transparent watermark bar on bottom 36 pixels of video
 - Included camera name, GPS coordinate, millisecond timestamp, and frame index
 - Ensured watermark burn-in cannot obscure critical center evidence region
+
+## [2026-09-21 19:30] perf(hazard-engine): optimize throughput in calibrate atmospheric smoke plume vertical dispersion estimator
+- Calculated vertical velocity gradient of gray segmented contours
+- Distinguished expanding upward convection from wind-blown dust
+- Integrated dual-confirmation logic with optical flame detector
