@@ -752,3 +752,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Constructed formal certificate layout with national emblem placeholder
 - Embedded high-resolution violation crop with bounding box annotations
 - Added SHA-256 seal stamp, officer signature block, and legal custody notes
+
+## [2026-09-21 10:45] fix(video-stream): resolve edge case in add cryptographic watermark injection in keyframe JPEG EXIF user comment
+- Injected SHA-256 seal and camera UUID into standard EXIF metadata tag 0x9286
+- Ensured evidence integrity can be verified directly from image properties
+- Preserved EXIF tag across image viewing software and courtroom presentations
