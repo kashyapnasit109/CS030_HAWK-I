@@ -14,6 +14,7 @@ import {
   LogIn,
   Video,
   Radio,
+  Film,
 } from "lucide-react";
 import { Logo } from "../ui/Logo";
 
@@ -36,6 +37,7 @@ const navGroups: NavGroup[] = [
     items: [
       { path: "/", label: "Command Center", icon: LayoutDashboard },
       { path: "/live", label: "Live Camera Matrix", icon: Video },
+      { path: "/results", label: "Detection Results", icon: Film, tag: "CLIPS" },
       { path: "/search", label: "Semantic Search", icon: Search },
     ],
   },

@@ -3,6 +3,7 @@ import { AppShell } from "./components/layout/AppShell";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import LiveViewPage from "./pages/LiveViewPage";
+import ResultsPage from "./pages/ResultsPage";
 import SearchPage from "./pages/SearchPage";
 import AlertsPage from "./pages/AlertsPage";
 import EventDetailPage from "./pages/EventDetailPage";
@@ -40,6 +41,7 @@ export default function App() {
         <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/live" element={<LiveViewPage />} />
+          <Route path="/results" element={<ResultsPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
