@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HAWK-I — Complete Software Working Flowchart (Vertical Edition)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0F172A;
+      color: #F8FAFC;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: #1E293B;
+      border-bottom: 1px solid #334155;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      z-index: 10;
+    }
+    .title-group h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #FFFFFF;
+    }
+    .title-group p {
+      font-size: 0.8rem;
+      color: #94A3B8;
+      margin-top: 2px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    button, .btn-link {
+      background: #334155;
+      color: #F8FAFC;
+      border: 1px solid #475569;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    button:hover, .btn-link:hover {
+      background: #2563EB;
+      border-color: #3B82F6;
+      color: #FFFFFF;
+    }
+    button.primary, .btn-link.primary {
+      background: #2563EB;
+      border-color: #3B82F6;
+    }
+    button.primary:hover, .btn-link.primary:hover {
+      background: #1D4ED8;
+    }
+    #canvas-container {
+      flex: 1;
+      overflow: auto;
+      background: #0F172A;
+      display: flex;
+      justify-content: center;
+      padding: 30px;
+      position: relative;
+    }
+    .svg-wrapper {
+      background: #FFFFFF;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border-radius: 8px;
+      overflow: hidden;
+      transform-origin: top center;
+      transition: transform 0.1s ease-out;
+      width: 1800px;
+      height: 4750px;
+    }
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .badge {
+      background: #059669;
+      color: #FFFFFF;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      margin-left: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    @media print {
+      header { display: none; }
+      body, #canvas-container {
+        background: #FFFFFF;
+        height: auto;
+        overflow: visible;
+        padding: 0;
+      }
+      .svg-wrapper {
+        box-shadow: none;
+        width: 100% !important;
+        height: auto !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title-group">
+      <h1>HAWK-I &mdash; System Working Flowchart <span class="badge">ISO 5807</span></h1>
+      <p>Unified AI-Powered CCTV Intelligence Platform &bull; Academic Software Engineering Specification</p>
+    </div>
+    <div class="btn-group">
+      <button onclick="zoomIn()">Zoom In (+)</button>
+      <button onclick="zoomOut()">Zoom Out (-)</button>
+      <button onclick="resetZoom()">Reset (100%)</button>
+      <button onclick="fitWidth()">Fit Width</button>
+      <a href="system-flow-diagram.png" download="HAWK-I_System_Flowchart.png" class="btn-link primary">Download PNG (Ultra-HD)</a>
+      <a href="system-flow-diagram.jpg" download="HAWK-I_System_Flowchart.jpg" class="btn-link">Download JPG</a>
+      <a href="system-flow-diagram.svg" download="HAWK-I_System_Flowchart.svg" class="btn-link">Download SVG</a>
+      <button onclick="window.print()">Print Diagram</button>
+    </div>
+  </header>
+
+  <main id="canvas-container">
+    <div class="svg-wrapper" id="diagram-wrapper">
+      <?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 4750" width="1800" height="4750" style="background:#FFFFFF; font-family:'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Arrow Markers -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2563EB"/>
+    </marker>
+    <marker id="arrow-dark" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#334155"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#DC2626"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#16A34A"/>
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#D97706"/>
+    </marker>
+
+    <!-- Drop Shadows -->
+    <filter id="shadow" x="-3%" y="-6%" width="106%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0F172A" flood-opacity="0.07"/>
+    </filter>
+    <filter id="headerShadow" x="-1%" y="-2%" width="102%" height="106%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Background Grid -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#F8FAFC" stroke-width="1"/>
+  </pattern>
+  <rect width="1800" height="4750" fill="url(#grid)" />
+
+  <!-- Outer Border Frame -->
+  <rect x="25" y="25" width="1750" height="4700" rx="12" fill="none" stroke="#CBD5E1" stroke-width="2"/>
+
+  <!-- ============================================================ -->
+  <!-- 0. HEADER & NOTATION LEGEND -->
+  <!-- ============================================================ -->
+  <g transform="translate(50, 45)">
+    <rect x="0" y="0" width="1700" height="130" rx="8" fill="#F8FAFC" stroke="#0F172A" stroke-width="2" filter="url(#headerShadow)"/>
+    <text x="35" y="45" font-size="25" font-weight="800" fill="#0F172A" letter-spacing="0.5">HAWK-I — UNIFIED AI-POWERED CCTV INTELLIGENCE PLATFORM</text>
+    <text x="35" y="78" font-size="16" font-weight="600" fill="#2563EB">COMPLETE SOFTWARE SYSTEM WORKING FLOWCHART &amp; DATA PIPELINE</text>
+    <text x="35" y="105" font-size="13" font-weight="500" fill="#64748B">B.Tech / CSE Technical Project Specification • ISO 5807 Standard Software Flowchart Notation</text>
+
+    <!-- Notation Legend -->
+    <g transform="translate(1120, 18)">
+      <rect x="0" y="0" width="550" height="94" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+      <text x="16" y="22" font-size="12" font-weight="700" fill="#334155">FLOWCHART SYMBOL LEGEND (ISO 5807):</text>
+      
+      <!-- Oval -->
+      <rect x="16" y="34" width="44" height="20" rx="10" fill="#EEF2FF" stroke="#4338CA" stroke-width="1.4"/>
+      <text x="68" y="49" font-size="11" font-weight="600" fill="#334155">Start / End</text>
+
+      <!-- Parallelogram -->
+      <polygon points="175,54 185,34 225,34 215,54" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.4"/>
+      <text x="233" y="49" font-size="11" font-weight="600" fill="#334155">Input / Output</text>
+
+      <!-- Rectangle -->
+      <rect x="350" y="34" width="44" height="20" rx="2" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.4"/>
+      <text x="402" y="49" font-size="11" font-weight="600" fill="#334155">Process</text>
+
+      <!-- Diamond -->
+      <polygon points="38,72 50,62 62,72 50,82" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/>
+      <text x="68" y="76" font-size="11" font-weight="600" fill="#334155">Decision</text>
+
+      <!-- Cylinder -->
+      <rect x="175" y="62" width="44" height="20" rx="3" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.4"/>
+      <text x="233" y="76" font-size="11" font-weight="600" fill="#334155">Database</text>
+
+      <!-- Flow Line -->
+      <line x1="350" y1="72" x2="394" y2="72" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow)"/>
+      <text x="402" y="76" font-size="11" font-weight="600" fill="#334155">Control Flow</text>
+    </g>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 1. STAGE 1: SYSTEM START & VIDEO INPUT VALIDATION -->
+  <!-- ============================================================ -->
+  <g class="section" transform="translate(50, 205)">
+    <rect x="0" y="0" width="1700" height="520" rx="8" fill="#FAFAFA" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <rect x="20" y="-14" width="530" height="28" rx="4" fill="#0F172A" stroke="#334155" stroke-width="1"/>
+    <text x="32" y="5" font-size="13" font-weight="700" fill="#FFFFFF">STAGE 1: SYSTEM INITIALIZATION &amp; VIDEO INPUT VALIDATION</text>
+    <text x="565" y="5" font-size="12" font-weight="500" fill="#64748B">Live camera RTSP streams, recorded CCTV video files, and multi-camera matrix uploads</text>
+
+    <!-- START Terminator -->
+    <g class="node" transform="translate(900, 65)">
+      <rect x="-100" y="-26" width="200" height="52" rx="26" fill="#EEF2FF" stroke="#4338CA" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-3" font-size="16" font-weight="700" fill="#1E1B4B" text-anchor="middle">START</text>
+      <text x="0" y="15" font-size="12" font-weight="600" fill="#4338CA" text-anchor="middle">System Ingestion Initiated</text>
+    </g>
+
+    <!-- Line Start -> Input -->
+    <line x1="900" y1="91" x2="900" y2="135" stroke="#334155" stroke-width="2" marker-end="url(#arrow-dark)"/>
+
+    <!-- CCTV Input Parallelogram -->
+    <g class="node" transform="translate(900, 195)">
+      <polygon points="-280,-45 320,-45 280,45 -320,45" fill="#F0FDF4" stroke="#16A34A" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-22" font-size="15" font-weight="700" fill="#14532D" text-anchor="middle">CCTV VIDEO / CAMERA STREAM INPUT</text>
+      <text x="0" y="0" font-size="13" font-weight="500" fill="#166534" text-anchor="middle">• Live Camera Feeds (RTSP / HLS Stream Protocol)</text>
+      <text x="0" y="18" font-size="13" font-weight="500" fill="#166534" text-anchor="middle">• Recorded Video Archives (MP4 / AVI / MOV Format)</text>
+      <text x="0" y="36" font-size="13" font-weight="500" fill="#166534" text-anchor="middle">• Multi-Camera Matrix / Test Bench Video Uploads</text>
+    </g>
+
+    <!-- Line Input -> Validation -->
+    <line x1="900" y1="240" x2="900" y2="285" stroke="#334155" stroke-width="2" marker-end="url(#arrow-dark)"/>
+
+    <!-- Video Input Validation Process -->
+    <g class="node" transform="translate(900, 330)">
+      <rect x="-240" y="-34" width="480" height="68" rx="6" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.8" filter="url(#shadow)"/>
+      <text x="0" y="-10" font-size="15" font-weight="700" fill="#0F172A" text-anchor="middle">Video Input Validation &amp; Probe</text>
+      <text x="0" y="10" font-size="13" font-weight="500" fill="#475569" text-anchor="middle">File Integrity, Container Format &amp; Stream Probe</text>
+      <text x="0" y="27" font-size="13" font-weight="500" fill="#475569" text-anchor="middle">Resolution, Codec &amp; Stream Header Verification</text>
+    </g>
+
+    <!-- Line Validation -> Decision -->
+    <line x1="900" y1="364" x2="900" y2="410" stroke="#334155" stroke-width="2" marker-end="url(#arrow-dark)"/>
+
+    <!-- Valid Source Decision Diamond -->
+    <g class="node" transform="translate(900, 455)">
+      <polygon points="0,-42 130,0 0,42 -130,0" fill="#FEF3C7" stroke="#D97706" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-8" font-size="14" font-weight="700" fill="#78350F" text-anchor="middle">Valid Video</text>
+      <text x="0" y="12" font-size="14" font-weight="700" fill="#78350F" text-anchor="middle">Source?</text>
+    </g>
+
+    <!-- NO Path: Reject Input -->
+    <line x1="1030" y1="455" x2="1230" y2="455" stroke="#DC2626" stroke-width="2" marker-end="url(#arrow-red)"/>
+    <text x="1060" y="445" font-size="13" font-weight="700" fill="#DC2626">NO (Invalid)</text>
+
+    <g class="node" transform="translate(1360, 455)">
+      <rect x="-115" y="-28" width="230" height="56" rx="6" fill="#FEF2F2" stroke="#EF4444" stroke-width="1.6" filter="url(#shadow)"/>
+      <text x="0" y="-4" font-size="14" font-weight="700" fill="#991B1B" text-anchor="middle">Reject / Report Invalid</text>
+      <text x="0" y="16" font-size="12" font-weight="500" fill="#B91C1C" text-anchor="middle">Log Error &amp; Return 400 Bad Request</text>
+    </g>
+
+    <line x1="1475" y1="455" x2="1535" y2="455" stroke="#DC2626" stroke-width="2" marker-end="url(#arrow-red)"/>
+
+    <!-- END Terminator -->
+    <g class="node" transform="translate(1615, 455)">
+      <rect x="-65" y="-24" width="130" height="48" rx="24" fill="#FEF2F2" stroke="#DC2626" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-3" font-size="14" font-weight="700" fill="#991B1B" text-anchor="middle">END</text>
+      <text x="0" y="15" font-size="11" font-weight="600" fill="#DC2626" text-anchor="middle">Retry Input</text>
+    </g>
+
+    <!-- YES Path Downward -->
+    <line x1="900" y1="497" x2="900" y2="535" stroke="#16A34A" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+    <text x="915" y="520" font-size="13" font-weight="700" fill="#16A34A">YES (Valid Source)</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 2. STAGE 2: SHARED VIDEO INGESTION & FRAME PROCESSING PIPELINE -->
+  <!-- ============================================================ -->
+  <g class="section" transform="translate(50, 755)">
+    <rect x="0" y="0" width="1700" height="580" rx="8" fill="#FAFAFA" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <rect x="20" y="-14" width="560" height="28" rx="4" fill="#0F172A" stroke="#334155" stroke-width="1"/>
+    <text x="32" y="5" font-size="13" font-weight="700" fill="#FFFFFF">STAGE 2: SHARED VIDEO INGESTION &amp; FRAME PROCESSING PIPELINE</text>
+    <text x="595" y="5" font-size="12" font-weight="500" fill="#64748B">Unified Python/FastAPI VideoIngestor Service (services/video_pipeline.py)</text>
+
+    <!-- Process 1: Video Ingestion -->
+    <g class="node" transform="translate(900, 60)">
+      <rect x="-260" y="-28" width="520" height="56" rx="6" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.8" filter="url(#shadow)"/>
+      <text x="0" y="-5" font-size="15" font-weight="700" fill="#0F172A" text-anchor="middle">1. Video Ingestion Service (VideoIngestor)</text>
+      <text x="0" y="15" font-size="13" font-weight="500" fill="#475569" text-anchor="middle">Receives multipart video upload or connects to live RTSP camera URI stream</text>
+    </g>
+
+    <line x1="900" y1="88" x2="900" y2="125" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Process 2: Stream Handling -->
+    <g class="node" transform="translate(900, 155)">
+      <rect x="-260" y="-28" width="520" height="56" rx="6" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.8" filter="url(#shadow)"/>
+      <text x="0" y="-5" font-size="15" font-weight="700" fill="#0F172A" text-anchor="middle">2. Video File / Stream Lifecycle Management</text>
+      <text x="0" y="15" font-size="13" font-weight="500" fill="#475569" text-anchor="middle">Safe temp-file creation, duck-typing format validation &amp; automated context cleanup</text>
+    </g>
+
+    <line x1="900" y1="183" x2="900" y2="220" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Process 3: Frame Extraction -->
+    <g class="node" transform="translate(900, 250)">
+      <rect x="-260" y="-28" width="520" height="56" rx="6" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.8" filter="url(#shadow)"/>
+      <text x="0" y="-5" font-size="15" font-weight="700" fill="#0F172A" text-anchor="middle">3. Frame Extraction Engine (OpenCV cv2.VideoCapture)</text>
+      <text x="0" y="15" font-size="13" font-weight="500" fill="#475569" text-anchor="middle">Extracts sequential video frames, dimensions (width, height), frame count &amp; native FPS</text>
+    </g>
+
+    <line x1="900" y1="278" x2="900" y2="315" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Process 4: Frame Sampling -->
+    <g class="node" transform="translate(900, 345)">
+      <rect x="-260" y="-28" width="520" height="56" rx="6" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.8" filter="url(#shadow)"/>
+      <text x="0" y="-5" font-size="15" font-weight="700" fill="#0F172A" text-anchor="middle">4. Configurable Frame Sampling (Default 5 FPS)</text>
+      <text x="0" y="15" font-size="13" font-weight="500" fill="#475569" text-anchor="middle">Dynamic downsampling step: step = max(1, round(native_fps / target_fps))</text>
+    </g>
+
+    <line x1="900" y1="373" x2="900" y2="410" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Process 5: Frame Timestamps -->
+    <g class="node" transform="translate(900, 440)">
+      <rect x="-260" y="-28" width="520" height="56" rx="6" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.8" filter="url(#shadow)"/>
+      <text x="0" y="-5" font-size="15" font-weight="700" fill="#0F172A" text-anchor="middle">5. Frame Timestamp &amp; Index Generation</text>
+      <text x="0" y="15" font-size="13" font-weight="500" fill="#475569" text-anchor="middle">Calculates timestamp_sec = frame_idx / native_fps &amp; detected_at (ISO-8601)</text>
+    </g>
+
+    <line x1="900" y1="468" x2="900" y2="505" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Process 6: Frame Normalization -->
+    <g class="node" transform="translate(900, 535)">
+      <rect x="-260" y="-28" width="520" height="56" rx="6" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.8" filter="url(#shadow)"/>
+      <text x="0" y="-5" font-size="15" font-weight="700" fill="#0F172A" text-anchor="middle">6. Frame Preprocessing &amp; Tensor Normalization</text>
+      <text x="0" y="15" font-size="13" font-weight="500" fill="#475569" text-anchor="middle">BGR → RGB color conversion, scaling &amp; batch tensor preparation for ML models</text>
+    </g>
+
+    <!-- Line to Stage 3 -->
+    <line x1="900" y1="563" x2="900" y2="600" stroke="#2563EB" stroke-width="2.5" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 3. STAGE 3: PARALLEL DETECTION LAYER (6 MODULES IN 2 ROWS) -->
+  <!-- ============================================================ -->
+  <g class="section" transform="translate(50, 1365)">
+    <rect x="0" y="0" width="1700" height="740" rx="8" fill="#FAFAFA" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <rect x="20" y="-14" width="600" height="28" rx="4" fill="#0F172A" stroke="#334155" stroke-width="1"/>
+    <text x="32" y="5" font-size="13" font-weight="700" fill="#FFFFFF">STAGE 3: PARALLEL DETECTION MODULES (INDEPENDENT INFERENCE WORKFLOWS)</text>
+    <text x="635" y="5" font-size="12" font-weight="500" fill="#64748B">Independent computer vision &amp; deep learning models executing in parallel</text>
+
+    <!-- Distribution Bus Top -->
+    <path d="M 900 0 L 900 30 M 320 30 L 1480 30" fill="none" stroke="#2563EB" stroke-width="2.5"/>
+
+    <!-- ================= ROW 1: Modules 1, 2, 3 ================= -->
+    <!-- Module 1: ANPR -->
+    <line x1="320" y1="30" x2="320" y2="55" stroke="#3B82F6" stroke-width="2" marker-end="url(#arrow)"/>
+    <g class="node" transform="translate(320, 190)">
+      <rect x="-240" y="-125" width="480" height="250" rx="8" fill="#EFF6FF" stroke="#3B82F6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-95" font-size="16" font-weight="800" fill="#1E3A8A" text-anchor="middle">1. ANPR MODULE</text>
+      <text x="0" y="-72" font-size="13" font-weight="700" fill="#2563EB" text-anchor="middle">Endpoint: POST /anpr/detect</text>
+      <text x="-215" y="-40" font-size="13.5" font-weight="600" fill="#334155">• YOLOv8 License Plate Detection (Bounding Boxes)</text>
+      <text x="-215" y="-16" font-size="13.5" font-weight="600" fill="#334155">• High-Resolution Crop &amp; Bilinear Rescaling</text>
+      <text x="-215" y="8" font-size="13.5" font-weight="600" fill="#334155">• EasyOCR Text Recognition &amp; Regex Normalization</text>
+      <text x="-215" y="32" font-size="13.5" font-weight="600" fill="#334155">• Vehicle-Plate Association &amp; Tracking</text>
+      <text x="-215" y="56" font-size="13.5" font-weight="600" fill="#334155">• Confidence Scoring &amp; Character Filter</text>
+      <text x="-215" y="80" font-size="13.5" font-weight="600" fill="#334155">• Returns Plate Text, Confidence &amp; Coordinates</text>
+    </g>
+
+    <!-- Module 2: Object Misplacement -->
+    <line x1="900" y1="30" x2="900" y2="55" stroke="#C084FC" stroke-width="2" marker-end="url(#arrow)"/>
+    <g class="node" transform="translate(900, 190)">
+      <rect x="-240" y="-125" width="480" height="250" rx="8" fill="#FDF4FF" stroke="#C084FC" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-95" font-size="16" font-weight="800" fill="#6B21A8" text-anchor="middle">2. OBJECT MISPLACEMENT</text>
+      <text x="0" y="-72" font-size="13" font-weight="700" fill="#9333EA" text-anchor="middle">Endpoint: POST /misplacement/detect</text>
+      <text x="-215" y="-40" font-size="13.5" font-weight="600" fill="#334155">• YOLOv8 Object Classification &amp; Localization</text>
+      <text x="-215" y="-16" font-size="13.5" font-weight="600" fill="#334155">• Initial Baseline Reference Frame Matrix</text>
+      <text x="-215" y="8" font-size="13.5" font-weight="600" fill="#334155">• Temporal Matrix Differencing &amp; Presence Check</text>
+      <text x="-215" y="32" font-size="13.5" font-weight="600" fill="#334155">• Displaced / Removed Object State Detection</text>
+      <text x="-215" y="56" font-size="13.5" font-weight="600" fill="#334155">• Static Clutter &amp; Lighting Change Suppression</text>
+      <text x="-215" y="80" font-size="13.5" font-weight="600" fill="#334155">• Displaced Object Event Alert Trigger</text>
+    </g>
+
+    <!-- Module 3: Velocity / Speed -->
+    <line x1="1480" y1="30" x2="1480" y2="55" stroke="#22C55E" stroke-width="2" marker-end="url(#arrow)"/>
+    <g class="node" transform="translate(1480, 190)">
+      <rect x="-240" y="-125" width="480" height="250" rx="8" fill="#F0FDF4" stroke="#22C55E" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-95" font-size="16" font-weight="800" fill="#14532D" text-anchor="middle">3. VELOCITY / SPEED DETECTION</text>
+      <text x="0" y="-72" font-size="13" font-weight="700" fill="#16A34A" text-anchor="middle">Endpoint: POST /velocity/detect</text>
+      <text x="-215" y="-40" font-size="13.5" font-weight="600" fill="#334155">• YOLOv8 Vehicle Object Detection</text>
+      <text x="-215" y="-16" font-size="13.5" font-weight="600" fill="#334155">• ByteTrack Multi-Object Motion Tracker</text>
+      <text x="-215" y="8" font-size="13.5" font-weight="600" fill="#334155">• 2-Point Distance Calibration (Pixels-to-Meters)</text>
+      <text x="-215" y="32" font-size="13.5" font-weight="600" fill="#334155">• Frame-by-Frame Trajectory Vector Calculation</text>
+      <text x="-215" y="56" font-size="13.5" font-weight="600" fill="#334155">• Speed Estimation (km/h) vs Configured Threshold</text>
+      <text x="-215" y="80" font-size="13.5" font-weight="600" fill="#334155">• Speed Violation Event Payload Generation</text>
+    </g>
+
+    <!-- Mid Bus to Row 2 -->
+    <path d="M 900 30 L 900 370 M 320 370 L 1480 370" fill="none" stroke="#2563EB" stroke-width="2.5"/>
+
+    <!-- ================= ROW 2: Modules 4, 5, 6 ================= -->
+    <!-- Module 4: Unauthorized Entry -->
+    <line x1="320" y1="370" x2="320" y2="395" stroke="#F59E0B" stroke-width="2" marker-end="url(#arrow)"/>
+    <g class="node" transform="translate(320, 530)">
+      <rect x="-240" y="-125" width="480" height="250" rx="8" fill="#FFFBEB" stroke="#F59E0B" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-95" font-size="16" font-weight="800" fill="#78350F" text-anchor="middle">4. UNAUTHORIZED ENTRY</text>
+      <text x="0" y="-72" font-size="13" font-weight="700" fill="#D97706" text-anchor="middle">Endpoint: POST /entry/detect</text>
+      <text x="-215" y="-40" font-size="13.5" font-weight="600" fill="#334155">• Virtual Multi-Point Polygon Zone Overlay</text>
+      <text x="-215" y="-16" font-size="13.5" font-weight="600" fill="#334155">• Ray-Casting Point-in-Polygon Coordinate Check</text>
+      <text x="-215" y="8" font-size="13.5" font-weight="600" fill="#334155">• Temporal Sequence Entry &amp; Directional Tracking</text>
+      <text x="-215" y="32" font-size="13.5" font-weight="600" fill="#334155">• Directional Vector Validation (Entry vs Exit)</text>
+      <text x="-215" y="56" font-size="13.5" font-weight="600" fill="#334155">• Perimeter Breach Event Trigger</text>
+      <text x="-215" y="80" font-size="13.5" font-weight="600" fill="#334155">• Intrusion Severity &amp; Zone ID Association</text>
+    </g>
+
+    <!-- Module 5: Threat & Anomaly -->
+    <line x1="900" y1="370" x2="900" y2="395" stroke="#EF4444" stroke-width="2" marker-end="url(#arrow)"/>
+    <g class="node" transform="translate(900, 530)">
+      <rect x="-240" y="-125" width="480" height="250" rx="8" fill="#FEF2F2" stroke="#EF4444" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-95" font-size="16" font-weight="800" fill="#991B1B" text-anchor="middle">5. THREAT &amp; ANOMALY DETECTION</text>
+      <text x="0" y="-72" font-size="13" font-weight="700" fill="#DC2626" text-anchor="middle">Endpoint: POST /threat/detect</text>
+      <text x="-215" y="-40" font-size="13.5" font-weight="600" fill="#334155">• Human Track History &amp; Bounding Box Centroids</text>
+      <text x="-215" y="-16" font-size="13.5" font-weight="600" fill="#334155">• Loitering Duration Threshold Monitor (Seconds)</text>
+      <text x="-215" y="8" font-size="13.5" font-weight="600" fill="#334155">• Restricted-Zone Presence &amp; Dwell Time Alert</text>
+      <text x="-215" y="32" font-size="13.5" font-weight="600" fill="#334155">• Sudden Acceleration / Panic Movement Anomaly</text>
+      <text x="-215" y="56" font-size="13.5" font-weight="600" fill="#334155">• Threat Score Calculation &amp; Severity Flagging</text>
+      <text x="-215" y="80" font-size="13.5" font-weight="600" fill="#334155">• Critical Suspicious Activity Alert Generation</text>
+    </g>
+
+    <!-- Module 6: Semantic Metadata -->
+    <line x1="1480" y1="370" x2="1480" y2="395" stroke="#14B8A6" stroke-width="2" marker-end="url(#arrow)"/>
+    <g class="node" transform="translate(1480, 530)">
+      <rect x="-240" y="-125" width="480" height="250" rx="8" fill="#F0FDFA" stroke="#14B8A6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-95" font-size="16" font-weight="800" fill="#115E59" text-anchor="middle">6. SEMANTIC / KEYWORD SEARCH</text>
+      <text x="0" y="-72" font-size="13" font-weight="700" fill="#0D9488" text-anchor="middle">Endpoint: POST /search/embed</text>
+      <text x="-215" y="-40" font-size="13.5" font-weight="600" fill="#334155">• Object Class, Color &amp; Spatial Attribute Tagging</text>
+      <text x="-215" y="-16" font-size="13.5" font-weight="600" fill="#334155">• Spatial Scene Context &amp; Temporal Summary</text>
+      <text x="-215" y="8" font-size="13.5" font-weight="600" fill="#334155">• Natural-Language Description Generator</text>
+      <text x="-215" y="32" font-size="13.5" font-weight="600" fill="#334155">• SentenceTransformer (all-MiniLM-L6-v2) Model</text>
+      <text x="-215" y="56" font-size="13.5" font-weight="600" fill="#334155">• 384-Dimensional Dense Vector Embedding</text>
+      <text x="-215" y="80" font-size="13.5" font-weight="600" fill="#334155">• Stored in Vector Database for NL Event Retrieval</text>
+    </g>
+
+    <!-- Convergence Lines from all 6 modules -->
+    <line x1="320" y1="315" x2="320" y2="340" stroke="#3B82F6" stroke-width="2"/>
+    <line x1="900" y1="315" x2="900" y2="340" stroke="#C084FC" stroke-width="2"/>
+    <line x1="1480" y1="315" x2="1480" y2="340" stroke="#22C55E" stroke-width="2"/>
+    <line x1="320" y1="655" x2="320" y2="690" stroke="#F59E0B" stroke-width="2"/>
+    <line x1="900" y1="655" x2="900" y2="690" stroke="#EF4444" stroke-width="2"/>
+    <line x1="1480" y1="655" x2="1480" y2="690" stroke="#14B8A6" stroke-width="2"/>
+
+    <!-- Convergence Bus Bottom -->
+    <path d="M 320 690 L 1480 690 M 900 690 L 900 725" fill="none" stroke="#2563EB" stroke-width="2.5" marker-end="url(#arrow)"/>
+    <rect x="700" y="678" width="400" height="24" rx="4" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.2"/>
+    <text x="900" y="694" font-size="11.5" font-weight="800" fill="#1E40AF" text-anchor="middle">CONVERGENCE OF RAW DETECTION EVENT PAYLOADS</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 4. STAGE 4: CANONICAL NORMALIZATION & DATABASE PERSISTENCE -->
+  <!-- ============================================================ -->
+  <g class="section" transform="translate(50, 2135)">
+    <rect x="0" y="0" width="1700" height="740" rx="8" fill="#FAFAFA" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <rect x="20" y="-14" width="560" height="28" rx="4" fill="#0F172A" stroke="#334155" stroke-width="1"/>
+    <text x="32" y="5" font-size="13" font-weight="700" fill="#FFFFFF">STAGE 4: MODULE OUTPUT NORMALIZATION &amp; EVENT PERSISTENCE PIPELINE</text>
+    <text x="595" y="5" font-size="12" font-weight="500" fill="#64748B">Standardizes diverse module outputs into canonical schema before database commit</text>
+
+    <!-- Normalization Process -->
+    <g class="node" transform="translate(900, 60)">
+      <rect x="-280" y="-30" width="560" height="60" rx="6" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.8" filter="url(#shadow)"/>
+      <text x="0" y="-6" font-size="15" font-weight="700" fill="#0F172A" text-anchor="middle">Detection Result Normalization Layer</text>
+      <text x="0" y="16" font-size="13" font-weight="500" fill="#475569" text-anchor="middle">Unifies bounding box formats [x,y,w,h], confidence scale &amp; ISO-8601 timestamps</text>
+    </g>
+
+    <line x1="900" y1="90" x2="900" y2="130" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Canonical DetectionEvent Builder -->
+    <g class="node" transform="translate(900, 225)">
+      <rect x="-380" y="-80" width="760" height="160" rx="8" fill="#F8FAFC" stroke="#1E40AF" stroke-width="2.2" filter="url(#shadow)"/>
+      <text x="0" y="-55" font-size="16" font-weight="800" fill="#0F172A" text-anchor="middle">Canonical DetectionEvent Builder (EventBuilder)</text>
+      <text x="0" y="-33" font-size="13" font-weight="600" fill="#2563EB" text-anchor="middle">Builds strict, contract-compliant DetectionEvent data model across all modules:</text>
+      <text x="-350" y="-8" font-size="13.5" font-weight="600" fill="#334155">• camera_id (int), timestamp_sec (float), detected_at (ISO-8601 string)</text>
+      <text x="-350" y="14" font-size="13.5" font-weight="600" fill="#334155">• module (enum: vehicle | intrusion | loitering | object | facial | crowd)</text>
+      <text x="-350" y="36" font-size="13.5" font-weight="600" fill="#334155">• event_type (speed_violation, unauthorized_entry, plate_detected, etc.)</text>
+      <text x="-350" y="58" font-size="13.5" font-weight="600" fill="#334155">• confidence (0.00-1.00), bounding_box {x, y, w, h}, severity (info|warning|danger)</text>
+      <text x="-350" y="80" font-size="13.5" font-weight="600" fill="#334155">• description (rich contextual text) &amp; metadata (custom JSON payload)</text>
+    </g>
+
+    <line x1="900" y1="305" x2="900" y2="345" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Valid Event Decision Diamond -->
+    <g class="node" transform="translate(900, 390)">
+      <polygon points="0,-40 130,0 0,40 -130,0" fill="#FEF3C7" stroke="#D97706" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-8" font-size="14" font-weight="700" fill="#78350F" text-anchor="middle">Valid Detection</text>
+      <text x="0" y="12" font-size="14" font-weight="700" fill="#78350F" text-anchor="middle">Event?</text>
+    </g>
+
+    <!-- NO Branch: Discard -->
+    <line x1="1030" y1="390" x2="1240" y2="390" stroke="#DC2626" stroke-width="2" marker-end="url(#arrow-red)"/>
+    <text x="1060" y="380" font-size="13" font-weight="700" fill="#DC2626">NO</text>
+    <g class="node" transform="translate(1380, 390)">
+      <rect x="-125" y="-28" width="250" height="56" rx="6" fill="#FEF2F2" stroke="#EF4444" stroke-width="1.6" filter="url(#shadow)"/>
+      <text x="0" y="-4" font-size="14" font-weight="700" fill="#991B1B" text-anchor="middle">Discard / Log Invalid Event</text>
+      <text x="0" y="16" font-size="12" font-weight="500" fill="#B91C1C" text-anchor="middle">Drop event &amp; record schema violation</text>
+    </g>
+
+    <!-- YES Branch: Persistence Service -->
+    <line x1="900" y1="430" x2="900" y2="470" stroke="#16A34A" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+    <text x="915" y="455" font-size="13" font-weight="700" fill="#16A34A">YES (Valid)</text>
+
+    <!-- Event Persistence Process -->
+    <g class="node" transform="translate(900, 510)">
+      <rect x="-280" y="-30" width="560" height="60" rx="6" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.8" filter="url(#shadow)"/>
+      <text x="0" y="-6" font-size="15" font-weight="700" fill="#0F172A" text-anchor="middle">Event Persistence Service (Node.js/Express Backend)</text>
+      <text x="0" y="16" font-size="13" font-weight="500" fill="#475569" text-anchor="middle">POST /api/events • Atomic transaction orchestration &amp; database commit</text>
+    </g>
+
+    <line x1="900" y1="540" x2="900" y2="580" stroke="#1D4ED8" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+    <!-- Central Database Cylinder -->
+    <g class="node" transform="translate(900, 650)">
+      <path d="M -460,-50 L -460,50 A 460 16 0 0 0 460 50 L 460,-50 Z" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="2" filter="url(#shadow)"/>
+      <path d="M -460,50 A 460 16 0 0 0 460 50" fill="none" stroke="#1D4ED8" stroke-width="2"/>
+      <ellipse cx="0" cy="-50" rx="460" ry="16" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="2"/>
+      <text x="0" y="-30" font-size="16" font-weight="800" fill="#1E3A8A" text-anchor="middle">HAWK-I CENTRAL DATABASE (MySQL 8.0 Storage Engine)</text>
+      <text x="0" y="-10" font-size="12.5" font-weight="600" fill="#2563EB" text-anchor="middle">Relational Entities &amp; Vector Embeddings Storage</text>
+
+      <!-- Database Tables Row -->
+      <g transform="translate(0, 16)">
+        <rect x="-430" y="-12" width="90" height="24" rx="4" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.2"/>
+        <text x="-385" y="4" font-size="10.5" font-weight="700" fill="#1E40AF" text-anchor="middle">detection_events</text>
+
+        <rect x="-330" y="-12" width="75" height="24" rx="4" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.2"/>
+        <text x="-292" y="4" font-size="10.5" font-weight="700" fill="#1E40AF" text-anchor="middle">cameras</text>
+
+        <rect x="-245" y="-12" width="65" height="24" rx="4" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.2"/>
+        <text x="-212" y="4" font-size="10.5" font-weight="700" fill="#1E40AF" text-anchor="middle">zones</text>
+
+        <rect x="-170" y="-12" width="75" height="24" rx="4" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.2"/>
+        <text x="-132" y="4" font-size="10.5" font-weight="700" fill="#1E40AF" text-anchor="middle">vehicles</text>
+
+        <rect x="-85" y="-12" width="70" height="24" rx="4" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.2"/>
+        <text x="-50" y="4" font-size="10.5" font-weight="700" fill="#1E40AF" text-anchor="middle">alerts</text>
+
+        <rect x="-5" y="-12" width="60" height="24" rx="4" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.2"/>
+        <text x="25" y="4" font-size="10.5" font-weight="700" fill="#1E40AF" text-anchor="middle">clips</text>
+
+        <rect x="65" y="-12" width="80" height="24" rx="4" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.2"/>
+        <text x="105" y="4" font-size="10.5" font-weight="700" fill="#1E40AF" text-anchor="middle">feedback</text>
+
+        <rect x="155" y="-12" width="135" height="24" rx="4" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.2"/>
+        <text x="222" y="4" font-size="10.5" font-weight="700" fill="#1E40AF" text-anchor="middle">camera_health_logs</text>
+
+        <rect x="300" y="-12" width="130" height="24" rx="4" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.2"/>
+        <text x="365" y="4" font-size="10.5" font-weight="700" fill="#1E40AF" text-anchor="middle">event_embeddings</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 5. STAGE 5: PARALLEL EVENT INTELLIGENCE SERVICES (2 ROWS) -->
+  <!-- ============================================================ -->
+  <g class="section" transform="translate(50, 2905)">
+    <rect x="0" y="0" width="1700" height="740" rx="8" fill="#FAFAFA" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <rect x="20" y="-14" width="540" height="28" rx="4" fill="#0F172A" stroke="#334155" stroke-width="1"/>
+    <text x="32" y="5" font-size="13" font-weight="700" fill="#FFFFFF">STAGE 5: PARALLEL EVENT INTELLIGENCE &amp; APPLICATION SERVICES</text>
+    <text x="575" y="5" font-size="12" font-weight="500" fill="#64748B">Decoupled microservices processing persisted detection events and serving query requests</text>
+
+    <!-- Top Dispatch Bus from Database -->
+    <path d="M 900 0 L 900 30 M 320 30 L 1480 30" fill="none" stroke="#1D4ED8" stroke-width="2.5"/>
+
+    <!-- ================= ROW 1: Services A, B, C ================= -->
+    <!-- Service A: Alert Engine -->
+    <line x1="320" y1="30" x2="320" y2="55" stroke="#EF4444" stroke-width="2" marker-end="url(#arrow)"/>
+    <g class="node" transform="translate(320, 185)">
+      <rect x="-240" y="-120" width="480" height="240" rx="8" fill="#FEF2F2" stroke="#EF4444" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-90" font-size="16" font-weight="800" fill="#991B1B" text-anchor="middle">A. ALERT ENGINE</text>
+      <text x="0" y="-68" font-size="13" font-weight="700" fill="#DC2626" text-anchor="middle">Rule &amp; Severity Matching</text>
+      <text x="-215" y="-38" font-size="13.5" font-weight="600" fill="#334155">• Evaluates DetectionEvent Severity (info, warning, danger)</text>
+      <text x="-215" y="-14" font-size="13.5" font-weight="600" fill="#334155">• Matches Active Camera Alert Threshold Rules</text>
+      <text x="-215" y="10" font-size="13.5" font-weight="600" fill="#334155">• Creates Open Alert Record in `alerts` Table</text>
+      <text x="-215" y="34" font-size="13.5" font-weight="600" fill="#334155">• Triggers Real-Time Live Toast Notifications</text>
+      <text x="-215" y="58" font-size="13.5" font-weight="600" fill="#334155">• HTTP Polling / Live State Push Synchronization</text>
+      <text x="-215" y="82" font-size="13.5" font-weight="600" fill="#334155">• Feeds Real-Time Alerts Badge Count on UI</text>
+    </g>
+
+    <!-- Service B: Semantic Search Flow -->
+    <line x1="900" y1="30" x2="900" y2="55" stroke="#16A34A" stroke-width="2" marker-end="url(#arrow)"/>
+    <g class="node" transform="translate(900, 185)">
+      <rect x="-240" y="-120" width="480" height="240" rx="8" fill="#F0FDF4" stroke="#16A34A" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-90" font-size="16" font-weight="800" fill="#14532D" text-anchor="middle">B. SEMANTIC SEARCH ENGINE</text>
+      <text x="0" y="-68" font-size="13" font-weight="700" fill="#16A34A" text-anchor="middle">Natural Language Event Retrieval</text>
+      <text x="-215" y="-38" font-size="13.5" font-weight="600" fill="#334155">• Receives User Natural Language Query (e.g., 'White SUV')</text>
+      <text x="-215" y="-14" font-size="13.5" font-weight="600" fill="#334155">• MiniLM-L6-v2 384-Dimensional Query Embedding</text>
+      <text x="-215" y="10" font-size="13.5" font-weight="600" fill="#334155">• Vector Cosine Similarity Search vs `event_embeddings`</text>
+      <text x="-215" y="34" font-size="13.5" font-weight="600" fill="#334155">• Threshold Filtering &amp; Relevance Ranking (Score >= 0.70)</text>
+      <text x="-215" y="58" font-size="13.5" font-weight="600" fill="#334155">• Fetches Matched Event IDs, Bounding Boxes &amp; Clips</text>
+      <text x="-215" y="82" font-size="13.5" font-weight="600" fill="#334155">• Returns Ranked Search Results to Dashboard</text>
+    </g>
+
+    <!-- Service C: Vehicle / ANPR Log -->
+    <line x1="1480" y1="30" x2="1480" y2="55" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow)"/>
+    <g class="node" transform="translate(1480, 185)">
+      <rect x="-240" y="-120" width="480" height="240" rx="8" fill="#EFF6FF" stroke="#2563EB" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-90" font-size="16" font-weight="800" fill="#1E3A8A" text-anchor="middle">C. VEHICLE &amp; ANPR LOG SERVICE</text>
+      <text x="0" y="-68" font-size="13" font-weight="700" fill="#2563EB" text-anchor="middle">Registry &amp; Hotlist Auditing</text>
+      <text x="-215" y="-38" font-size="13.5" font-weight="600" fill="#334155">• GET /api/vehicles • Owner &amp; Vehicle History</text>
+      <text x="-215" y="-14" font-size="13.5" font-weight="600" fill="#334155">• Cross-References Detected Plates with Authorized List</text>
+      <text x="-215" y="10" font-size="13.5" font-weight="600" fill="#334155">• Hotlist Flag Trigger for Blacklisted License Plates</text>
+      <text x="-215" y="34" font-size="13.5" font-weight="600" fill="#334155">• Entry/Exit Timestamp Log &amp; Audit Trail Persistence</text>
+      <text x="-215" y="58" font-size="13.5" font-weight="600" fill="#334155">• Plate Search &amp; History Filtering by Date/Camera</text>
+      <text x="-215" y="82" font-size="13.5" font-weight="600" fill="#334155">• Searchable Vehicle Records Repository</text>
+    </g>
+
+    <!-- Mid Bus to Row 2 -->
+    <path d="M 900 30 L 900 350 M 600 350 L 1200 350" fill="none" stroke="#1D4ED8" stroke-width="2.5"/>
+
+    <!-- ================= ROW 2: Services D, E ================= -->
+    <!-- Service D: Analytics & Aggregation -->
+    <line x1="600" y1="350" x2="600" y2="375" stroke="#A855F7" stroke-width="2" marker-end="url(#arrow)"/>
+    <g class="node" transform="translate(600, 505)">
+      <rect x="-260" y="-120" width="520" height="240" rx="8" fill="#FDF4FF" stroke="#A855F7" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-90" font-size="16" font-weight="800" fill="#6B21A8" text-anchor="middle">D. ANALYTICS &amp; AGGREGATION ENGINE</text>
+      <text x="0" y="-68" font-size="13" font-weight="700" fill="#9333EA" text-anchor="middle">Multi-Camera Detection Aggregator</text>
+      <text x="-235" y="-38" font-size="13.5" font-weight="600" fill="#334155">• GET /api/analytics/overview • KPI Summaries</text>
+      <text x="-235" y="-14" font-size="13.5" font-weight="600" fill="#334155">• Hourly Violation Distribution &amp; Peak Hour Graphs</text>
+      <text x="-235" y="10" font-size="13.5" font-weight="600" fill="#334155">• Camera Detection Density &amp; Spatial Hotspot Matrices</text>
+      <text x="-235" y="34" font-size="13.5" font-weight="600" fill="#334155">• Module Event Frequency Comparison (ANPR vs Speed)</text>
+      <text x="-235" y="58" font-size="13.5" font-weight="600" fill="#334155">• False-Positive Rates &amp; Accuracy Feedback Metrics</text>
+      <text x="-235" y="82" font-size="13.5" font-weight="600" fill="#334155">• Time-Series Aggregation Payload Feeds for UI Charts</text>
+    </g>
+
+    <!-- Service E: Camera Health -->
+    <line x1="1200" y1="350" x2="1200" y2="375" stroke="#F59E0B" stroke-width="2" marker-end="url(#arrow)"/>
+    <g class="node" transform="translate(1200, 505)">
+      <rect x="-260" y="-120" width="520" height="240" rx="8" fill="#FFFBEB" stroke="#F59E0B" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-90" font-size="16" font-weight="800" fill="#78350F" text-anchor="middle">E. CAMERA HEALTH SERVICE</text>
+      <text x="0" y="-68" font-size="13" font-weight="700" fill="#D97706" text-anchor="middle">Heartbeat &amp; Stream Reliability Monitor</text>
+      <text x="-235" y="-38" font-size="13.5" font-weight="600" fill="#334155">• GET /api/cameras/health • Continuous Stream Ping</text>
+      <text x="-235" y="-14" font-size="13.5" font-weight="600" fill="#334155">• Online / Offline / Warning State Transition Logic</text>
+      <text x="-235" y="10" font-size="13.5" font-weight="600" fill="#334155">• FPS Degradation, Lag &amp; Stream Disconnection Checks</text>
+      <text x="-235" y="34" font-size="13.5" font-weight="600" fill="#334155">• Records Diagnostic Logs in `camera_health_logs`</text>
+      <text x="-235" y="58" font-size="13.5" font-weight="600" fill="#334155">• Live Status Indicators for Camera Grid Management</text>
+      <text x="-235" y="82" font-size="13.5" font-weight="600" fill="#334155">• Auto-Reconnect Triggers &amp; Network Health Audits</text>
+    </g>
+
+    <!-- Convergence lines from services -->
+    <line x1="320" y1="305" x2="320" y2="330" stroke="#EF4444" stroke-width="2"/>
+    <line x1="1480" y1="305" x2="1480" y2="330" stroke="#2563EB" stroke-width="2"/>
+    <line x1="600" y1="625" x2="600" y2="690" stroke="#A855F7" stroke-width="2"/>
+    <line x1="1200" y1="625" x2="1200" y2="690" stroke="#F59E0B" stroke-width="2"/>
+
+    <!-- Convergence Bus Bottom -->
+    <path d="M 600 690 L 1200 690 M 900 690 L 900 725" fill="none" stroke="#2563EB" stroke-width="2.5" marker-end="url(#arrow)"/>
+    <rect x="700" y="678" width="400" height="24" rx="4" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.2"/>
+    <text x="900" y="694" font-size="11.5" font-weight="800" fill="#1E40AF" text-anchor="middle">UNIFIED REST API &amp; WEBSOCKET EVENT STREAM</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 6. STAGE 6 & 7: FRONTEND WEB DASHBOARD & OPERATOR LOOP -->
+  <!-- ============================================================ -->
+  <g class="section" transform="translate(50, 3675)">
+    <rect x="0" y="0" width="1700" height="1000" rx="8" fill="#FAFAFA" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <rect x="20" y="-14" width="600" height="28" rx="4" fill="#0F172A" stroke="#334155" stroke-width="1"/>
+    <text x="32" y="5" font-size="13" font-weight="700" fill="#FFFFFF">STAGE 6 &amp; 7: FRONTEND APPLICATION &amp; CLOSED-LOOP OPERATOR INTERACTION</text>
+    <text x="635" y="5" font-size="12" font-weight="500" fill="#64748B">Single-Page React + TypeScript + Vite Dashboard with Real-Time Closed-Loop Feedback</text>
+
+    <!-- Main Web Dashboard Process -->
+    <g class="node" transform="translate(900, 60)">
+      <rect x="-420" y="-30" width="840" height="60" rx="8" fill="#0F172A" stroke="#334155" stroke-width="2.2" filter="url(#shadow)"/>
+      <text x="0" y="-6" font-size="16" font-weight="800" fill="#FFFFFF" text-anchor="middle">HAWK-I Unified Web Dashboard (React + TypeScript + Vite Single-Page Application)</text>
+      <text x="0" y="16" font-size="13" font-weight="500" fill="#94A3B8" text-anchor="middle">Role-Based Access Control • Dark/Light Mode • State Management • Real-Time Alert Notifications</text>
+    </g>
+
+    <!-- 11 Horizontal View Badges (2 Neat Rows) -->
+    <g transform="translate(900, 125)">
+      <!-- Row 1 (6 badges) -->
+      <g transform="translate(-775, 0)">
+        <rect x="0" y="0" width="245" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.4"/>
+        <text x="122" y="22" font-size="12" font-weight="700" fill="#1E3A8A" text-anchor="middle">Live Matrix View</text>
+      </g>
+      <g transform="translate(-515, 0)">
+        <rect x="0" y="0" width="245" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.4"/>
+        <text x="122" y="22" font-size="12" font-weight="700" fill="#1E3A8A" text-anchor="middle">ANPR Test Bench</text>
+      </g>
+      <g transform="translate(-255, 0)">
+        <rect x="0" y="0" width="245" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.4"/>
+        <text x="122" y="22" font-size="12" font-weight="700" fill="#1E3A8A" text-anchor="middle">Velocity Tracker</text>
+      </g>
+      <g transform="translate(5, 0)">
+        <rect x="0" y="0" width="245" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.4"/>
+        <text x="122" y="22" font-size="12" font-weight="700" fill="#1E3A8A" text-anchor="middle">Misplacement Bench</text>
+      </g>
+      <g transform="translate(265, 0)">
+        <rect x="0" y="0" width="245" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.4"/>
+        <text x="122" y="22" font-size="12" font-weight="700" fill="#1E3A8A" text-anchor="middle">Entry Monitor</text>
+      </g>
+      <g transform="translate(525, 0)">
+        <rect x="0" y="0" width="250" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.4"/>
+        <text x="125" y="22" font-size="12" font-weight="700" fill="#1E3A8A" text-anchor="middle">Threat Console</text>
+      </g>
+
+      <!-- Row 2 (5 badges) -->
+      <g transform="translate(-645, 46)">
+        <rect x="0" y="0" width="245" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.4"/>
+        <text x="122" y="22" font-size="12" font-weight="700" fill="#1E3A8A" text-anchor="middle">Semantic Search</text>
+      </g>
+      <g transform="translate(-385, 46)">
+        <rect x="0" y="0" width="245" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.4"/>
+        <text x="122" y="22" font-size="12" font-weight="700" fill="#1E3A8A" text-anchor="middle">Alerts Console</text>
+      </g>
+      <g transform="translate(-125, 46)">
+        <rect x="0" y="0" width="245" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.4"/>
+        <text x="122" y="22" font-size="12" font-weight="700" fill="#1E3A8A" text-anchor="middle">Vehicle Log</text>
+      </g>
+      <g transform="translate(135, 46)">
+        <rect x="0" y="0" width="245" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.4"/>
+        <text x="122" y="22" font-size="12" font-weight="700" fill="#1E3A8A" text-anchor="middle">Analytics Graphs</text>
+      </g>
+      <g transform="translate(395, 46)">
+        <rect x="0" y="0" width="255" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.4"/>
+        <text x="127" y="22" font-size="12" font-weight="700" fill="#1E3A8A" text-anchor="middle">Camera &amp; Zone Admin</text>
+      </g>
+    </g>
+
+    <!-- Arrow to Rendered Display -->
+    <line x1="900" y1="215" x2="900" y2="255" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Rendered Intelligence Display IO -->
+    <g class="node" transform="translate(900, 310)">
+      <polygon points="-380,-35 420,-35 380,35 -420,35" fill="#F0FDF4" stroke="#16A34A" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-12" font-size="15" font-weight="800" fill="#14532D" text-anchor="middle">RENDERED INTELLIGENCE &amp; ALERTS DISPLAY (I/O)</text>
+      <text x="0" y="10" font-size="13" font-weight="600" fill="#166534" text-anchor="middle">Live Feeds with Bounding Boxes • Threat Alerts • Search Clips • Vehicle Logs • Analytics Charts</text>
+      <text x="0" y="26" font-size="12" font-weight="500" fill="#166534" text-anchor="middle">Real-time dynamic visual telemetry, warning banners &amp; interactive multi-camera player</text>
+    </g>
+
+    <!-- Arrow to Operator Review IO -->
+    <line x1="900" y1="345" x2="900" y2="390" stroke="#16A34A" stroke-width="2" marker-end="url(#arrow-green)"/>
+
+    <!-- Operator Reviews IO -->
+    <g class="node" transform="translate(900, 445)">
+      <polygon points="-320,-32 350,-32 320,32 -350,32" fill="#F0FDF4" stroke="#16A34A" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-8" font-size="15" font-weight="800" fill="#14532D" text-anchor="middle">CCTV OPERATOR / SECURITY OFFICER REVIEWS EVENT</text>
+      <text x="0" y="14" font-size="13" font-weight="600" fill="#166534" text-anchor="middle">Examines real-time toast alert, vehicle plate, velocity trajectory, or perimeter intrusion breach</text>
+    </g>
+
+    <!-- Arrow to Action Decision -->
+    <line x1="900" y1="477" x2="900" y2="525" stroke="#334155" stroke-width="2" marker-end="url(#arrow-dark)"/>
+
+    <!-- Action Decision Diamond -->
+    <g class="node" transform="translate(900, 575)">
+      <polygon points="0,-45 140,0 0,45 -140,0" fill="#FEF3C7" stroke="#D97706" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-8" font-size="14" font-weight="800" fill="#78350F" text-anchor="middle">Further Action</text>
+      <text x="0" y="12" font-size="14" font-weight="800" fill="#78350F" text-anchor="middle">Required?</text>
+    </g>
+
+    <!-- YES Branch: Investigation & Feedback Loop -->
+    <line x1="1040" y1="575" x2="1220" y2="575" stroke="#D97706" stroke-width="2.5" marker-end="url(#arrow-amber)"/>
+    <text x="1065" y="565" font-size="13" font-weight="800" fill="#D97706">YES (Action Needed)</text>
+    
+    <g class="node" transform="translate(1440, 575)">
+      <rect x="-200" y="-45" width="400" height="90" rx="8" fill="#FFFBEB" stroke="#D97706" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="-20" font-size="14" font-weight="800" fill="#92400E" text-anchor="middle">Forensic Investigation &amp; Feedback</text>
+      <text x="-180" y="4" font-size="12" font-weight="600" fill="#78350F">• Review recorded video clips &amp; event timelines</text>
+      <text x="-180" y="22" font-size="12" font-weight="600" fill="#78350F">• Execute semantic search queries for linked incidents</text>
+      <text x="-180" y="40" font-size="12" font-weight="600" fill="#78350F">• Submit false-positive flag &amp; resolve alert status</text>
+    </g>
+
+    <!-- Feedback loop back up to Dashboard & Database -->
+    <path d="M 1640 575 L 1660 575 L 1660 60 L 1320 60" fill="none" stroke="#D97706" stroke-width="2.2" stroke-dasharray="6 4" marker-end="url(#arrow-amber)"/>
+    <rect x="1575" y="280" width="160" height="26" rx="4" fill="#FEF3C7" stroke="#D97706" stroke-width="1.2"/>
+    <text x="1655" y="297" font-size="11" font-weight="800" fill="#92400E" text-anchor="middle">Operator Feedback Loop</text>
+
+    <!-- NO Branch: Routine Surveillance Active -->
+    <line x1="900" y1="620" x2="900" y2="700" stroke="#16A34A" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+    <text x="915" y="660" font-size="13" font-weight="800" fill="#16A34A">NO (Routine)</text>
+
+    <!-- Continuous Surveillance Terminator -->
+    <g class="node" transform="translate(900, 750)">
+      <rect x="-180" y="-30" width="360" height="60" rx="30" fill="#EEF2FF" stroke="#4338CA" stroke-width="2.2" filter="url(#shadow)"/>
+      <text x="0" y="-4" font-size="15" font-weight="800" fill="#1E1B4B" text-anchor="middle">CONTINUOUS SURVEILLANCE ACTIVE</text>
+      <text x="0" y="16" font-size="12" font-weight="600" fill="#4338CA" text-anchor="middle">Awaiting next incoming video frame / stream event</text>
+    </g>
+
+    <!-- Loop back to Ingestion Pipeline -->
+    <path d="M 720 750 L 50 750 L 50 -2920 L 640 -2920" fill="none" stroke="#2563EB" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+    <rect x="5" y="-1200" width="130" height="26" rx="4" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.2"/>
+    <text x="70" y="-1183" font-size="11" font-weight="800" fill="#1E40AF" text-anchor="middle">Next Video Frame Cycle</text>
+  </g>
+</svg>
+    </div>
+  </main>
+
+  <script>
+    let scale = 1.0;
+    const wrapper = document.getElementById('diagram-wrapper');
+    const container = document.getElementById('canvas-container');
+
+    function updateZoom() {
+      wrapper.style.transform = `scale(${scale})`;
+    }
+
+    function zoomIn() {
+      scale = Math.min(scale + 0.15, 2.5);
+      updateZoom();
+    }
+
+    function zoomOut() {
+      scale = Math.max(scale - 0.15, 0.2);
+      updateZoom();
+    }
+
+    function resetZoom() {
+      scale = 1.0;
+      updateZoom();
+    }
+
+    function fitWidth() {
+      const availableWidth = container.clientWidth - 80;
+      scale = Math.max(0.2, Math.min(availableWidth / 1800, 1.5));
+      updateZoom();
+    }
+
+    // Initial fit width on load
+    window.addEventListener('load', fitWidth);
+    window.addEventListener('resize', fitWidth);
+  </script>
+</body>
+</html>

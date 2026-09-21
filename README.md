@@ -139,6 +139,10 @@ You can log in to the platform with any of the seeded test accounts:
 | `PATCH` | `/api/alerts/:id` | Admin / Operator | Updates alert status (`acknowledged` or `resolved`) |
 | `GET` | `/api/vehicles` | Authenticated | Searches registered vehicle logs |
 | `POST` | `/api/search` | Authenticated | Cosine-similarity natural language query over events |
+| `GET` | `/api/results` | Public / Auth | Paginated detection results with joined clips, cameras, and alerts |
+| `GET` | `/api/results/summary` | Public / Auth | Aggregated KPI metrics for detection events and clips |
+| `GET` | `/api/results/:id` | Public / Auth | Detailed forensic evidence record with tensor metadata |
+| `GET` | `/api/results/:id/clip` | Public / Auth | HTTP 206 Range Request video streaming for processed clips |
 | `GET` | `/api/analytics/summary` | Authenticated | Aggregates system metrics, camera counts & detection totals |
 | `POST` | `/api/modules/anpr/test` | Authenticated | Uploads image, runs ANPR, and performs SQL match |
 | `POST` | `/api/modules/velocity/test` | Authenticated | Uploads video, tracks targets and calculates velocity |
