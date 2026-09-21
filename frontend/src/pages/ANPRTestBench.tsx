@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
@@ -9,7 +10,8 @@ import {
   Car, 
   Zap, 
   ArrowRight, 
-  Code
+  Code,
+  Film
 } from "lucide-react";
 
 type DetectionState =
@@ -227,6 +229,12 @@ export default function ANPRTestBench() {
                     <span className="text-hawk-sapphire">24.2ms</span>
                   </div>
                 </div>
+
+                <Link to="/results" className="w-full block">
+                  <Button variant="secondary" size="md" className="w-full justify-center gap-2" icon={<Film className="h-4 w-4 text-hawk-emerald" />}>
+                    VIEW IN RESULTS PORTAL
+                  </Button>
+                </Link>
               </div>
             )}
           </Card>

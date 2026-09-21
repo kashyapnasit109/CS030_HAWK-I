@@ -5,6 +5,7 @@ import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { SpeedometerGauge } from "../components/ui/SpeedometerGauge";
 import { colors } from "../design-tokens/colors";
+import { Link } from "react-router-dom";
 import { 
   Gauge, 
   Loader2, 
@@ -12,7 +13,8 @@ import {
   Zap, 
   ArrowRight, 
   ShieldAlert, 
-  Code
+  Code,
+  Film
 } from "lucide-react";
 
 interface Point {
@@ -127,11 +129,22 @@ export default function VelocityTestBench() {
       formData.append("distance_meters", distanceMeters.toString());
       formData.append("speed_threshold", speedThreshold.toString());
       if (calibrationPoints.length === 2) {
+        formData.append("x1", calibrationPoints[0].x.toString());
+        formData.append("y1", calibrationPoints[0].y.toString());
+        formData.append("x2", calibrationPoints[1].x.toString());
+        formData.append("y2", calibrationPoints[1].y.toString());
         formData.append("p1_x", calibrationPoints[0].x.toString());
         formData.append("p1_y", calibrationPoints[0].y.toString());
         formData.append("p2_x", calibrationPoints[1].x.toString());
         formData.append("p2_y", calibrationPoints[1].y.toString());
+      } else {
+        // Default calibration vectors across 100px
+        formData.append("x1", "0");
+        formData.append("y1", "0");
+        formData.append("x2", "100");
+        formData.append("y2", "0");
       }
+
 
       const res = await fetch("/api/modules/velocity/test", {
         method: "POST",
@@ -363,6 +376,13 @@ export default function VelocityTestBench() {
                     <span className="text-hawk-emerald font-bold">59.8 FPS</span>
                   </div>
                 </div>
+
+                {/* Open in Results Portal Link */}
+                <Link to="/results" className="w-full">
+                  <Button variant="secondary" size="md" className="w-full justify-center gap-2" icon={<Film className="h-4 w-4 text-hawk-sapphire" />}>
+                    VIEW IN RESULTS PORTAL
+                  </Button>
+                </Link>
               </div>
             )}
           </Card>

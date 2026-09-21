@@ -75,8 +75,9 @@ async def detect_velocity(
             )
 
             # Structure to hold tracking history per object_id
-            # object_tracks[obj_id] = { "class": str, "history": [{frame_idx, x, y, time_sec}] }
+            # object_tracks[obj_id] = { "class": str, "history": [{frame_idx, x, y, time_sec, bbox}] }
             object_tracks = {}
+            annotations_by_frame = {}
 
             for result in results:
                 boxes = result.boxes
@@ -90,6 +91,7 @@ async def detect_velocity(
                             cx = (bx1 + bx2) / 2.0
                             cy = (by1 + by2) / 2.0
                             time_sec = frame_idx / fps
+                            conf = float(box.conf[0]) if box.conf is not None else 0.9
 
                             if obj_id not in object_tracks:
                                 object_tracks[obj_id] = {
@@ -101,7 +103,19 @@ async def detect_velocity(
                                 "frame": frame_idx,
                                 "x": round(cx, 1),
                                 "y": round(cy, 1),
-                                "time": round(time_sec, 3)
+                                "time": round(time_sec, 3),
+                                "bbox": {"x": round(bx1, 1), "y": round(by1, 1), "w": round(bx2 - bx1, 1), "h": round(by2 - by1, 1)},
+                                "conf": round(conf, 2)
+                            })
+
+                            if frame_idx not in annotations_by_frame:
+                                annotations_by_frame[frame_idx] = []
+
+                            annotations_by_frame[frame_idx].append({
+                                "bounding_box": {"x": bx1, "y": by1, "w": bx2 - bx1, "h": by2 - by1},
+                                "label": f"{TRACKED_CLASSES[cls_id].upper()} #{obj_id}",
+                                "confidence": conf,
+                                "extra_text": None  # Will update once speed is calculated
                             })
 
                 frame_idx += 1
@@ -153,7 +167,9 @@ async def detect_velocity(
                     "object_type": data["object_type"],
                     "max_speed_kmh": round(max_speed, 1),
                     "avg_speed_kmh": round(avg_speed, 1),
-                    "path_points": path_points[:20]  # Cap path trajectory points
+                    "path_points": path_points[:20],
+                    "peak_time_sec": history[len(history) // 2]["time"],
+                    "primary_bbox": history[len(history) // 2]["bbox"]
                 })
 
             if not tracked_output:
@@ -170,6 +186,26 @@ async def detect_velocity(
 
             # Sort output by max_speed_kmh descending
             tracked_output.sort(key=lambda o: o["max_speed_kmh"], reverse=True)
+            top_obj = tracked_output[0]
+
+            # ── Step 5: Automatically Generate Annotated Evidence Clip ────────
+            clip_info = None
+            try:
+                from services.clip_generator import ClipGenerator
+                clip_info = ClipGenerator.generate_annotated_clip(
+                    source_video_path=temp_video_path,
+                    event_timestamp_sec=top_obj.get("peak_time_sec", 0.0),
+                    source_module="velocity",
+                    event_type="speed_violation" if top_obj["max_speed_kmh"] > 10.0 else "motion_tracked",
+                    bounding_box=top_obj.get("primary_bbox"),
+                    annotations_by_frame=annotations_by_frame,
+                    label=f"{top_obj['object_type'].upper()} #{top_obj['object_id']}",
+                    confidence=0.95,
+                    extra_telemetry=f"{top_obj['max_speed_kmh']} km/h",
+                    clip_filename_prefix=f"velocity_obj{top_obj['object_id']}"
+                )
+            except Exception as clip_err:
+                logger.error(f"Failed to generate velocity clip: {clip_err}")
 
             return {
                 "tracked_objects": tracked_output,
@@ -179,7 +215,8 @@ async def detect_velocity(
                     "pixels_per_meter": round(pixels_per_meter, 2),
                     "extracted_fps": round(fps, 2),
                     "total_frames_analyzed": frame_idx
-                }
+                },
+                "clip_info": clip_info
             }
 
     except VideoIngestionError as e:

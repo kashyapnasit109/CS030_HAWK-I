@@ -61,10 +61,11 @@ exports.testVelocity = async (req, res) => {
       return res.status(400).json({ error: 'No video file uploaded.' });
     }
 
-    const { x1, y1, x2, y2, distance_meters } = req.body;
-    if (x1 === undefined || y1 === undefined || x2 === undefined || y2 === undefined || !distance_meters) {
-      return res.status(400).json({ error: 'Missing calibration parameters (x1, y1, x2, y2, distance_meters).' });
-    }
+    const x1 = req.body.x1 !== undefined ? req.body.x1 : (req.body.p1_x !== undefined ? req.body.p1_x : 0);
+    const y1 = req.body.y1 !== undefined ? req.body.y1 : (req.body.p1_y !== undefined ? req.body.p1_y : 0);
+    const x2 = req.body.x2 !== undefined ? req.body.x2 : (req.body.p2_x !== undefined ? req.body.p2_x : 100);
+    const y2 = req.body.y2 !== undefined ? req.body.y2 : (req.body.p2_y !== undefined ? req.body.p2_y : 0);
+    const distance_meters = req.body.distance_meters || 15;
 
     const mlResult = await mlService.callVelocity(
       req.file.buffer,
@@ -72,6 +73,7 @@ exports.testVelocity = async (req, res) => {
       req.file.mimetype || 'video/mp4',
       { x1, y1, x2, y2, distance_meters }
     );
+
 
     return res.json(mlResult);
   } catch (err) {
