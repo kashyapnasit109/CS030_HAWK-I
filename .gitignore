@@ -36,5 +36,12 @@ backend/dist/
 .DS_Store
 Thumbs.db
 
+# Generated media & clips
+media/
+media/clips/
+*.mp4
+*.avi
+!istockphoto-1408401025-mp4-480x480-is.mp4
+
 # Logs
 *.log

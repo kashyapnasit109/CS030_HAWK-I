@@ -20,6 +20,7 @@ from routes.threat import router as threat_router
 from routes.entry import router as entry_router
 from routes.search import router as search_router
 from routes.ingest import router as ingest_router
+from routes.clip import router as clip_router
 
 # Configure logging
 logging.basicConfig(
@@ -86,5 +87,6 @@ app.include_router(misplacement_router, prefix="/detect", tags=["Detection"])
 app.include_router(threat_router, prefix="/detect", tags=["Detection"])
 app.include_router(entry_router, prefix="/detect", tags=["Detection"])
 app.include_router(ingest_router, prefix="/ingest", tags=["Ingest"])
+app.include_router(clip_router, prefix="/clip", tags=["Clip Generation"])
 app.include_router(search_router, tags=["Search"])
 

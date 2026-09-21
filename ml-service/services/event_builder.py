@@ -96,10 +96,21 @@ class EventBuilder:
                 f"(average {avg_speed:.1f} km/h, threshold: {speed_threshold_kmh:.1f} km/h)."
             )
 
-            # Use first path point as bounding/point reference
-            bbox = None
-            if path_points:
+            # Use primary bbox or first path point as bounding reference
+            bbox = obj.get("primary_bbox")
+            if not bbox and path_points:
                 bbox = {"x": path_points[0].get("x", 0), "y": path_points[0].get("y", 0), "w": 0, "h": 0}
+
+            event_meta = {
+                "object_id": obj_id,
+                "max_speed_kmh": max_speed,
+                "avg_speed_kmh": avg_speed,
+                "speed_threshold_kmh": speed_threshold_kmh,
+                "path_points": path_points,
+                "calibration_used": raw_result.get("calibration_used", {}),
+            }
+            if "clip_info" in raw_result and raw_result["clip_info"]:
+                event_meta["clip_info"] = raw_result["clip_info"]
 
             event = DetectionEvent(
                 camera_id=camera_id,
@@ -110,22 +121,19 @@ class EventBuilder:
                 confidence=0.95,
                 bounding_box=bbox,
                 severity=severity,
-                metadata={
-                    "object_id": obj_id,
-                    "max_speed_kmh": max_speed,
-                    "avg_speed_kmh": avg_speed,
-                    "speed_threshold_kmh": speed_threshold_kmh,
-                    "path_points": path_points,
-                    "calibration_used": raw_result.get("calibration_used", {}),
-                },
+                metadata=event_meta,
                 description=desc,
             )
             events.append(event)
 
+        proc_meta = dict(processing_metadata or {})
+        if "clip_info" in raw_result and raw_result["clip_info"]:
+            proc_meta["clip_info"] = raw_result["clip_info"]
+
         return DetectionResult(
             events=events,
             source_module="velocity",
-            processing_metadata=processing_metadata or {},
+            processing_metadata=proc_meta,
             raw_result=raw_result,
         )
 

@@ -9,14 +9,14 @@ Provides the VideoIngestor abstraction for:
 - Frame timestamping and indexing
 """
 
+import inspect
 import math
 import os
 import tempfile
 import logging
-from typing import Generator, Tuple, Optional, Union
+from typing import Generator, Tuple, Optional, Any
 import cv2
 import numpy as np
-from fastapi import UploadFile, HTTPException
 
 logger = logging.getLogger("hawk-ml.video")
 
@@ -40,13 +40,16 @@ class VideoIngestor:
 
     def __init__(
         self,
-        source: Union[UploadFile, bytes, str],
+        source: Any,
         filename: Optional[str] = None,
         processing_fps: Optional[float] = None,
         max_duration_sec: float = DEFAULT_MAX_DURATION_SEC,
     ):
         self.source = source
-        self.filename = filename or (source.filename if isinstance(source, UploadFile) else "video.mp4")
+        
+        # Extract filename if available on the source object
+        detected_name = getattr(source, "filename", None) or getattr(source, "name", None)
+        self.filename = filename or (detected_name if isinstance(detected_name, str) else "video.mp4")
         
         # Determine target processing FPS
         if processing_fps is not None and processing_fps > 0:
@@ -81,9 +84,6 @@ class VideoIngestor:
         self.close()
 
     def __enter__(self):
-        # Sync context manager (only works if source is already bytes or str path)
-        if isinstance(self.source, UploadFile):
-            raise RuntimeError("Async source (UploadFile) requires 'async with VideoIngestor(...)'")
         self._open_sync()
         return self
 
@@ -92,11 +92,27 @@ class VideoIngestor:
 
     async def open(self):
         """Prepare video file on disk, open capture, and validate properties."""
-        if isinstance(self.source, UploadFile):
-            contents = await self.source.read()
+        if hasattr(self.source, "read") and callable(getattr(self.source, "read")):
+            if hasattr(self.source, "seek") and callable(getattr(self.source, "seek")):
+                try:
+                    seek_res = self.source.seek(0)
+                    if inspect.iscoroutine(seek_res):
+                        await seek_res
+                except Exception:
+                    pass
+
+            contents = self.source.read()
+            if inspect.iscoroutine(contents):
+                contents = await contents
+
+            if not contents or len(contents) == 0:
+                raise VideoIngestionError("Uploaded video file is empty.")
+
             self._write_temp_file(contents)
-        elif isinstance(self.source, bytes):
-            self._write_temp_file(self.source)
+        elif isinstance(self.source, (bytes, bytearray)):
+            if len(self.source) == 0:
+                raise VideoIngestionError("Uploaded video byte buffer is empty.")
+            self._write_temp_file(bytes(self.source))
         elif isinstance(self.source, str):
             if os.path.exists(self.source):
                 self._temp_path = self.source
@@ -109,9 +125,26 @@ class VideoIngestor:
         self._initialize_capture()
 
     def _open_sync(self):
-        """Synchronous version of open for bytes or file paths."""
-        if isinstance(self.source, bytes):
-            self._write_temp_file(self.source)
+        """Synchronous version of open for file-like objects, bytes, or file paths."""
+        if hasattr(self.source, "read") and callable(getattr(self.source, "read")):
+            if hasattr(self.source, "seek") and callable(getattr(self.source, "seek")):
+                try:
+                    self.source.seek(0)
+                except Exception:
+                    pass
+
+            contents = self.source.read()
+            if inspect.iscoroutine(contents):
+                raise RuntimeError("Async source (coroutine read) requires 'async with VideoIngestor(...)'")
+
+            if not contents or len(contents) == 0:
+                raise VideoIngestionError("Uploaded video file is empty.")
+
+            self._write_temp_file(contents)
+        elif isinstance(self.source, (bytes, bytearray)):
+            if len(self.source) == 0:
+                raise VideoIngestionError("Uploaded video byte buffer is empty.")
+            self._write_temp_file(bytes(self.source))
         elif isinstance(self.source, str):
             if os.path.exists(self.source):
                 self._temp_path = self.source
@@ -137,7 +170,7 @@ class VideoIngestor:
         self._cap = cv2.VideoCapture(self._temp_path)
         if not self._cap.isOpened():
             self.close()
-            raise VideoIngestionError("Could not open video stream using OpenCV.", status_code=400)
+            raise VideoIngestionError("Could not open video stream using OpenCV. Ensure the file is a valid video format (.mp4, .avi, .mov).", status_code=400)
 
         # Extract native FPS
         fps = self._cap.get(cv2.CAP_PROP_FPS)
@@ -193,8 +226,6 @@ class VideoIngestor:
         # Rewind to start
         self._cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
-        # Calculate sampling interval
-        # E.g. native 30 fps, processing 5 fps -> step = 6 (frames 0, 6, 12, ...)
         step = max(1, round(self.native_fps / self.processing_fps)) if self.processing_fps > 0 else 1
 
         sampled_idx = 0
