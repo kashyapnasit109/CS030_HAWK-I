@@ -687,3 +687,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Maintained rolling in-memory buffer of last 300 encoded JPEG frames per camera
 - Sliced exact pre-alarm and post-alarm footage slices without disk I/O lag
 - Handled brief transient violations with fallback frame duplication
+
+## [2026-09-21 10:15] fix(video-stream): resolve edge case in implement Server-Sent Events (SSE) progress streaming for large exports
+- Streamed compression percentage and file packaging status to frontend UI
+- Eliminated browser HTTP request timeout during multi-gigabyte forensic exports
+- Provided cancel button allowing investigator to abort export in flight
