@@ -319,3 +319,10 @@ Key architectural choices and their rationale.
 - TensorRT INT8 quantization
 - Model size: 6.2MB (YOLOv8n quantized)
 
+
+## [2026-09-22 12:58] Commit #230
+### Frontend Architecture
+- React 19 with TypeScript strict mode
+- Zustand for state management
+- Vite 6 with HMR for development
+
