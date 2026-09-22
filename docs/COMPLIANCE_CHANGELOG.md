@@ -293,3 +293,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 22, 2026 19:24:03]` **test(assignment): add stress test for concurrent multi-stream ingest degradation** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 22, 2026 20:12:18]` **docs(stream): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 22, 2026 20:37:24]` **docs(compliance): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: compliance engine core & rule execution*
+- `[Sep 22, 2026 21:49:31]` **refactor(perf): decouple camera frame ingestion from computer vision workers** — *Verified component: tensor memory management & latency optimization*
