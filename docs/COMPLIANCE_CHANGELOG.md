@@ -284,3 +284,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 20, 2026 15:10:03]` **fix(stream): guard against race conditions in bulk rule commit transactions** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 20, 2026 18:32:22]` **feat(twin): support asynchronous multi-threaded camera inference workers** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 21, 2026 09:20:35]` **perf(detector): accelerate canvas polygon rendering with path caching** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Sep 22, 2026 09:31:28]` **fix(rules): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: deterministic rule evaluator & spatial logic*
