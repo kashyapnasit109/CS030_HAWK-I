@@ -291,3 +291,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 22, 2026 11:59:55]` **refactor(detector): simplify WebSocket client state lifecycle management** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 22, 2026 14:37:53]` **feat(pipeline): add dynamic loitering cooldown hysteresis deduplication** — *Verified component: camera ring buffer & video ingestion*
 - `[Sep 22, 2026 19:24:03]` **test(assignment): add stress test for concurrent multi-stream ingest degradation** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Sep 22, 2026 20:12:18]` **docs(stream): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: low-latency MJPEG & WebSocket stream transport*
