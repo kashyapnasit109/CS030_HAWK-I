@@ -762,3 +762,8 @@ Key architectural choices and their rationale.
 - Extracted synchronized AAC audio stream alongside MP4 video clip
 - Rendered high-resolution audio waveform visualizer in forensic investigation player
 - Highlighted acoustic scream and glass break spikes on timeline
+
+## [2026-09-22 11:45] perf(hazard-engine): optimize throughput in integrate dark channel prior for fog and low-visibility atmospheric estimation
+- Calculated minimum intensity across RGB color channels in local patches
+- Computed atmospheric transmission map to estimate optical range
+- Issued dynamic sensor sensitivity adjustment during heavy haze
