@@ -287,3 +287,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 22, 2026 09:31:28]` **fix(rules): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 22, 2026 10:12:46]` **feat(diagnostics): calibrate 17-keypoint skeleton fall detection threshold vectors** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 22, 2026 10:29:34]` **feat(copilot): add Section 65B statutory evidence SHA-256 seal verification** — *Verified component: prime compliance copilot & assistant integration*
+- `[Sep 22, 2026 11:17:03]` **feat(wall): support asynchronous multi-threaded camera inference workers** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
