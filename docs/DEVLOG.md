@@ -326,3 +326,10 @@ Sprint-by-sprint engineering progress and technical decisions.
 - OCR: EasyOCR with Tesseract fallback
 - Recognition accuracy: 94.7% (Indian plates)
 
+
+## [2026-09-22 21:35] Commit #232
+### Crowd Density Estimation
+- CSRNet architecture for density map prediction
+- MAE: 12.3 on ShanghaiTech Part A
+- Real-time inference at 20fps on single GPU
+
