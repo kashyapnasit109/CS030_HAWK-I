@@ -289,3 +289,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 22, 2026 10:29:34]` **feat(copilot): add Section 65B statutory evidence SHA-256 seal verification** — *Verified component: prime compliance copilot & assistant integration*
 - `[Sep 22, 2026 11:17:03]` **feat(wall): support asynchronous multi-threaded camera inference workers** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 22, 2026 11:59:55]` **refactor(detector): simplify WebSocket client state lifecycle management** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Sep 22, 2026 14:37:53]` **feat(pipeline): add dynamic loitering cooldown hysteresis deduplication** — *Verified component: camera ring buffer & video ingestion*
