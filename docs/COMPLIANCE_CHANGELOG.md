@@ -286,3 +286,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 21, 2026 09:20:35]` **perf(detector): accelerate canvas polygon rendering with path caching** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 22, 2026 09:31:28]` **fix(rules): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 22, 2026 10:12:46]` **feat(diagnostics): calibrate 17-keypoint skeleton fall detection threshold vectors** — *Verified component: hardware decoders & operational telemetry*
+- `[Sep 22, 2026 10:29:34]` **feat(copilot): add Section 65B statutory evidence SHA-256 seal verification** — *Verified component: prime compliance copilot & assistant integration*
