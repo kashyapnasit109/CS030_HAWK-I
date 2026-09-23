@@ -300,3 +300,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 23, 2026 10:28:11]` **perf(perf): accelerate canvas polygon rendering with path caching** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 23, 2026 11:25:50]` **docs(assignment): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 23, 2026 11:32:04]` **feat(assignment): support dynamic FPS throttling based on GPU compute availability** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Sep 23, 2026 12:15:59]` **docs(evidence): document camera compatibility capability matrix requirements** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
