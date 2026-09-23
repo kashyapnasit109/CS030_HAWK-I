@@ -295,3 +295,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 22, 2026 20:37:24]` **docs(compliance): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: compliance engine core & rule execution*
 - `[Sep 22, 2026 21:49:31]` **refactor(perf): decouple camera frame ingestion from computer vision workers** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 23, 2026 08:08:23]` **feat(twin): add real-time WebSocket reconnect backoff with jitter** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Sep 23, 2026 08:25:46]` **feat(stream): introduce rolling ring buffer for zero-drop video ingestion** — *Verified component: low-latency MJPEG & WebSocket stream transport*
