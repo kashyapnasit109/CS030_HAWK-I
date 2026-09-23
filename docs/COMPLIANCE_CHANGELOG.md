@@ -297,3 +297,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 23, 2026 08:08:23]` **feat(twin): add real-time WebSocket reconnect backoff with jitter** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 23, 2026 08:25:46]` **feat(stream): introduce rolling ring buffer for zero-drop video ingestion** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 23, 2026 09:54:50]` **perf(wall): reduce memory footprint of 300-frame video buffer queue** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
+- `[Sep 23, 2026 10:28:11]` **perf(perf): accelerate canvas polygon rendering with path caching** — *Verified component: tensor memory management & latency optimization*
