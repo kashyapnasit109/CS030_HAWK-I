@@ -303,3 +303,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 23, 2026 12:15:59]` **docs(evidence): document camera compatibility capability matrix requirements** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Sep 23, 2026 15:33:50]` **feat(copilot): add per-stream decoder latency & queue depth monitoring** — *Verified component: prime compliance copilot & assistant integration*
 - `[Sep 23, 2026 18:15:28]` **test(detector): verify deterministic condition parser against edge timezones** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Sep 23, 2026 19:05:55]` **perf(compliance): reduce tensor copy overhead in optical flow frame differencing** — *Verified component: compliance engine core & rule execution*
