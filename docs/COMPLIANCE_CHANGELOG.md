@@ -707,3 +707,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Correlated high-frequency acoustic hiss with expanding vapor plumes
 - Automated emergency boiler isolation valve shutdown trigger
 - Minimized thermal burn risks in campus central heating plant
+
+## [2026-09-24 15:00] perf(anpr): optimize throughput in implement license plate character confidence visualization in audit UI
+- Assigned individual character confidence scores from OCR softmax layer
+- Rendered color-coded confidence indicators (green, amber, red) per character
+- Allowed forensic operators to quickly inspect low-confidence readings
