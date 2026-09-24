@@ -309,3 +309,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 24, 2026 09:29:26]` **perf(detector): optimize SQLite write transactions with WAL mode and indexing** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 24, 2026 10:21:21]` **fix(twin): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Sep 24, 2026 10:25:35]` **refactor(compliance): standardize statutory evidence payload schema across jurisdictions** — *Verified component: compliance engine core & rule execution*
+- `[Sep 24, 2026 12:26:09]` **fix(rules): handle unexpected RTSP socket disconnects gracefully** — *Verified component: deterministic rule evaluator & spatial logic*
