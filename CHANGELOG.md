@@ -772,3 +772,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Detected plate corners using convex polygon contour approximation
 - Warped perspective to standardized 300x80 planar pixel rectangle
 - Increased OCR character recognition accuracy on skewed cameras by 22%
+
+## [2026-09-24 17:15] perf(anpr): optimize throughput in add vehicle make, model, and color estimation using MobileNetV3 classifier
+- Extracted vehicle crop from surround context of license plate
+- Classified 8 standard vehicle body types and 10 common colors
+- Linked vehicle visual attributes with plate record for cross-verification
