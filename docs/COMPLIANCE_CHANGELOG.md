@@ -308,3 +308,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 23, 2026 23:24:22]` **fix(diagnostics): resolve memory leak in detached HTML5 video canvas contexts** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 24, 2026 09:29:26]` **perf(detector): optimize SQLite write transactions with WAL mode and indexing** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 24, 2026 10:21:21]` **fix(twin): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Sep 24, 2026 10:25:35]` **refactor(compliance): standardize statutory evidence payload schema across jurisdictions** — *Verified component: compliance engine core & rule execution*
