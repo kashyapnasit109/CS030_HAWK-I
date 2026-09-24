@@ -340,3 +340,10 @@ Tracking inference latency, throughput, and resource utilization.
 - Full backup weekly with 30-day retention
 - Video archive: S3 Glacier after 90 days
 
+
+## [2026-09-24 15:49] Commit #243
+### WebSocket Architecture
+- Binary frame protocol for reduced overhead
+- Auto-reconnect with exponential backoff (max 30s)
+- Heartbeat interval: 15s with 5s timeout
+
