@@ -313,3 +313,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 24, 2026 14:00:18]` **refactor(detector): unify telemetry event formats for detection frames and violations** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 24, 2026 14:08:07]` **fix(stream): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 24, 2026 14:49:39]` **refactor(security): restructure rule compatibility matrix into declarative lookup** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Sep 24, 2026 15:00:14]` **test(stream): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: low-latency MJPEG & WebSocket stream transport*
