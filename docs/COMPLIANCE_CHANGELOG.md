@@ -312,3 +312,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 24, 2026 12:26:09]` **fix(rules): handle unexpected RTSP socket disconnects gracefully** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 24, 2026 14:00:18]` **refactor(detector): unify telemetry event formats for detection frames and violations** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 24, 2026 14:08:07]` **fix(stream): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Sep 24, 2026 14:49:39]` **refactor(security): restructure rule compatibility matrix into declarative lookup** — *Verified component: SHA-256 seal verification & audit log hashing*
