@@ -777,3 +777,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Calculated average velocity using road corridor distance and timestamps
 - Flagged vehicles traveling faster than campus limit (>25 km/h)
 - Automated generation of speed violation records with photo evidence
+
+## [2026-09-24 22:45] perf(anpr): optimize throughput in add electric vehicle green registration plate classification filter
+- Segmented distinctive green background of Indian EV registration plates
+- Tracked campus zero-emission vehicle transit metrics and charging stall use
+- Enforced priority access rules at dedicated EV charging stations
