@@ -782,3 +782,8 @@ Key architectural choices and their rationale.
 - Flagged duplicate plates observed simultaneously across distant gates
 - Detected non-standard font kerning, missing hologram stamps, and size errors
 - Alerted gate sentry to potential cloned registration plates
+
+## [2026-09-25 18:15] perf(anpr): optimize throughput in implement wrong-way vehicle driving detector on one-way campus roads
+- Evaluated vehicle motion vector against permitted roadway direction
+- Triggered audio-visual alert at security kiosk within 1.5 seconds
+- Recorded video clip evidence with directional arrow overlay
