@@ -1,0 +1,163 @@
+[
+  {
+    "query_id": "Q01",
+    "query": "speeding vehicle near entrance gate",
+    "category": "velocity",
+    "query_type": "Natural Language",
+    "expected_relevant_event_ids": [
+      8,
+      1
+    ],
+    "rationale": "Event 8 is a red sedan speeding at CAM-01 entrance gate (54.2 km/h); Event 1 is a car entering through CAM-01 entrance gate."
+  },
+  {
+    "query_id": "Q02",
+    "query": "perimeter fence breach climbing",
+    "category": "threat",
+    "query_type": "Descriptive",
+    "expected_relevant_event_ids": [
+      2,
+      11
+    ],
+    "rationale": "Event 2 is a climbing fence breach at CAM-06 perimeter fence; Event 11 is suspicious person lingering at CAM-06 perimeter fence."
+  },
+  {
+    "query_id": "Q03",
+    "query": "unattended backpack luggage",
+    "category": "misplacement",
+    "query_type": "Natural Language",
+    "expected_relevant_event_ids": [
+      5
+    ],
+    "rationale": "Event 5 is an unattended black backpack left in loading dock freight corridor."
+  },
+  {
+    "query_id": "Q04",
+    "query": "unauthorized person in server room",
+    "category": "entry",
+    "query_type": "Location/Camera",
+    "expected_relevant_event_ids": [
+      7,
+      15
+    ],
+    "rationale": "Event 7 is unauthorized intrusion into server room without badge; Event 15 is dwell anomaly inside server room vault."
+  },
+  {
+    "query_id": "Q05",
+    "query": "car license plate registration",
+    "category": "anpr",
+    "query_type": "Direct",
+    "expected_relevant_event_ids": [
+      1,
+      12
+    ],
+    "rationale": "Events 1 and 12 are ANPR license plate recognition events at entrance gate."
+  },
+  {
+    "query_id": "Q06",
+    "query": "person loitering in parking lot",
+    "category": "threat",
+    "query_type": "Location/Camera",
+    "expected_relevant_event_ids": [
+      3
+    ],
+    "rationale": "Event 3 is extended loitering in North Parking lot for 450 seconds."
+  },
+  {
+    "query_id": "Q07",
+    "query": "fast driving car in parking area",
+    "category": "velocity",
+    "query_type": "Event Semantics",
+    "expected_relevant_event_ids": [
+      14,
+      9
+    ],
+    "rationale": "Event 14 is a sports coupe speeding at 62.1 km/h in parking lot; Event 9 is a truck moving in parking lot."
+  },
+  {
+    "query_id": "Q08",
+    "query": "missing pallet in loading bay",
+    "category": "misplacement",
+    "query_type": "Event Semantics",
+    "expected_relevant_event_ids": [
+      13
+    ],
+    "rationale": "Event 13 is missing wooden cargo pallet from loading dock staging bay."
+  },
+  {
+    "query_id": "Q09",
+    "query": "crowd gathering in cafeteria",
+    "category": "threat",
+    "query_type": "Direct",
+    "expected_relevant_event_ids": [
+      6
+    ],
+    "rationale": "Event 6 is crowd formation of 35 people near cafeteria fire exit."
+  },
+  {
+    "query_id": "Q10",
+    "query": "danger threat in restricted zone",
+    "category": "threat",
+    "query_type": "Direct",
+    "expected_relevant_event_ids": [
+      2,
+      7,
+      15
+    ],
+    "rationale": "Events 2 (fence breach), 7 (server intrusion), and 15 (vault loitering) are critical danger threat anomalies in restricted zones."
+  },
+  {
+    "query_id": "Q11",
+    "query": "suspicious activity during night watch curfew",
+    "category": "threat",
+    "query_type": "Temporal",
+    "expected_relevant_event_ids": [
+      2,
+      11,
+      7
+    ],
+    "rationale": "Events 2 (02:41), 11 (01:55), and 7 (03:12) occurred during night curfew hours."
+  },
+  {
+    "query_id": "Q12",
+    "query": "toolbox obstructing electrical panel",
+    "category": "misplacement",
+    "query_type": "Descriptive",
+    "expected_relevant_event_ids": [
+      10
+    ],
+    "rationale": "Event 10 is an open metal toolbox left in front of emergency power distribution panel."
+  },
+  {
+    "query_id": "Q13",
+    "query": "vehicle speed limit violation",
+    "category": "velocity",
+    "query_type": "Direct",
+    "expected_relevant_event_ids": [
+      8,
+      14
+    ],
+    "rationale": "Events 8 (54.2 km/h at entrance) and 14 (62.1 km/h in parking) are speed limit violations."
+  },
+  {
+    "query_id": "Q14",
+    "query": "license plate verified at barrier gate",
+    "category": "anpr",
+    "query_type": "Natural Language",
+    "expected_relevant_event_ids": [
+      12,
+      1
+    ],
+    "rationale": "Events 12 and 1 are verified license plates at entrance barrier gate."
+  },
+  {
+    "query_id": "Q15",
+    "query": "unidentified intruder inside facility without badge",
+    "category": "entry",
+    "query_type": "Descriptive",
+    "expected_relevant_event_ids": [
+      7
+    ],
+    "rationale": "Event 7 is unidentified individual detected inside restricted server rack without RFID badge."
+  }
+]
