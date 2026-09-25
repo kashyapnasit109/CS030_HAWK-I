@@ -320,3 +320,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 24, 2026 23:36:49]` **test(compliance): add mock camera RTSP connection timeout failure injection** — *Verified component: compliance engine core & rule execution*
 - `[Sep 25, 2026 08:23:35]` **test(security): add stress test for concurrent multi-stream ingest degradation** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 25, 2026 09:46:39]` **docs(twin): add sequence diagram for ring buffer frame ingestion** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Sep 25, 2026 10:47:21]` **refactor(wall): restructure rule compatibility matrix into declarative lookup** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
