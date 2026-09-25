@@ -22,7 +22,7 @@ Hawk-I is a next-generation, dark-glassmorphic **security command center platfor
 3. **Semantic Query Search (Module 3):** Generates vector embeddings using `all-MiniLM-L6-v2` to enable semantic description queries over detection logs.
 4. **Velocity Detection (Module 4):** Tracks moving targets using ByteTrack, estimating vehicle speed in real time based on camera perspective and video FPS.
 5. **Unauthorized Entry Detection (Module 5):** Evaluates human bounding boxes within perimeter polygons and correlates presence against gate entry logs to identify intruders.
-6. **Threat / Anomaly Detection (Module 6):** Runs rule-based heuristics over object coordinates and class associations to flag high-risk situations (e.g. loitering at midnight, weapon detection).
+6. **Threat / Anomaly Detection (Module 6 - `/threat`):** Evaluates rule-based spatial and temporal heuristics over tracked targets using ByteTrack and OpenCV: (1) Extended loitering (> dwell threshold), (2) Restricted-zone perimeter breach during curfew windows (`cv2.pointPolygonTest`), and (3) Suspicious speed spikes. Automatically extracts annotated evidence clips and triggers alerts.
 
 ---
 
@@ -152,7 +152,22 @@ You can log in to the platform with any of the seeded test accounts:
 
 ---
 
+## 📊 Week 7 Semantic Search Precision Benchmark
+
+To evaluate retrieval precision on annotated surveillance ground truth:
+```bash
+# Run quantitative benchmark evaluation runner
+python tests/evaluation/semantic_search_eval.py --top-k 3 --threshold 0.25
+
+# Execute automated integration test suite
+cd backend
+npm test
+```
+*Full evaluation report, formulas, and per-query breakdown: [`docs/evaluation/SEMANTIC_SEARCH_EVALUATION.md`](docs/evaluation/SEMANTIC_SEARCH_EVALUATION.md)*
+
+---
+
 ## 👥 Team Members & Responsibilities
-- **Kashyap:** Platform Architecture, Semantic Search (Module 3), Node.js API Gateway, Alert Engine, Threat Heuristics.
+- **Kashyap:** Platform Architecture, Semantic Search (Module 3) & Precision Evaluation, Node.js API Gateway, Alert Engine, Threat / Anomaly Detection (`/threat`).
 - **Hitansh:** ANPR (Module 1), Speed Calibration & Tracking (Module 4), React Dashboard & Test Bench UIs.
 - **Meet:** Object Misplacement (Module 2), Unauthorized Entry (Module 5), Unit Testing & Stream Simulations.
