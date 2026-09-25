@@ -782,3 +782,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Segmented distinctive green background of Indian EV registration plates
 - Tracked campus zero-emission vehicle transit metrics and charging stall use
 - Enforced priority access rules at dedicated EV charging stations
+
+## [2026-09-25 20:30] perf(anpr): optimize throughput in add emergency vehicle priority corridor gate boom-barrier trigger
+- Classified ambulances and fire rescue vehicles from visual markings
+- Automatically opened electronic boom barrier before vehicle reaches gate
+- Cleared traffic signals along designated emergency route
