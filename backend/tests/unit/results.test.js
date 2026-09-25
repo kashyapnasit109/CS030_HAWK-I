@@ -47,6 +47,31 @@ describe('Results Controller Unit Tests', () => {
     }
   });
 
+  it('should filter results by threat module accurately', async () => {
+    const req = {
+      query: { page: 1, limit: 10, module: 'threat', severity: 'all' }
+    };
+    let jsonResult = null;
+    const res = {
+      json: (data) => {
+        jsonResult = data;
+        return data;
+      },
+      status: () => res
+    };
+
+    await resultsController.getResults(req, res);
+    assert.ok(jsonResult);
+    assert.strictEqual(jsonResult.success, true);
+    assert.ok(jsonResult.results.length > 0, 'Should find threat results');
+    for (const r of jsonResult.results) {
+      assert.ok(
+        r.source_module === 'threat' || r.module === 'threat' || r.module === 'loitering' || r.module === 'intrusion',
+        `Result should match threat filter, got ${r.source_module || r.module}`
+      );
+    }
+  });
+
   it('should return summary counts and KPIs', async () => {
     const req = {};
     let jsonResult = null;
