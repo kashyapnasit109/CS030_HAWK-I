@@ -1,0 +1,249 @@
+{
+  "dataset_metadata": {
+    "name": "HAWK-I Semantic Search Benchmark Dataset",
+    "version": "1.0.0",
+    "domain": "CCTV Intelligence & Multi-Camera Surveillance",
+    "created_at": "2026-09-25T18:48:00Z",
+    "author": "Kashyap Nasit (24CS109)",
+    "description": "Annotated query-to-event benchmark dataset for evaluating semantic search precision in CCTV surveillance intelligence."
+  },
+  "corpus_events": [
+    {
+      "event_id": 1,
+      "camera_id": 1,
+      "camera_name": "CAM-01 Main Entrance",
+      "zone_type": "entrance",
+      "source_module": "anpr",
+      "module": "vehicle",
+      "object_type": "car",
+      "description": "White sedan car detected entering through CAM-01 Main Entrance Gate. License plate KA-01-AB-1234 recognized with 98.5% confidence.",
+      "severity": "info"
+    },
+    {
+      "event_id": 2,
+      "camera_id": 6,
+      "camera_name": "CAM-06 Perimeter Fence South",
+      "zone_type": "perimeter",
+      "source_module": "threat",
+      "module": "intrusion",
+      "object_type": "person",
+      "description": "Perimeter breach detected at CAM-06 Perimeter Fence South. Individual climbing outer barrier during restricted curfew hours.",
+      "severity": "danger"
+    },
+    {
+      "event_id": 3,
+      "camera_id": 4,
+      "camera_name": "CAM-04 Parking Lot North",
+      "zone_type": "parking",
+      "source_module": "threat",
+      "module": "loitering",
+      "object_type": "person",
+      "description": "Extended loitering alert at CAM-04 Parking Lot North. Person stationary near parked vehicles for 450 seconds exceeding dwell threshold.",
+      "severity": "warning"
+    },
+    {
+      "event_id": 4,
+      "camera_id": 2,
+      "camera_name": "CAM-02 Lobby East",
+      "zone_type": "indoor",
+      "source_module": "threat",
+      "module": "facial",
+      "object_type": "person",
+      "description": "Authorized employee access recognized at CAM-02 Lobby East entrance turnstile matching employee directory #405.",
+      "severity": "info"
+    },
+    {
+      "event_id": 5,
+      "camera_id": 5,
+      "camera_name": "CAM-05 Loading Dock B",
+      "zone_type": "outdoor",
+      "source_module": "misplacement",
+      "module": "object",
+      "object_type": "backpack",
+      "description": "Unattended object detected at CAM-05 Loading Dock B. Black backpack left unattended in high-traffic freight corridor for over 10 minutes.",
+      "severity": "warning"
+    },
+    {
+      "event_id": 6,
+      "camera_id": 8,
+      "camera_name": "CAM-08 Cafeteria Overlook",
+      "zone_type": "indoor",
+      "source_module": "threat",
+      "module": "crowd",
+      "object_type": "group",
+      "description": "Large crowd formation detected at CAM-08 Cafeteria Overlook with 35 individuals congregating rapidly near fire exit corridor.",
+      "severity": "info"
+    },
+    {
+      "event_id": 7,
+      "camera_id": 3,
+      "camera_name": "CAM-03 Server Room A",
+      "zone_type": "indoor",
+      "source_module": "entry",
+      "module": "intrusion",
+      "object_type": "person",
+      "description": "Unauthorized access breach at CAM-03 Server Room A. Unidentified individual detected inside restricted server rack enclosure without RFID badge scan.",
+      "severity": "danger"
+    },
+    {
+      "event_id": 8,
+      "camera_id": 1,
+      "camera_name": "CAM-01 Main Entrance",
+      "zone_type": "entrance",
+      "source_module": "velocity",
+      "module": "vehicle",
+      "object_type": "car",
+      "description": "Vehicle speed violation at CAM-01 Main Entrance. Red sedan clocked traveling 54.2 km/h in designated 25.0 km/h entrance security zone.",
+      "severity": "danger"
+    },
+    {
+      "event_id": 9,
+      "camera_id": 4,
+      "camera_name": "CAM-04 Parking Lot North",
+      "zone_type": "parking",
+      "source_module": "velocity",
+      "module": "vehicle",
+      "object_type": "truck",
+      "description": "Commercial delivery truck detected maneuvering at 18.0 km/h across CAM-04 Parking Lot North delivery apron.",
+      "severity": "info"
+    },
+    {
+      "event_id": 10,
+      "camera_id": 3,
+      "camera_name": "CAM-03 Server Room A",
+      "zone_type": "indoor",
+      "source_module": "misplacement",
+      "module": "object",
+      "object_type": "toolbox",
+      "description": "Object misplacement anomaly at CAM-03 Server Room A. Metal toolbox left open in front of emergency power distribution panel.",
+      "severity": "warning"
+    },
+    {
+      "event_id": 11,
+      "camera_id": 6,
+      "camera_name": "CAM-06 Perimeter Fence South",
+      "zone_type": "perimeter",
+      "source_module": "threat",
+      "module": "loitering",
+      "object_type": "person",
+      "description": "Suspicious person lingering near CAM-06 Perimeter Fence South boundary line for 180 seconds during night watch.",
+      "severity": "warning"
+    },
+    {
+      "event_id": 12,
+      "camera_id": 1,
+      "camera_name": "CAM-01 Main Entrance",
+      "zone_type": "entrance",
+      "source_module": "anpr",
+      "module": "vehicle",
+      "object_type": "car",
+      "description": "Registered staff vehicle license plate MH-02-CD-5678 verified at CAM-01 Main Entrance barrier gate.",
+      "severity": "info"
+    },
+    {
+      "event_id": 13,
+      "camera_id": 5,
+      "camera_name": "CAM-05 Loading Dock B",
+      "zone_type": "outdoor",
+      "source_module": "misplacement",
+      "module": "object",
+      "object_type": "pallet",
+      "description": "Missing object anomaly at CAM-05 Loading Dock B. Wooden cargo pallet removed from designated staging bay 3 without dispatch log.",
+      "severity": "warning"
+    },
+    {
+      "event_id": 14,
+      "camera_id": 4,
+      "camera_name": "CAM-04 Parking Lot North",
+      "zone_type": "parking",
+      "source_module": "velocity",
+      "module": "vehicle",
+      "object_type": "car",
+      "description": "Vehicle speed violation at CAM-04 Parking Lot North. Sports coupe detected accelerating at 62.1 km/h exceeding 20 km/h parking speed limit.",
+      "severity": "danger"
+    },
+    {
+      "event_id": 15,
+      "camera_id": 3,
+      "camera_name": "CAM-03 Server Room A",
+      "zone_type": "indoor",
+      "source_module": "threat",
+      "module": "loitering",
+      "object_type": "person",
+      "description": "Dwell time anomaly at CAM-03 Server Room A. Individual remained stationary inside high-security optical vault for 95 seconds.",
+      "severity": "danger"
+    }
+  ],
+  "evaluation_queries": [
+    {
+      "query_id": "Q1",
+      "query": "speeding vehicle near entrance gate",
+      "category": "velocity_vehicle",
+      "expected_relevant_event_ids": [8, 1],
+      "rationale": "Event 8 is a red car speeding at entrance gate (54.2 km/h); Event 1 is a car entering the entrance gate."
+    },
+    {
+      "query_id": "Q2",
+      "query": "perimeter fence breach climbing",
+      "category": "threat_intrusion",
+      "expected_relevant_event_ids": [2, 11],
+      "rationale": "Event 2 is perimeter fence climbing breach; Event 11 is suspicious person near perimeter fence."
+    },
+    {
+      "query_id": "Q3",
+      "query": "unattended backpack luggage",
+      "category": "misplacement_object",
+      "expected_relevant_event_ids": [5],
+      "rationale": "Event 5 is unattended black backpack left in loading dock."
+    },
+    {
+      "query_id": "Q4",
+      "query": "unauthorized person in server room",
+      "category": "access_threat",
+      "expected_relevant_event_ids": [7, 15],
+      "rationale": "Event 7 is unauthorized server room intrusion; Event 15 is loitering inside server room vault."
+    },
+    {
+      "query_id": "Q5",
+      "query": "car license plate registration",
+      "category": "anpr",
+      "expected_relevant_event_ids": [1, 12],
+      "rationale": "Events 1 and 12 are ANPR plate recognition events at entrance."
+    },
+    {
+      "query_id": "Q6",
+      "query": "person loitering in parking lot",
+      "category": "threat_loitering",
+      "expected_relevant_event_ids": [3],
+      "rationale": "Event 3 is extended loitering in North Parking lot."
+    },
+    {
+      "query_id": "Q7",
+      "query": "fast driving car in parking area",
+      "category": "velocity",
+      "expected_relevant_event_ids": [14, 9],
+      "rationale": "Event 14 is a speeding car in parking lot (62.1 km/h); Event 9 is a truck in parking lot."
+    },
+    {
+      "query_id": "Q8",
+      "query": "missing pallet in loading bay",
+      "category": "misplacement",
+      "expected_relevant_event_ids": [13],
+      "rationale": "Event 13 is missing wooden cargo pallet from loading dock staging bay."
+    },
+    {
+      "query_id": "Q9",
+      "query": "crowd gathering in cafeteria",
+      "category": "crowd_anomaly",
+      "expected_relevant_event_ids": [6],
+      "rationale": "Event 6 is crowd formation of 35 people in cafeteria."
+    },
+    {
+      "query_id": "Q10",
+      "query": "danger threat in restricted zone",
+      "category": "threat_general",
+      "expected_relevant_event_ids": [2, 7, 15],
+      "rationale": "Events 2 (fence breach), 7 (server intrusion), and 15 (vault loitering) are critical danger threat anomalies in restricted zones."
+    }
+  ]
+}
