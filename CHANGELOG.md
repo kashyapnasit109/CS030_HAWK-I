@@ -777,3 +777,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Extracted vehicle crop from surround context of license plate
 - Classified 8 standard vehicle body types and 10 common colors
 - Linked vehicle visual attributes with plate record for cross-verification
+
+## [2026-09-25 15:00] perf(anpr): optimize throughput in add two-wheeler helmet compliance correlation with license plate
+- Correlated motorcycle license plate crop with rider helmet detection
+- Generated traffic safety infraction ticket with rider and plate crops
+- Sent automated notification to campus administrative safety portal
