@@ -712,3 +712,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Assigned individual character confidence scores from OCR softmax layer
 - Rendered color-coded confidence indicators (green, amber, red) per character
 - Allowed forensic operators to quickly inspect low-confidence readings
+
+## [2026-09-25 14:30] perf(anpr): optimize throughput in implement multi-vehicle convoy detection based on sequential gate time deltas
+- Identified groups of vehicles maintaining consistent follow distance (<4s)
+- Flagged coordinated multi-vehicle unauthorized entry through gates
+- Mapped convoy trajectory across campus roadway corridor cameras
