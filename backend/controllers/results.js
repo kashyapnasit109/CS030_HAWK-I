@@ -156,8 +156,12 @@ async function getResults(req, res) {
     let queryParams = [];
 
     if (moduleFilter && moduleFilter !== 'all') {
-      whereConditions.push('(e.source_module = ? OR e.module = ?)');
-      queryParams.push(moduleFilter, moduleFilter);
+      if (moduleFilter === 'threat') {
+        whereConditions.push('(e.source_module = "threat" OR e.module = "threat" OR e.module = "loitering")');
+      } else {
+        whereConditions.push('(e.source_module = ? OR e.module = ?)');
+        queryParams.push(moduleFilter, moduleFilter);
+      }
     }
     if (eventTypeFilter) {
       whereConditions.push('e.event_type = ?');
@@ -266,7 +270,11 @@ async function getResults(req, res) {
     // Filter fallback data in offline mode
     let filtered = [...MOCK_RESULTS];
     if (moduleFilter && moduleFilter !== 'all') {
-      filtered = filtered.filter(r => r.source_module === moduleFilter || r.module === moduleFilter);
+      if (moduleFilter === 'threat') {
+        filtered = filtered.filter(r => r.source_module === 'threat' || r.module === 'threat' || r.module === 'loitering');
+      } else {
+        filtered = filtered.filter(r => r.source_module === moduleFilter || r.module === moduleFilter);
+      }
     }
     if (severityFilter && severityFilter !== 'all') {
       filtered = filtered.filter(r => r.severity === severityFilter);

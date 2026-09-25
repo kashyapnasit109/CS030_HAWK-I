@@ -198,6 +198,16 @@ class EventBuilder:
 
             severity = "danger" if len(rules) >= 2 or anomaly_score > 0.7 else "warning"
             desc = f"Threat anomaly: {obj_type.capitalize()} (ID #{obj_id}) triggered rules [{', '.join(rules)}]. {explanation}"
+            bbox = anomaly.get("primary_bbox")
+
+            event_meta = {
+                "object_id": obj_id,
+                "triggered_rules": rules,
+                "anomaly_score": anomaly_score,
+                "explanation": explanation,
+            }
+            if "clip_info" in raw_result and raw_result["clip_info"]:
+                event_meta["clip_info"] = raw_result["clip_info"]
 
             event = DetectionEvent(
                 camera_id=camera_id,
@@ -206,21 +216,21 @@ class EventBuilder:
                 module="loitering" if "loitering" in rules else "intrusion",
                 object_type=obj_type,
                 confidence=min(1.0, max(0.0, anomaly_score)),
+                bounding_box=bbox,
                 severity=severity,
-                metadata={
-                    "object_id": obj_id,
-                    "triggered_rules": rules,
-                    "anomaly_score": anomaly_score,
-                    "explanation": explanation,
-                },
+                metadata=event_meta,
                 description=desc,
             )
             events.append(event)
 
+        proc_meta = dict(processing_metadata or {})
+        if "clip_info" in raw_result and raw_result["clip_info"]:
+            proc_meta["clip_info"] = raw_result["clip_info"]
+
         return DetectionResult(
             events=events,
             source_module="threat",
-            processing_metadata=processing_metadata or {},
+            processing_metadata=proc_meta,
             raw_result=raw_result,
         )
 

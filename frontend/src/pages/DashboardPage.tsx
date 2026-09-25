@@ -304,7 +304,7 @@ export default function DashboardPage() {
             { title: "ANPR Engine", path: "/modules/anpr", icon: ScanLine, tag: "YOLO + OCR", latency: "24ms", desc: "Plate detection & registry lookup" },
             { title: "Velocity Radar", path: "/modules/velocity", icon: Gauge, tag: "ByteTrack", latency: "16ms", desc: "Physical km/h speed trajectory" },
             { title: "Object Differencing", path: "/modules/misplacement", icon: Boxes, tag: "ResNet Diff", latency: "12ms", desc: "Appeared & missing anomalies" },
-            { title: "Threat Polygons", path: "/modules/threat", icon: ShieldAlert, tag: "Threat Logic", latency: "18ms", desc: "Weapon & perimeter breach" },
+            { title: "Threat / Anomaly", path: "/threat", icon: ShieldAlert, tag: "Rule-based", latency: "14ms", desc: "Loitering & perimeter breach rules" },
             { title: "Access Control", path: "/modules/entry", icon: LogIn, tag: "Cross-Zone", latency: "14ms", desc: "Gate vs. interior correlation" },
           ].map((bench) => {
             const Icon = bench.icon;

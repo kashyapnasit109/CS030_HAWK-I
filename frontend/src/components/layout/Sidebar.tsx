@@ -44,6 +44,7 @@ const navGroups: NavGroup[] = [
   {
     title: "Threat & Telemetry",
     items: [
+      { path: "/threat", label: "Threat / Anomaly", icon: ShieldAlert, tag: "RULES" },
       { path: "/alerts", label: "Threat Radar", icon: ShieldAlert, alert: true },
       { path: "/vehicles", label: "Vehicle Registry", icon: Car },
       { path: "/zones", label: "Zone Topography", icon: MapPin },
@@ -56,7 +57,7 @@ const navGroups: NavGroup[] = [
       { path: "/modules/anpr", label: "ANPR Engine", icon: ScanLine, tag: "OCR" },
       { path: "/modules/velocity", label: "Velocity Tracking", icon: Gauge, tag: "SPD" },
       { path: "/modules/misplacement", label: "Object Detection", icon: Boxes, tag: "SPATIAL" },
-      { path: "/modules/threat", label: "Threat Matrix", icon: ShieldAlert, tag: "YOLO" },
+      { path: "/threat", label: "Threat / Anomaly", icon: ShieldAlert, tag: "RULES" },
       { path: "/modules/entry", label: "Access Control", icon: LogIn, tag: "GATE" },
     ],
   },

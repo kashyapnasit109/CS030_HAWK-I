@@ -92,6 +92,7 @@ async def detect_threat(
             )
 
             object_tracks = {}
+            annotations_by_frame = {}
             frame_idx = 0
             for result in results:
                 boxes = result.boxes
@@ -105,6 +106,8 @@ async def detect_threat(
                             cx = (bx1 + bx2) / 2.0
                             cy = (by1 + by2) / 2.0
                             time_sec = frame_idx / fps
+                            conf = float(box.conf[0]) if box.conf is not None else 0.85
+                            bbox = {"x": bx1, "y": by1, "w": max(1.0, bx2 - bx1), "h": max(1.0, by2 - by1)}
 
                             if obj_id not in object_tracks:
                                 object_tracks[obj_id] = {
@@ -116,7 +119,19 @@ async def detect_threat(
                                 "frame": frame_idx,
                                 "x": cx,
                                 "y": cy,
-                                "time": time_sec
+                                "time": time_sec,
+                                "bbox": bbox,
+                                "conf": conf
+                            })
+
+                            if frame_idx not in annotations_by_frame:
+                                annotations_by_frame[frame_idx] = []
+
+                            annotations_by_frame[frame_idx].append({
+                                "bounding_box": bbox,
+                                "label": f"{TRACKED_CLASSES[cls_id].upper()} #{obj_id}",
+                                "confidence": conf,
+                                "extra_text": "MONITORED"
                             })
                 frame_idx += 1
 
@@ -211,18 +226,55 @@ async def detect_threat(
                             anomaly_score += 0.6
                 
                 if triggered_rules:
+                    mid_idx = len(history) // 2
+                    primary_bbox = history[mid_idx].get("bbox", {"x": 0, "y": 0, "w": 0, "h": 0})
+                    peak_time_sec = history[mid_idx].get("time", 0.0)
+
                     anomalies.append({
                         "object_id": obj_id,
                         "object_type": data["object_type"],
                         "triggered_rules": triggered_rules,
                         "anomaly_score": min(1.0, anomaly_score),
-                        "explanation": " | ".join(explanations)
+                        "explanation": " | ".join(explanations),
+                        "primary_bbox": primary_bbox,
+                        "peak_time_sec": peak_time_sec
                     })
+
+            # ── Step 4: Automatically Generate Annotated Evidence Clip ────────
+            clip_info = None
+            if anomalies:
+                try:
+                    anomalies.sort(key=lambda a: a["anomaly_score"], reverse=True)
+                    top_threat = anomalies[0]
+                    primary_rule = top_threat["triggered_rules"][0] if top_threat["triggered_rules"] else "anomaly"
+
+                    # Update frame annotations for the anomalous object with high-contrast alert
+                    for f_idx, ann_list in annotations_by_frame.items():
+                        for ann in ann_list:
+                            if f"#{top_threat['object_id']}" in ann.get("label", ""):
+                                ann["extra_text"] = f"THREAT: {primary_rule.upper()}"
+
+                    from services.clip_generator import ClipGenerator
+                    clip_info = ClipGenerator.generate_annotated_clip(
+                        source_video_path=temp_video_path,
+                        event_timestamp_sec=top_threat.get("peak_time_sec", 0.0),
+                        source_module="threat",
+                        event_type=f"threat_{primary_rule}",
+                        bounding_box=top_threat.get("primary_bbox"),
+                        annotations_by_frame=annotations_by_frame,
+                        label=f"THREAT: {primary_rule.upper()} #{top_threat['object_id']}",
+                        confidence=top_threat["anomaly_score"],
+                        extra_telemetry=f"Score: {top_threat['anomaly_score']:.2f}",
+                        clip_filename_prefix=f"threat_obj{top_threat['object_id']}"
+                    )
+                except Exception as clip_err:
+                    logger.error(f"Failed to generate threat clip: {clip_err}")
 
             return {
                 "anomalies": anomalies,
                 "total_objects_tracked": len(object_tracks),
-                "video_duration_sec": round(duration_sec, 1)
+                "video_duration_sec": round(duration_sec, 1),
+                "clip_info": clip_info
             }
 
     except VideoIngestionError as e:
