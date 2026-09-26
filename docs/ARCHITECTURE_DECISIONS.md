@@ -787,3 +787,8 @@ Key architectural choices and their rationale.
 - Evaluated vehicle motion vector against permitted roadway direction
 - Triggered audio-visual alert at security kiosk within 1.5 seconds
 - Recorded video clip evidence with directional arrow overlay
+
+## [2026-09-26 15:00] perf(ai-pipeline): optimize throughput in add automated GPU memory defragmentation and PyTorch cache collector
+- Monitored PyTorch memory fragmentation ratio in background thread
+- Executed torch.cuda.empty_cache during idle inter-frame intervals
+- Prevented CUDA out-of-memory exceptions during continuous 72-hour tests
