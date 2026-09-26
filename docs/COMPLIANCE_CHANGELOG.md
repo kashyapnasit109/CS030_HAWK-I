@@ -327,3 +327,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 25, 2026 19:52:55]` **perf(copilot): streamline keypoint bounding box normalization algorithms** — *Verified component: prime compliance copilot & assistant integration*
 - `[Sep 25, 2026 22:01:11]` **perf(detector): minimize thread context switching in camera worker pool** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 26, 2026 10:35:31]` **feat(detector): add real-time WebSocket reconnect backoff with jitter** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Sep 26, 2026 11:07:19]` **test(diagnostics): add mock camera RTSP connection timeout failure injection** — *Verified component: hardware decoders & operational telemetry*
