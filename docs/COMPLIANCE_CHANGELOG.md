@@ -717,3 +717,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Identified groups of vehicles maintaining consistent follow distance (<4s)
 - Flagged coordinated multi-vehicle unauthorized entry through gates
 - Mapped convoy trajectory across campus roadway corridor cameras
+
+## [2026-09-26 11:45] perf(ai-pipeline): optimize throughput in add TensorRT FP16 engine builder with layer fusion and autotuned kernels
+- Quantized model weights to half-precision floating point (FP16)
+- Fused consecutive Conv-BatchNorm-SiLU layers into single GPU kernel
+- Reduced GPU VRAM allocation by 48% with zero noticeable mAP drop
