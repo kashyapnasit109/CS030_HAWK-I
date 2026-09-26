@@ -782,3 +782,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Correlated motorcycle license plate crop with rider helmet detection
 - Generated traffic safety infraction ticket with rider and plate crops
 - Sent automated notification to campus administrative safety portal
+
+## [2026-09-26 13:30] perf(ai-pipeline): optimize throughput in implement zero-copy circular ring buffer using POSIX shared memory
+- Transferred raw video frames between ingestion and inference via shm_open
+- Eliminated inter-process memory copies and Python GIL serialization bottlenecks
+- Stabilized memory bandwidth utilization under high camera load
