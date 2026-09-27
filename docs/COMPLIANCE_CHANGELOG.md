@@ -329,3 +329,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 26, 2026 10:35:31]` **feat(detector): add real-time WebSocket reconnect backoff with jitter** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 26, 2026 11:07:19]` **test(diagnostics): add mock camera RTSP connection timeout failure injection** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 26, 2026 22:32:07]` **perf(wall): vectorize dwell time trajectory state transitions with numpy** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
+- `[Sep 27, 2026 09:02:07]` **docs(diagnostics): add sequence diagram for ring buffer frame ingestion** — *Verified component: hardware decoders & operational telemetry*
