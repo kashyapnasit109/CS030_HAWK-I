@@ -338,3 +338,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 27, 2026 11:31:57]` **perf(evidence): reduce tensor copy overhead in optical flow frame differencing** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Sep 27, 2026 11:47:19]` **docs(wall): update compliance engine operational deployment guide** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 27, 2026 12:39:47]` **feat(pipeline): add Section 63 BNSS 2023 electronic record certificate generator** — *Verified component: camera ring buffer & video ingestion*
+- `[Sep 27, 2026 14:24:11]` **fix(pipeline): resolve frame tearing in MJPEG multi-decoder pipeline** — *Verified component: camera ring buffer & video ingestion*
