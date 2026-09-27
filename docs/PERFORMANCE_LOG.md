@@ -792,3 +792,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Queried NVML interface for GPU core temperature and power draw
 - Dynamically downscaled input resolution from 1080p to 720p if temp > 80C
 - Maintained 100% camera stream uptime without thermal throttling crashes
+
+## [2026-09-27 15:00] perf(ai-pipeline): optimize throughput in implement thread-safe RTSP reconnect watchdog with exponential backoff
+- Monitored OpenCV stream read timeouts with 4-second deadline
+- Spawned non-blocking reconnection thread with jittered exponential delay
+- Preserved uninterrupted processing for all healthy camera channels
