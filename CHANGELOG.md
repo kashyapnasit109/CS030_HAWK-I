@@ -368,3 +368,10 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - API p99 latency: 120ms under load
 - WebSocket: 2000 concurrent connections sustained
 
+
+## [2026-09-27 11:49] Commit #261
+### Re-identification Module
+- OSNet backbone for appearance features
+- Gallery size: up to 10,000 identities
+- Query time: <5ms with FAISS GPU index
+
