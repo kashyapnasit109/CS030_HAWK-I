@@ -722,3 +722,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Quantized model weights to half-precision floating point (FP16)
 - Fused consecutive Conv-BatchNorm-SiLU layers into single GPU kernel
 - Reduced GPU VRAM allocation by 48% with zero noticeable mAP drop
+
+## [2026-09-27 10:15] perf(ai-pipeline): optimize throughput in add INT8 calibration pipeline for YOLOv8 object detection head
+- Generated calibration dataset of 1,200 representative campus frames
+- Computed optimal activation quantization thresholds using KL-divergence
+- Boosted inference speed to 94 FPS on edge hardware with mAP loss < 0.6%
