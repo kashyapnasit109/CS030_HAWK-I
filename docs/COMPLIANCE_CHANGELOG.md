@@ -333,3 +333,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 27, 2026 09:52:55]` **refactor(perf): modularize SQLite rule assignment transaction isolation** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 27, 2026 10:03:35]` **docs(rules): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 27, 2026 10:23:32]` **test(security): add stress test for concurrent multi-stream ingest degradation** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Sep 27, 2026 10:54:00]` **perf(assignment): optimize YOLOv8 inference batching for edge ring buffers** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
