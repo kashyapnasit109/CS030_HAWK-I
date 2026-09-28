@@ -343,3 +343,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 27, 2026 21:22:09]` **docs(diagnostics): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 28, 2026 10:51:31]` **test(assignment): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 28, 2026 20:02:37]` **perf(rules): vectorize dwell time trajectory state transitions with numpy** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Sep 28, 2026 23:06:59]` **docs(detector): add API documentation for bulk rule assignment endpoints** — *Verified component: YOLOv8 & YOLO-Pose inference models*
