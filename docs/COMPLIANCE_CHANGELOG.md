@@ -344,3 +344,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 28, 2026 10:51:31]` **test(assignment): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 28, 2026 20:02:37]` **perf(rules): vectorize dwell time trajectory state transitions with numpy** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Sep 28, 2026 23:06:59]` **docs(detector): add API documentation for bulk rule assignment endpoints** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Sep 28, 2026 23:38:37]` **feat(assignment): introduce 12-toggle overlay control panel for real-time vision masks** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
