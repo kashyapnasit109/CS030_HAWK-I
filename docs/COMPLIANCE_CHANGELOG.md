@@ -342,3 +342,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 27, 2026 18:38:22]` **test(security): test bulk assignment atomic rollback upon constraint failure** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 27, 2026 21:22:09]` **docs(diagnostics): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 28, 2026 10:51:31]` **test(assignment): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Sep 28, 2026 20:02:37]` **perf(rules): vectorize dwell time trajectory state transitions with numpy** — *Verified component: deterministic rule evaluator & spatial logic*
