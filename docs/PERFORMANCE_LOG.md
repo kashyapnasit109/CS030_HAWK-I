@@ -797,3 +797,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Monitored OpenCV stream read timeouts with 4-second deadline
 - Spawned non-blocking reconnection thread with jittered exponential delay
 - Preserved uninterrupted processing for all healthy camera channels
+
+## [2026-09-28 16:00] perf(face-recog): optimize throughput in add face anti-spoofing liveness detection via high-frequency texture analysis
+- Extracted Local Binary Patterns (LBP) and Fourier power spectrum features
+- Detected printed photo attacks and smartphone screen replay reflections
+- Prevented spoofed face presentations from contaminating gallery database
