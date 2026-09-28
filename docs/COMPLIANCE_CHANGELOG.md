@@ -727,3 +727,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Generated calibration dataset of 1,200 representative campus frames
 - Computed optimal activation quantization thresholds using KL-divergence
 - Boosted inference speed to 94 FPS on edge hardware with mAP loss < 0.6%
+
+## [2026-09-28 10:15] perf(ai-pipeline): optimize throughput in add Prometheus-compatible telemetry endpoint for GPU and pipeline metrics
+- Exposed /api/metrics/ai endpoint reporting FPS, latency, and VRAM
+- Integrated real-time telemetry gauges into Grafana operations wall
+- Configured automated alert notifications for pipeline latency spikes
