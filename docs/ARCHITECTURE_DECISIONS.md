@@ -797,3 +797,8 @@ Key architectural choices and their rationale.
 - Processed static low-activity scenes at 15 FPS to conserve power
 - Automatically elevated processing rate to 30 FPS upon motion trigger
 - Reduced daily GPU power consumption by 34% across 30 cameras
+
+## [2026-09-28 13:30] perf(face-recog): optimize throughput in implement MTCNN 5-point facial landmark alignment transformation
+- Extracted eye centers, nose tip, and mouth corners from face bounding box
+- Applied affine warp to align inter-ocular distance to 64 pixels
+- Significantly improved embedding match confidence for off-angle faces
