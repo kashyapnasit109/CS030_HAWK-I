@@ -732,3 +732,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Exposed /api/metrics/ai endpoint reporting FPS, latency, and VRAM
 - Integrated real-time telemetry gauges into Grafana operations wall
 - Configured automated alert notifications for pipeline latency spikes
+
+## [2026-09-29 09:15] perf(face-recog): optimize throughput in implement face quality assessment scoring filter before gallery ingestion
+- Evaluated facial sharpness using Laplacian variance and illumination spread
+- Rejected blurry, extreme profile (>45 deg), or underexposed face crops
+- Preserved gallery database integrity by storing only high-quality templates
