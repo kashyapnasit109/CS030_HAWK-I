@@ -802,3 +802,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Extracted Local Binary Patterns (LBP) and Fourier power spectrum features
 - Detected printed photo attacks and smartphone screen replay reflections
 - Prevented spoofed face presentations from contaminating gallery database
+
+## [2026-09-29 16:00] perf(face-recog): optimize throughput in add automated face gallery template aging and expiration cleanup
+- Configured 3-year sliding window for student biometric templates
+- Automated deletion of graduated student embeddings compliant with DPDP Act
+- Logged audit proof of biometric data disposal to security ledger
