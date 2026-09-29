@@ -346,3 +346,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 28, 2026 23:06:59]` **docs(detector): add API documentation for bulk rule assignment endpoints** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Sep 28, 2026 23:38:37]` **feat(assignment): introduce 12-toggle overlay control panel for real-time vision masks** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Sep 29, 2026 09:08:29]` **docs(pipeline): document camera compatibility capability matrix requirements** — *Verified component: camera ring buffer & video ingestion*
+- `[Sep 29, 2026 10:42:08]` **refactor(stream): isolate optical hazard detectors into standalone inference module** — *Verified component: low-latency MJPEG & WebSocket stream transport*
