@@ -350,3 +350,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 29, 2026 10:44:55]` **fix(security): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 29, 2026 10:53:07]` **refactor(security): simplify WebSocket client state lifecycle management** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 29, 2026 14:56:51]` **fix(assignment): resolve thread-safety collision during concurrent WebSocket broadcast** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Sep 29, 2026 18:04:00]` **test(evidence): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
