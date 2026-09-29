@@ -348,3 +348,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 29, 2026 09:08:29]` **docs(pipeline): document camera compatibility capability matrix requirements** — *Verified component: camera ring buffer & video ingestion*
 - `[Sep 29, 2026 10:42:08]` **refactor(stream): isolate optical hazard detectors into standalone inference module** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 29, 2026 10:44:55]` **fix(security): correct timestamp drift between ingestion buffer and inference loop** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Sep 29, 2026 10:53:07]` **refactor(security): simplify WebSocket client state lifecycle management** — *Verified component: SHA-256 seal verification & audit log hashing*
