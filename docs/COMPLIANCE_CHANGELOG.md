@@ -356,3 +356,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 30, 2026 08:15:41]` **fix(diagnostics): resolve memory leak in detached HTML5 video canvas contexts** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 30, 2026 10:35:02]` **docs(perf): document statutory evidence certificate generation parameters** — *Verified component: tensor memory management & latency optimization*
 - `[Sep 30, 2026 11:10:37]` **docs(twin): document statutory evidence certificate generation parameters** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Sep 30, 2026 11:36:57]` **feat(wall): add pre-flight compatibility matrix validator across detector classes** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
