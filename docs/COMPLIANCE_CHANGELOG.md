@@ -353,3 +353,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 29, 2026 18:04:00]` **test(evidence): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Sep 29, 2026 18:33:51]` **test(stream): test bulk assignment atomic rollback upon constraint failure** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Sep 29, 2026 23:50:52]` **refactor(security): standardize statutory evidence payload schema across jurisdictions** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Sep 30, 2026 08:15:41]` **fix(diagnostics): resolve memory leak in detached HTML5 video canvas contexts** — *Verified component: hardware decoders & operational telemetry*
