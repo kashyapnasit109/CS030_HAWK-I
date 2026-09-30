@@ -389,3 +389,10 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Radial distortion: k1, k2, k3 coefficients
 - Tangential distortion: p1, p2 correction
 
+
+## [2026-09-30 09:52] Commit #279
+### Database Schema
+- TimescaleDB for time-series event data
+- PostgreSQL for relational entities
+- Redis for session cache and pub/sub
+
