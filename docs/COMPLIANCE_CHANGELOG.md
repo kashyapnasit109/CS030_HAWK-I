@@ -355,3 +355,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 29, 2026 23:50:52]` **refactor(security): standardize statutory evidence payload schema across jurisdictions** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Sep 30, 2026 08:15:41]` **fix(diagnostics): resolve memory leak in detached HTML5 video canvas contexts** — *Verified component: hardware decoders & operational telemetry*
 - `[Sep 30, 2026 10:35:02]` **docs(perf): document statutory evidence certificate generation parameters** — *Verified component: tensor memory management & latency optimization*
+- `[Sep 30, 2026 11:10:37]` **docs(twin): document statutory evidence certificate generation parameters** — *Verified component: digital twin topology & blast radius analyzer*
