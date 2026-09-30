@@ -807,3 +807,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Classified 7 standard facial expressions (neutral, distress, anger, etc.)
 - Correlated facial distress markers with panic motion alerts
 - Assisted emergency dispatchers in assessing victim situation severity
+
+## [2026-09-30 18:15] perf(campus-safety): optimize throughput in add perimeter fence climbing and scaling detector using vertical keypoint velocity
+- Defined perimeter wall-top polygon zone with directional crossing filter
+- Tracked skeleton keypoints moving vertically over wall threshold
+- Triggered priority physical perimeter breach alarm to night guards
