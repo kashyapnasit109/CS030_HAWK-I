@@ -396,3 +396,10 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - PostgreSQL for relational entities
 - Redis for session cache and pub/sub
 
+
+## [2026-10-01 04:11] Commit #284
+### Search & Retrieval
+- Embedding-based person search across 48h window
+- FAISS index for sub-millisecond similarity search
+- Top-K retrieval with re-ranking
+
