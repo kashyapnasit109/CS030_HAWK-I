@@ -362,3 +362,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 01, 2026 10:33:46]` **refactor(assignment): extract reusable canvas drawing primitives into utility layer** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 01, 2026 10:45:06]` **feat(detector): calibrate 17-keypoint skeleton fall detection threshold vectors** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 01, 2026 10:54:09]` **docs(assignment): add API documentation for bulk rule assignment endpoints** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Oct 01, 2026 17:42:37]` **refactor(detector): unify telemetry event formats for detection frames and violations** — *Verified component: YOLOv8 & YOLO-Pose inference models*
