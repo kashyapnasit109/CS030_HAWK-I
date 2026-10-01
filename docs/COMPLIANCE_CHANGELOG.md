@@ -359,3 +359,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 30, 2026 11:36:57]` **feat(wall): add pre-flight compatibility matrix validator across detector classes** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Sep 30, 2026 14:36:00]` **test(security): verify deterministic condition parser against edge timezones** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Oct 01, 2026 09:11:11]` **fix(diagnostics): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: hardware decoders & operational telemetry*
+- `[Oct 01, 2026 10:33:46]` **refactor(assignment): extract reusable canvas drawing primitives into utility layer** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
