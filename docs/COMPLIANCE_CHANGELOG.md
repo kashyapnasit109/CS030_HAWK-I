@@ -360,3 +360,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Sep 30, 2026 14:36:00]` **test(security): verify deterministic condition parser against edge timezones** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Oct 01, 2026 09:11:11]` **fix(diagnostics): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 01, 2026 10:33:46]` **refactor(assignment): extract reusable canvas drawing primitives into utility layer** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Oct 01, 2026 10:45:06]` **feat(detector): calibrate 17-keypoint skeleton fall detection threshold vectors** — *Verified component: YOLOv8 & YOLO-Pose inference models*
