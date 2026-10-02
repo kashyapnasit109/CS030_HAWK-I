@@ -367,3 +367,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 01, 2026 21:42:56]` **refactor(compliance): unify telemetry event formats for detection frames and violations** — *Verified component: compliance engine core & rule execution*
 - `[Oct 02, 2026 09:20:02]` **feat(security): implement multi-camera spatial geofence ray-casting validator** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Oct 02, 2026 09:35:23]` **feat(evidence): integrate dual-envelope incandescent flame color masks** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
+- `[Oct 02, 2026 10:08:44]` **refactor(compliance): restructure rule compatibility matrix into declarative lookup** — *Verified component: compliance engine core & rule execution*
