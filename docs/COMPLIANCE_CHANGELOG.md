@@ -747,3 +747,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Classified hardhats and reflective vests on detected worker bounding boxes
 - Flagged workers entering hardhat mandatory zones without required gear
 - Logged hourly safety compliance percentages per contractor team
+
+## [2026-10-02 09:15] perf(campus-safety): optimize throughput in add chemical laboratory fume hood sash height compliance monitor
+- Monitored chemical fume hood glass sash opening height in research labs
+- Alerted laboratory supervisor when sash is left open above safe aerodynamic mark
+- Protected researchers from volatile toxic vapor exposure
