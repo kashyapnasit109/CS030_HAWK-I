@@ -370,3 +370,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 02, 2026 10:08:44]` **refactor(compliance): restructure rule compatibility matrix into declarative lookup** — *Verified component: compliance engine core & rule execution*
 - `[Oct 02, 2026 10:27:54]` **docs(perf): document camera compatibility capability matrix requirements** — *Verified component: tensor memory management & latency optimization*
 - `[Oct 02, 2026 11:46:38]` **docs(security): add API documentation for bulk rule assignment endpoints** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Oct 02, 2026 18:47:55]` **perf(assignment): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
