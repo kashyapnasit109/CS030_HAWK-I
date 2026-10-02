@@ -417,3 +417,10 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Gallery size: up to 10,000 identities
 - Query time: <5ms with FAISS GPU index
 
+
+## [2026-10-03 02:13] Commit #296
+### Model Training Infrastructure
+- PyTorch Lightning training framework
+- W&B integration for experiment tracking
+- Automatic hyperparameter tuning with Optuna
+
