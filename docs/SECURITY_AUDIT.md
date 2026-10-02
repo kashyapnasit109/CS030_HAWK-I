@@ -410,3 +410,10 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Test coverage target: 80% minimum
 - Automated rollback on health check failure
 
+
+## [2026-10-02 17:54] Commit #294
+### Notification Service
+- Firebase Cloud Messaging for mobile push
+- Email alerts via SendGrid integration
+- SMS fallback via Twilio for P0 alerts
+
