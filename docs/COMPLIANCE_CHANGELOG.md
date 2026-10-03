@@ -375,3 +375,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 03, 2026 10:18:39]` **docs(security): add sequence diagram for ring buffer frame ingestion** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Oct 03, 2026 10:28:07]` **feat(rules): introduce 12-toggle overlay control panel for real-time vision masks** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Oct 03, 2026 10:39:47]` **docs(security): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Oct 03, 2026 14:14:42]` **refactor(stream): decouple camera frame ingestion from computer vision workers** — *Verified component: low-latency MJPEG & WebSocket stream transport*
