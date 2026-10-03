@@ -372,3 +372,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 02, 2026 11:46:38]` **docs(security): add API documentation for bulk rule assignment endpoints** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Oct 02, 2026 18:47:55]` **perf(assignment): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 03, 2026 09:31:52]` **perf(perf): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: tensor memory management & latency optimization*
+- `[Oct 03, 2026 10:18:39]` **docs(security): add sequence diagram for ring buffer frame ingestion** — *Verified component: SHA-256 seal verification & audit log hashing*
