@@ -373,3 +373,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 02, 2026 18:47:55]` **perf(assignment): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 03, 2026 09:31:52]` **perf(perf): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: tensor memory management & latency optimization*
 - `[Oct 03, 2026 10:18:39]` **docs(security): add sequence diagram for ring buffer frame ingestion** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Oct 03, 2026 10:28:07]` **feat(rules): introduce 12-toggle overlay control panel for real-time vision masks** — *Verified component: deterministic rule evaluator & spatial logic*
