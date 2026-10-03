@@ -822,3 +822,8 @@ Key architectural choices and their rationale.
 - Computed 64KB block-wise SHA-256 hash over video clips and metadata JSON
 - Structured evidence envelope schema strictly conforming to statutory norms
 - Embedded UTC microsecond timestamp and server unique machine identifier
+
+## [2026-10-03 14:30] perf(bsa-compliance): optimize throughput in implement automated forensic tamper audit self-test on server boot
+- Verified integrity of all stored evidence files against database hashes on startup
+- Generated system initialization integrity certificate
+- Alerted administrator immediately if any filesystem anomalies are found
