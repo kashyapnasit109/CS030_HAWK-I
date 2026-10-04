@@ -822,3 +822,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Recorded physical and digital transfer of custody from SOC to Police
 - Captured receiving officer badge number, signature timestamp, and receipt hash
 - Maintained unbroken legal chain of custody required by Section 63 BSA
+
+## [2026-10-04 11:45] perf(search-engine): optimize throughput in add anatomical upper and lower torso crop segmentation pipeline
+- Divided human bounding box into head, torso (0.2-0.6), and legs (0.6-1.0)
+- Applied center-crop margin of 15% to eliminate background foliage clutter
+- Computed dominant k-means (k=3) color clusters in LAB space
