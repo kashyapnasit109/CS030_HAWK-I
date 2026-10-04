@@ -827,3 +827,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Generated high-resolution QR code encoding deep link to verification endpoint
 - Allowed judges and attorneys to instantly verify authenticity via mobile scanner
 - Rendered crisp vector QR graphics to prevent printing degradation
+
+## [2026-10-04 15:00] perf(search-engine): optimize throughput in add suspect trajectory reconstruction with animated campus map polylines
+- Plotted sequential camera sightings on Leaflet GIS campus map
+- Connected sighting markers with animated directional polylines
+- Displayed estimated travel time and speed between observation points
