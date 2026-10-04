@@ -380,3 +380,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 04, 2026 10:38:48]` **fix(compliance): guard against race conditions in bulk rule commit transactions** — *Verified component: compliance engine core & rule execution*
 - `[Oct 04, 2026 10:41:30]` **feat(diagnostics): integrate cross-camera correlation graph for compound safety events** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 04, 2026 11:12:26]` **feat(twin): calibrate 17-keypoint skeleton fall detection threshold vectors** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Oct 04, 2026 11:15:38]` **refactor(pipeline): isolate optical hazard detectors into standalone inference module** — *Verified component: camera ring buffer & video ingestion*
