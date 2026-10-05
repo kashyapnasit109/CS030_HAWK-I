@@ -385,3 +385,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 04, 2026 20:50:45]` **feat(perf): introduce rolling ring buffer for zero-drop video ingestion** — *Verified component: tensor memory management & latency optimization*
 - `[Oct 05, 2026 09:08:20]` **docs(perf): document camera compatibility capability matrix requirements** — *Verified component: tensor memory management & latency optimization*
 - `[Oct 05, 2026 10:34:59]` **feat(security): implement atomic bulk camera-to-rule assignment persistence** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Oct 05, 2026 10:36:11]` **docs(compliance): document camera compatibility capability matrix requirements** — *Verified component: compliance engine core & rule execution*
