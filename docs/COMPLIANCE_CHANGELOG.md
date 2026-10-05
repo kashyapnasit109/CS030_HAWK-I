@@ -388,3 +388,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 05, 2026 10:36:11]` **docs(compliance): document camera compatibility capability matrix requirements** — *Verified component: compliance engine core & rule execution*
 - `[Oct 05, 2026 19:03:47]` **refactor(twin): restructure rule compatibility matrix into declarative lookup** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Oct 05, 2026 21:45:14]` **perf(rules): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Oct 05, 2026 21:45:20]` **fix(evidence): correct bounding box clipping on frame border intersections** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
