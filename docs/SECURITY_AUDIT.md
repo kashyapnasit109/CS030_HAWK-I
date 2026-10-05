@@ -832,3 +832,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Identified individuals walking together across 3 consecutive camera gates
 - Evaluated spatial distance (<1.2m) and velocity vector alignment
 - Generated suspect social graph showing companion identities
+
+## [2026-10-05 17:15] perf(video-stream): optimize throughput in implement thread-safe circular ring buffer extraction for 10s incident slices
+- Maintained rolling in-memory buffer of last 300 encoded JPEG frames per camera
+- Sliced exact pre-alarm and post-alarm footage slices without disk I/O lag
+- Handled brief transient violations with fallback frame duplication
