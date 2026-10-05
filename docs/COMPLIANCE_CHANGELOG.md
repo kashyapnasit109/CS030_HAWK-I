@@ -383,3 +383,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 04, 2026 11:15:38]` **refactor(pipeline): isolate optical hazard detectors into standalone inference module** — *Verified component: camera ring buffer & video ingestion*
 - `[Oct 04, 2026 15:23:34]` **refactor(assignment): modularize SQLite rule assignment transaction isolation** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 04, 2026 20:50:45]` **feat(perf): introduce rolling ring buffer for zero-drop video ingestion** — *Verified component: tensor memory management & latency optimization*
+- `[Oct 05, 2026 09:08:20]` **docs(perf): document camera compatibility capability matrix requirements** — *Verified component: tensor memory management & latency optimization*
