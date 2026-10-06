@@ -395,3 +395,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 06, 2026 10:49:05]` **feat(perf): introduce dwell time trajectory velocity smoothing filter** — *Verified component: tensor memory management & latency optimization*
 - `[Oct 06, 2026 10:49:43]` **perf(assignment): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 06, 2026 11:44:40]` **perf(rules): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Oct 06, 2026 11:54:09]` **perf(evidence): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
