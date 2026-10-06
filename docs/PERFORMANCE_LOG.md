@@ -837,3 +837,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Integrated multi-task convolutional classification head on person crops
 - Predicted coarse age bracket (child, youth, adult, senior) with 83% accuracy
 - Allowed investigators to narrow search queries by demographic filters
+
+## [2026-10-06 15:00] perf(video-stream): optimize throughput in add forensic watermark and millisecond timestamp burn-in on exported videos
+- Rendered semi-transparent watermark bar on bottom 36 pixels of video
+- Included camera name, GPS coordinate, millisecond timestamp, and frame index
+- Ensured watermark burn-in cannot obscure critical center evidence region
