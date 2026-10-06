@@ -837,3 +837,8 @@ Key architectural choices and their rationale.
 - Identified suspects who entered building in one clothing color and exited in another
 - Flagged rapid clothing change in restrooms during ongoing active incidents
 - Linked disparate sightings into unified suspect behavioral dossier
+
+## [2026-10-06 14:30] perf(video-stream): optimize throughput in implement secure single-use download token with 15-minute expiration
+- Generated cryptographically signed JWT for forensic bundle downloads
+- Prevented unauthorized direct file URL scraping
+- Logged all evidence download events to forensic audit ledger
