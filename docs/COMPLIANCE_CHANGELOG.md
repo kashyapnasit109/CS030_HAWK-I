@@ -392,3 +392,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 05, 2026 22:16:11]` **test(stream): test bulk assignment atomic rollback upon constraint failure** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 05, 2026 22:46:52]` **test(security): verify deterministic condition parser against edge timezones** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Oct 06, 2026 08:41:30]` **refactor(perf): unify telemetry event formats for detection frames and violations** — *Verified component: tensor memory management & latency optimization*
+- `[Oct 06, 2026 10:49:05]` **feat(perf): introduce dwell time trajectory velocity smoothing filter** — *Verified component: tensor memory management & latency optimization*
