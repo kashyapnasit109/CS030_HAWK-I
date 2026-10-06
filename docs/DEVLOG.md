@@ -837,3 +837,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Constructed formal certificate layout with national emblem placeholder
 - Embedded high-resolution violation crop with bounding box annotations
 - Added SHA-256 seal stamp, officer signature block, and legal custody notes
+
+## [2026-10-06 20:30] perf(video-stream): optimize throughput in add cryptographic watermark injection in keyframe JPEG EXIF user comment
+- Injected SHA-256 seal and camera UUID into standard EXIF metadata tag 0x9286
+- Ensured evidence integrity can be verified directly from image properties
+- Preserved EXIF tag across image viewing software and courtroom presentations
