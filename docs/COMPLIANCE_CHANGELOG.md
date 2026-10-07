@@ -398,3 +398,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 06, 2026 11:54:09]` **perf(evidence): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Oct 06, 2026 23:39:54]` **feat(detector): add instant violation flash banners with sealed hash badges** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 07, 2026 09:25:23]` **docs(detector): document camera compatibility capability matrix requirements** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Oct 07, 2026 10:20:59]` **perf(diagnostics): reduce memory footprint of 300-frame video buffer queue** — *Verified component: hardware decoders & operational telemetry*
