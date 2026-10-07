@@ -772,3 +772,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Combined synchronized feeds from 4 adjacent cameras into 2x2 grid MP4 clip
 - Maintained frame-accurate synchronization using embedded camera timestamps
 - Provided comprehensive 360-degree incident coverage in single video file
+
+## [2026-10-07 09:15] perf(video-stream): optimize throughput in implement synchronized AAC forensic audio track extraction and visualizer
+- Extracted synchronized AAC audio stream alongside MP4 video clip
+- Rendered high-resolution audio waveform visualizer in forensic investigation player
+- Highlighted acoustic scream and glass break spikes on timeline
