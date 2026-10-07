@@ -842,3 +842,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Streamed compression percentage and file packaging status to frontend UI
 - Eliminated browser HTTP request timeout during multi-gigabyte forensic exports
 - Provided cancel button allowing investigator to abort export in flight
+
+## [2026-10-07 18:15] test(hazard-engine): add unit test suite for add moving shadow suppression using chromaticity and brightness ratios
+- Normalized RGB channels to evaluate chromaticity invariance
+- Distinguished physical occlusions from cast shadows on concrete
+- Reduced false alarm triggers on sunny building walkways by 41%
