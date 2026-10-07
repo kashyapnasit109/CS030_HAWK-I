@@ -400,3 +400,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 07, 2026 09:25:23]` **docs(detector): document camera compatibility capability matrix requirements** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 07, 2026 10:20:59]` **perf(diagnostics): reduce memory footprint of 300-frame video buffer queue** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 07, 2026 11:21:34]` **perf(detector): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Oct 07, 2026 13:10:05]` **feat(rules): introduce rolling ring buffer for zero-drop video ingestion** — *Verified component: deterministic rule evaluator & spatial logic*
