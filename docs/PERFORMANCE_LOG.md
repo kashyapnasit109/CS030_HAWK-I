@@ -842,3 +842,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Rendered semi-transparent watermark bar on bottom 36 pixels of video
 - Included camera name, GPS coordinate, millisecond timestamp, and frame index
 - Ensured watermark burn-in cannot obscure critical center evidence region
+
+## [2026-10-07 16:00] test(hazard-engine): add unit test suite for calibrate atmospheric smoke plume vertical dispersion estimator
+- Calculated vertical velocity gradient of gray segmented contours
+- Distinguished expanding upward convection from wind-blown dust
+- Integrated dual-confirmation logic with optical flame detector
