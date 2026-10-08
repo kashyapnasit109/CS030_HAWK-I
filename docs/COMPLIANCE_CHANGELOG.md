@@ -416,3 +416,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 08, 2026 15:55:32]` **docs(diagnostics): document statutory evidence certificate generation parameters** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 08, 2026 16:21:28]` **feat(rules): add dynamic loitering cooldown hysteresis deduplication** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Oct 08, 2026 17:15:00]` **refactor(assignment): extract reusable canvas drawing primitives into utility layer** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Oct 08, 2026 22:00:07]` **feat(wall): add instant violation flash banners with sealed hash badges** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
