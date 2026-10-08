@@ -847,3 +847,8 @@ Key architectural choices and their rationale.
 - Segmented high-luminance core (>220) with high red-orange saturation
 - Suppressed static amber sodium lamps via localized temporal variance
 - Calibrated core-to-envelope area ratio to reject small transient reflections
+
+## [2026-10-08 13:30] test(hazard-engine): add unit test suite for implement industrial gas cylinder thermal proximity monitor
+- Monitored distance between pressurized gas cylinders and heat sources
+- Flagged storage violations within 5 meters of active boiler units
+- Dispatched high-priority warning to facilities management
