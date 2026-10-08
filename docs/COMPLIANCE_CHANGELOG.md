@@ -412,3 +412,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 08, 2026 11:11:52]` **test(copilot): add stress test for concurrent multi-stream ingest degradation** — *Verified component: prime compliance copilot & assistant integration*
 - `[Oct 08, 2026 11:55:34]` **feat(stream): add pre-flight compatibility matrix validator across detector classes** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 08, 2026 15:00:28]` **docs(assignment): update compliance engine operational deployment guide** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Oct 08, 2026 15:16:14]` **feat(evidence): add dynamic loitering cooldown hysteresis deduplication** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
