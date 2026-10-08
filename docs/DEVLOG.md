@@ -847,3 +847,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Modeled horizontal elliptical aspect ratio of specular headlight beams
 - Rejected non-combustion reflective surfaces from flame candidate list
 - Suppressed false alerts in campus parking lots during night hours
+
+## [2026-10-08 19:30] test(hazard-engine): add unit test suite for implement thermal hotspot classification using calibrated radiometric sensors
+- Converted raw 16-bit thermal sensor telemetry to Celsius values
+- Triggered alerts for localized surfaces exceeding 85 degrees Celsius
+- Correlated thermal anomalies with visual optical camera streams
