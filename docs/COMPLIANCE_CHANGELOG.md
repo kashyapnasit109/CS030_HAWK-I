@@ -777,3 +777,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Extracted synchronized AAC audio stream alongside MP4 video clip
 - Rendered high-resolution audio waveform visualizer in forensic investigation player
 - Highlighted acoustic scream and glass break spikes on timeline
+
+## [2026-10-08 10:15] test(hazard-engine): add unit test suite for integrate dark channel prior for fog and low-visibility atmospheric estimation
+- Calculated minimum intensity across RGB color channels in local patches
+- Computed atmospheric transmission map to estimate optical range
+- Issued dynamic sensor sensitivity adjustment during heavy haze
