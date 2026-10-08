@@ -410,3 +410,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 08, 2026 10:51:11]` **perf(wall): reduce memory footprint of 300-frame video buffer queue** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Oct 08, 2026 11:04:28]` **refactor(wall): isolate optical hazard detectors into standalone inference module** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Oct 08, 2026 11:11:52]` **test(copilot): add stress test for concurrent multi-stream ingest degradation** — *Verified component: prime compliance copilot & assistant integration*
+- `[Oct 08, 2026 11:55:34]` **feat(stream): add pre-flight compatibility matrix validator across detector classes** — *Verified component: low-latency MJPEG & WebSocket stream transport*
