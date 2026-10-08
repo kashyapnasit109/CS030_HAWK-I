@@ -405,3 +405,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 07, 2026 15:56:05]` **fix(assignment): resolve thread-safety collision during concurrent WebSocket broadcast** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 07, 2026 22:44:54]` **refactor(copilot): modularize SQLite rule assignment transaction isolation** — *Verified component: prime compliance copilot & assistant integration*
 - `[Oct 08, 2026 09:30:08]` **feat(security): add Section 65B statutory evidence SHA-256 seal verification** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Oct 08, 2026 10:05:16]` **fix(rules): correct bounding box clipping on frame border intersections** — *Verified component: deterministic rule evaluator & spatial logic*
