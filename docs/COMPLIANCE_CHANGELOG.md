@@ -406,3 +406,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 07, 2026 22:44:54]` **refactor(copilot): modularize SQLite rule assignment transaction isolation** — *Verified component: prime compliance copilot & assistant integration*
 - `[Oct 08, 2026 09:30:08]` **feat(security): add Section 65B statutory evidence SHA-256 seal verification** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Oct 08, 2026 10:05:16]` **fix(rules): correct bounding box clipping on frame border intersections** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Oct 08, 2026 10:46:46]` **perf(perf): cache static rule conditions to avoid redundant JSON parsing** — *Verified component: tensor memory management & latency optimization*
