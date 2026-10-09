@@ -473,3 +473,10 @@ Tracking inference latency, throughput, and resource utilization.
 - Auto-reconnect with exponential backoff (max 30s)
 - Heartbeat interval: 15s with 5s timeout
 
+
+## [2026-10-09 18:24] Commit #338
+### Video Processing
+- Input: RTSP streams at 1080p/30fps
+- Processing: downscaled to 640x480 for inference
+- Output: annotated frames at 15fps via HLS
+
