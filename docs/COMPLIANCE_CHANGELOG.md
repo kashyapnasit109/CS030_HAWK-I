@@ -420,3 +420,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 09, 2026 12:13:03]` **feat(evidence): implement multi-camera spatial geofence ray-casting validator** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Oct 09, 2026 18:43:07]` **perf(detector): optimize MJPEG multipart stream chunk encoding efficiency** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 09, 2026 20:36:10]` **fix(diagnostics): resolve frame tearing in MJPEG multi-decoder pipeline** — *Verified component: hardware decoders & operational telemetry*
+- `[Oct 09, 2026 22:06:47]` **refactor(security): simplify WebSocket client state lifecycle management** — *Verified component: SHA-256 seal verification & audit log hashing*
