@@ -425,3 +425,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 10, 2026 09:02:05]` **feat(detector): support asynchronous multi-threaded camera inference workers** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 10, 2026 11:03:59]` **test(detector): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 10, 2026 11:07:27]` **docs(twin): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Oct 10, 2026 11:49:37]` **fix(detector): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: YOLOv8 & YOLO-Pose inference models*
