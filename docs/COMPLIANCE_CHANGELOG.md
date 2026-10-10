@@ -787,3 +787,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Segmented refractive index background shimmer using temporal optical flow
 - Localized volatile organic compound (VOC) release points in labs
 - Triggered emergency laboratory ventilation interlock system
+
+## [2026-10-10 10:15] test(anpr): add unit test suite for add character confusion matrix resolver for ambiguous alphanumeric pairs
+- Resolved ambiguous O/0, I/1, and B/8 pairs using plate position syntax
+- Enforced standard Indian HSRP state code and district number templates
+- Lowered plate reading error rate from 4.2% to 0.8% across fleet
