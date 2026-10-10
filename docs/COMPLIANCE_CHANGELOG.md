@@ -422,3 +422,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 09, 2026 20:36:10]` **fix(diagnostics): resolve frame tearing in MJPEG multi-decoder pipeline** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 09, 2026 22:06:47]` **refactor(security): simplify WebSocket client state lifecycle management** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Oct 09, 2026 23:27:16]` **perf(wall): minimize thread context switching in camera worker pool** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
+- `[Oct 10, 2026 09:02:05]` **feat(detector): support asynchronous multi-threaded camera inference workers** — *Verified component: YOLOv8 & YOLO-Pose inference models*
