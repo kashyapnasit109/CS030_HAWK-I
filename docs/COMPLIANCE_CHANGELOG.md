@@ -430,3 +430,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 10, 2026 15:45:27]` **feat(rules): add per-stream decoder latency & queue depth monitoring** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Oct 10, 2026 16:12:54]` **docs(detector): add sequence diagram for ring buffer frame ingestion** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 10, 2026 20:19:45]` **refactor(stream): simplify WebSocket client state lifecycle management** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Oct 10, 2026 20:53:30]` **feat(rules): integrate cross-camera correlation graph for compound safety events** — *Verified component: deterministic rule evaluator & spatial logic*
