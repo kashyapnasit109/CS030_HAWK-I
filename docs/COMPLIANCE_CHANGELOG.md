@@ -433,3 +433,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 10, 2026 20:53:30]` **feat(rules): integrate cross-camera correlation graph for compound safety events** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Oct 10, 2026 21:06:02]` **test(rules): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Oct 11, 2026 09:12:37]` **test(assignment): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Oct 11, 2026 09:26:28]` **feat(detector): implement atomic bulk camera-to-rule assignment persistence** — *Verified component: YOLOv8 & YOLO-Pose inference models*
