@@ -862,3 +862,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Parsed regional prefixes (GJ-01, GJ-06, MH-02, DL-01) from recognized plates
 - Aggregated real-time campus visitor origin statistics on dashboard
 - Flagged unauthorized out-of-state commercial vehicles during night
+
+## [2026-10-11 16:00] test(anpr): add unit test suite for add parking lot dwell time tracker with automated overtime alerts
+- Recorded vehicle entry and exit timestamps across campus parking zones
+- Flagged unauthorized overnight parking and prolonged parking stall hogging
+- Automated daily parking occupancy utilization reporting
