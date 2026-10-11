@@ -432,3 +432,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 10, 2026 20:19:45]` **refactor(stream): simplify WebSocket client state lifecycle management** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 10, 2026 20:53:30]` **feat(rules): integrate cross-camera correlation graph for compound safety events** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Oct 10, 2026 21:06:02]` **test(rules): add benchmark suite for 8-camera parallel inference throughput** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Oct 11, 2026 09:12:37]` **test(assignment): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
