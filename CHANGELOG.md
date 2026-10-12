@@ -862,3 +862,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Segmented distinctive green background of Indian EV registration plates
 - Tracked campus zero-emission vehicle transit metrics and charging stall use
 - Enforced priority access rules at dedicated EV charging stations
+
+## [2026-10-12 11:45] test(anpr): add unit test suite for add emergency vehicle priority corridor gate boom-barrier trigger
+- Classified ambulances and fire rescue vehicles from visual markings
+- Automatically opened electronic boom barrier before vehicle reaches gate
+- Cleared traffic signals along designated emergency route
