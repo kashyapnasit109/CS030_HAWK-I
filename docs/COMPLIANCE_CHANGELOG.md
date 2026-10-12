@@ -440,3 +440,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 11, 2026 23:59:54]` **fix(evidence): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Oct 12, 2026 10:22:51]` **docs(stream): document statutory evidence certificate generation parameters** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 12, 2026 10:35:48]` **docs(compliance): add sequence diagram for ring buffer frame ingestion** — *Verified component: compliance engine core & rule execution*
+- `[Oct 12, 2026 11:20:11]` **feat(assignment): implement camera health heartbeat with auto-recovery triggers** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
