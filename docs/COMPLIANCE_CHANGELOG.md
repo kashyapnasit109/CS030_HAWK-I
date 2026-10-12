@@ -446,3 +446,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 12, 2026 16:49:27]` **feat(detector): support dynamic FPS throttling based on GPU compute availability** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 12, 2026 17:05:19]` **docs(compliance): document statutory evidence certificate generation parameters** — *Verified component: compliance engine core & rule execution*
 - `[Oct 12, 2026 18:53:58]` **feat(perf): add dynamic loitering cooldown hysteresis deduplication** — *Verified component: tensor memory management & latency optimization*
+- `[Oct 12, 2026 22:08:25]` **docs(stream): add API documentation for bulk rule assignment endpoints** — *Verified component: low-latency MJPEG & WebSocket stream transport*
