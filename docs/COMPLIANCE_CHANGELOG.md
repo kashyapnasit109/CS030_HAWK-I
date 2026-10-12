@@ -438,3 +438,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 11, 2026 19:31:14]` **perf(diagnostics): vectorize dwell time trajectory state transitions with numpy** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 11, 2026 19:36:13]` **feat(diagnostics): add Section 65B statutory evidence SHA-256 seal verification** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 11, 2026 23:59:54]` **fix(evidence): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
+- `[Oct 12, 2026 10:22:51]` **docs(stream): document statutory evidence certificate generation parameters** — *Verified component: low-latency MJPEG & WebSocket stream transport*
