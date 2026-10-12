@@ -443,3 +443,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 12, 2026 11:20:11]` **feat(assignment): implement camera health heartbeat with auto-recovery triggers** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 12, 2026 13:17:12]` **fix(evidence): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Oct 12, 2026 16:32:16]` **test(rules): validate spatial polygon intersection tests across complex geometries** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Oct 12, 2026 16:49:27]` **feat(detector): support dynamic FPS throttling based on GPU compute availability** — *Verified component: YOLOv8 & YOLO-Pose inference models*
