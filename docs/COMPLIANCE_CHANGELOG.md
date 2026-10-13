@@ -450,3 +450,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 13, 2026 08:47:08]` **docs(assignment): document camera compatibility capability matrix requirements** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 13, 2026 09:07:25]` **feat(diagnostics): add pre-flight compatibility matrix validator across detector classes** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 13, 2026 09:23:07]` **feat(perf): support asynchronous multi-threaded camera inference workers** — *Verified component: tensor memory management & latency optimization*
+- `[Oct 13, 2026 09:59:27]` **refactor(assignment): extract reusable canvas drawing primitives into utility layer** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
