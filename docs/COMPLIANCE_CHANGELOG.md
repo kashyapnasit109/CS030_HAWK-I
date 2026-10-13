@@ -448,3 +448,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 12, 2026 18:53:58]` **feat(perf): add dynamic loitering cooldown hysteresis deduplication** — *Verified component: tensor memory management & latency optimization*
 - `[Oct 12, 2026 22:08:25]` **docs(stream): add API documentation for bulk rule assignment endpoints** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 13, 2026 08:47:08]` **docs(assignment): document camera compatibility capability matrix requirements** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Oct 13, 2026 09:07:25]` **feat(diagnostics): add pre-flight compatibility matrix validator across detector classes** — *Verified component: hardware decoders & operational telemetry*
