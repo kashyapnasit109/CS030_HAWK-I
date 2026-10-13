@@ -453,3 +453,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 13, 2026 09:59:27]` **refactor(assignment): extract reusable canvas drawing primitives into utility layer** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 13, 2026 10:36:55]` **docs(stream): document camera compatibility capability matrix requirements** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 13, 2026 11:30:46]` **feat(detector): implement atomic bulk camera-to-rule assignment persistence** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Oct 13, 2026 13:13:23]` **fix(wall): prevent duplicate incident generation during sustained loitering** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
