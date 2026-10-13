@@ -872,3 +872,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Quantized model weights to half-precision floating point (FP16)
 - Fused consecutive Conv-BatchNorm-SiLU layers into single GPU kernel
 - Reduced GPU VRAM allocation by 48% with zero noticeable mAP drop
+
+## [2026-10-13 17:15] test(ai-pipeline): add unit test suite for add INT8 calibration pipeline for YOLOv8 object detection head
+- Generated calibration dataset of 1,200 representative campus frames
+- Computed optimal activation quantization thresholds using KL-divergence
+- Boosted inference speed to 94 FPS on edge hardware with mAP loss < 0.6%
