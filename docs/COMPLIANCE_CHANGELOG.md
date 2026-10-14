@@ -456,3 +456,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 13, 2026 13:13:23]` **fix(wall): prevent duplicate incident generation during sustained loitering** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Oct 13, 2026 17:41:58]` **docs(stream): document statutory evidence certificate generation parameters** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 13, 2026 20:32:45]` **fix(diagnostics): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: hardware decoders & operational telemetry*
+- `[Oct 14, 2026 09:32:48]` **docs(detector): document camera compatibility capability matrix requirements** — *Verified component: YOLOv8 & YOLO-Pose inference models*
