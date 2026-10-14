@@ -872,3 +872,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Queried NVML interface for GPU core temperature and power draw
 - Dynamically downscaled input resolution from 1080p to 720p if temp > 80C
 - Maintained 100% camera stream uptime without thermal throttling crashes
+
+## [2026-10-14 10:45] test(ai-pipeline): add unit test suite for implement thread-safe RTSP reconnect watchdog with exponential backoff
+- Monitored OpenCV stream read timeouts with 4-second deadline
+- Spawned non-blocking reconnection thread with jittered exponential delay
+- Preserved uninterrupted processing for all healthy camera channels
