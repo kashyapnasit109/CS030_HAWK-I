@@ -460,3 +460,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 14, 2026 10:20:45]` **docs(assignment): document statutory evidence certificate generation parameters** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 14, 2026 11:26:20]` **docs(detector): add API documentation for bulk rule assignment endpoints** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 14, 2026 11:29:38]` **perf(stream): cache static rule conditions to avoid redundant JSON parsing** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Oct 14, 2026 11:36:47]` **test(rules): verify deterministic condition parser against edge timezones** — *Verified component: deterministic rule evaluator & spatial logic*
