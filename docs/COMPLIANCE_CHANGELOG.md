@@ -458,3 +458,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 13, 2026 20:32:45]` **fix(diagnostics): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 14, 2026 09:32:48]` **docs(detector): document camera compatibility capability matrix requirements** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 14, 2026 10:20:45]` **docs(assignment): document statutory evidence certificate generation parameters** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Oct 14, 2026 11:26:20]` **docs(detector): add API documentation for bulk rule assignment endpoints** — *Verified component: YOLOv8 & YOLO-Pose inference models*
