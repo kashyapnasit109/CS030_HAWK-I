@@ -469,3 +469,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 15, 2026 11:30:51]` **perf(rules): reduce memory footprint of 300-frame video buffer queue** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Oct 15, 2026 11:33:55]` **fix(rules): resolve thread-safety collision during concurrent WebSocket broadcast** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Oct 15, 2026 11:36:26]` **test(rules): validate spatial polygon intersection tests across complex geometries** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Oct 15, 2026 11:37:27]` **feat(rules): add automated MP4 video clip clipping from ring buffer history** — *Verified component: deterministic rule evaluator & spatial logic*
