@@ -877,3 +877,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Monitored OpenCV stream read timeouts with 4-second deadline
 - Spawned non-blocking reconnection thread with jittered exponential delay
 - Preserved uninterrupted processing for all healthy camera channels
+
+## [2026-10-15 11:45] test(face-recog): add unit test suite for add face anti-spoofing liveness detection via high-frequency texture analysis
+- Extracted Local Binary Patterns (LBP) and Fourier power spectrum features
+- Detected printed photo attacks and smartphone screen replay reflections
+- Prevented spoofed face presentations from contaminating gallery database
