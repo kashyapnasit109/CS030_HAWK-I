@@ -464,3 +464,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 14, 2026 11:40:02]` **refactor(stream): restructure rule compatibility matrix into declarative lookup** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 14, 2026 17:38:42]` **fix(assignment): handle unexpected RTSP socket disconnects gracefully** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 14, 2026 20:31:39]` **refactor(compliance): restructure rule compatibility matrix into declarative lookup** — *Verified component: compliance engine core & rule execution*
+- `[Oct 15, 2026 09:34:07]` **refactor(security): extract reusable canvas drawing primitives into utility layer** — *Verified component: SHA-256 seal verification & audit log hashing*
