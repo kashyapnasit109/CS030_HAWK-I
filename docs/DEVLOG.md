@@ -529,3 +529,10 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Counting accuracy: 97.3% (validated on 10k events)
 - Anti-jitter filter: 500ms debounce window
 
+
+## [2026-10-16 00:09] Commit #377
+### ANPR Pipeline
+- Plate detection: YOLOv8 custom-trained model
+- OCR: EasyOCR with Tesseract fallback
+- Recognition accuracy: 94.7% (Indian plates)
+
