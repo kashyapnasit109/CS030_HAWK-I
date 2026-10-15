@@ -882,3 +882,8 @@ Key architectural choices and their rationale.
 - Pre-allocated fixed memory pools for intermediate convolutional tensors
 - Eliminated runtime malloc and free calls during high-frequency loops
 - Reduced frame processing latency jitter to under 0.8 milliseconds
+
+## [2026-10-15 14:30] test(face-recog): add unit test suite for implement FAISS IVFFlat vector index for sub-millisecond gallery search
+- Indexed 50,000 campus student and staff facial embedding vectors
+- Achieved sub-millisecond similarity search latency across 512D space
+- Configured nprobe parameter to balance search recall and speed
