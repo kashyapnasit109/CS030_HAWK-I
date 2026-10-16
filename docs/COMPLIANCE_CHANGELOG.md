@@ -473,3 +473,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 15, 2026 16:37:41]` **docs(pipeline): add sequence diagram for ring buffer frame ingestion** — *Verified component: camera ring buffer & video ingestion*
 - `[Oct 15, 2026 21:11:08]` **fix(twin): resolve memory leak in detached HTML5 video canvas contexts** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Oct 16, 2026 14:53:42]` **docs(detector): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Oct 16, 2026 18:57:47]` **fix(rules): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: deterministic rule evaluator & spatial logic*
