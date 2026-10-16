@@ -817,3 +817,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Extracted eye centers, nose tip, and mouth corners from face bounding box
 - Applied affine warp to align inter-ocular distance to 64 pixels
 - Significantly improved embedding match confidence for off-angle faces
+
+## [2026-10-16 10:15] test(face-recog): add unit test suite for implement 3D head pose estimation (yaw, pitch, roll) from 2D keypoints
+- Solved Perspective-n-Point (PnP) problem against standard 3D facial model
+- Filtered candidate face matches to prioritize frontal camera views
+- Provided head pose metadata for behavioral attention analysis
