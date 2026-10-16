@@ -887,3 +887,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Evaluated facial sharpness using Laplacian variance and illumination spread
 - Rejected blurry, extreme profile (>45 deg), or underexposed face crops
 - Preserved gallery database integrity by storing only high-quality templates
+
+## [2026-10-16 17:15] test(campus-safety): add unit test suite for add aggressive posture and physical brawl classification filter
+- Tracked rapid wrist-to-shoulder kinematic acceleration across targets
+- Measured interpersonal distance (<0.8m) between conflicting individuals
+- Configured 15-frame voting window to avoid false spikes from normal gestures
