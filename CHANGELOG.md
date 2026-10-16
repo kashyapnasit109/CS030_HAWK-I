@@ -882,3 +882,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Extracted Local Binary Patterns (LBP) and Fourier power spectrum features
 - Detected printed photo attacks and smartphone screen replay reflections
 - Prevented spoofed face presentations from contaminating gallery database
+
+## [2026-10-16 10:45] test(face-recog): add unit test suite for add automated face gallery template aging and expiration cleanup
+- Configured 3-year sliding window for student biometric templates
+- Automated deletion of graduated student embeddings compliant with DPDP Act
+- Logged audit proof of biometric data disposal to security ledger
