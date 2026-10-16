@@ -887,3 +887,8 @@ Key architectural choices and their rationale.
 - Indexed 50,000 campus student and staff facial embedding vectors
 - Achieved sub-millisecond similarity search latency across 512D space
 - Configured nprobe parameter to balance search recall and speed
+
+## [2026-10-16 14:30] test(face-recog): add unit test suite for implement facial expression and micro-expression classification head
+- Classified 7 standard facial expressions (neutral, distress, anger, etc.)
+- Correlated facial distress markers with panic motion alerts
+- Assisted emergency dispatchers in assessing victim situation severity
