@@ -480,3 +480,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 17, 2026 15:00:13]` **feat(evidence): add pre-flight compatibility matrix validator across detector classes** — *Verified component: Section 65B & Section 63 BNSS statutory evidence packaging*
 - `[Oct 17, 2026 16:01:31]` **refactor(twin): extract reusable canvas drawing primitives into utility layer** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Oct 17, 2026 18:43:31]` **refactor(stream): decouple camera frame ingestion from computer vision workers** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Oct 17, 2026 20:40:33]` **perf(detector): optimize SQLite write transactions with WAL mode and indexing** — *Verified component: YOLOv8 & YOLO-Pose inference models*
