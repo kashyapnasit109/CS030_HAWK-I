@@ -543,3 +543,10 @@ Sprint-by-sprint engineering progress and technical decisions.
 - MAE: 12.3 on ShanghaiTech Part A
 - Real-time inference at 20fps on single GPU
 
+
+## [2026-10-17 14:39] Commit #387
+### Health Monitoring
+- Prometheus metrics for all services
+- Grafana dashboards for system observability
+- PagerDuty integration for on-call alerts
+
