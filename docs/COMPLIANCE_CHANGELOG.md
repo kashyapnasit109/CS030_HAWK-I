@@ -822,3 +822,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Solved Perspective-n-Point (PnP) problem against standard 3D facial model
 - Filtered candidate face matches to prioritize frontal camera views
 - Provided head pose metadata for behavioral attention analysis
+
+## [2026-10-17 10:15] test(campus-safety): add unit test suite for add crowd density spatial Gaussian heatmap generator from head detections
+- Applied 2D Gaussian smoothing over detected head coordinates
+- Rendered alpha-blended color overlay (green, amber, red) on video wall
+- Triggered stampede alert when local density exceeds 4 persons/m^2
