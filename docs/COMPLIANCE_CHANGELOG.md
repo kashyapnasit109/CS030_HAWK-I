@@ -476,3 +476,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 16, 2026 18:57:47]` **fix(rules): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: deterministic rule evaluator & spatial logic*
 - `[Oct 16, 2026 19:32:52]` **perf(detector): reduce latency overhead in WebSocket detection frame dispatcher** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 17, 2026 09:10:20]` **test(copilot): add stress test for concurrent multi-stream ingest degradation** — *Verified component: prime compliance copilot & assistant integration*
+- `[Oct 17, 2026 11:14:34]` **refactor(pipeline): isolate optical hazard detectors into standalone inference module** — *Verified component: camera ring buffer & video ingestion*
