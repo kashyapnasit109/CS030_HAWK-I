@@ -486,3 +486,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 18, 2026 10:24:12]` **fix(stream): handle unexpected RTSP socket disconnects gracefully** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 18, 2026 11:58:24]` **docs(stream): document statutory evidence certificate generation parameters** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 18, 2026 13:16:32]` **fix(perf): fix edge case in polygon containment test for concave boundaries** — *Verified component: tensor memory management & latency optimization*
+- `[Oct 18, 2026 14:01:00]` **docs(compliance): document camera compatibility capability matrix requirements** — *Verified component: compliance engine core & rule execution*
