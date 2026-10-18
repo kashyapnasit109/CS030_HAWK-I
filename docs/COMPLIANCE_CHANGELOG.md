@@ -485,3 +485,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 18, 2026 09:28:13]` **feat(copilot): introduce 12-toggle overlay control panel for real-time vision masks** — *Verified component: prime compliance copilot & assistant integration*
 - `[Oct 18, 2026 10:24:12]` **fix(stream): handle unexpected RTSP socket disconnects gracefully** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 18, 2026 11:58:24]` **docs(stream): document statutory evidence certificate generation parameters** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Oct 18, 2026 13:16:32]` **fix(perf): fix edge case in polygon containment test for concave boundaries** — *Verified component: tensor memory management & latency optimization*
