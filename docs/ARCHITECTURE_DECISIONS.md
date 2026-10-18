@@ -550,3 +550,10 @@ Key architectural choices and their rationale.
 - Screen reader support for all interactive elements
 - Keyboard navigation for dashboard controls
 
+
+## [2026-10-18 21:28] Commit #395
+### API Rate Limiting
+- Token bucket algorithm: 100 req/min per user
+- Burst allowance: 20 requests
+- Redis-backed distributed rate limiting
+
