@@ -483,3 +483,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 17, 2026 20:40:33]` **perf(detector): optimize SQLite write transactions with WAL mode and indexing** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 18, 2026 09:23:16]` **feat(wall): add multi-grid 3x3 viewport hardware acceleration flags** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Oct 18, 2026 09:28:13]` **feat(copilot): introduce 12-toggle overlay control panel for real-time vision masks** — *Verified component: prime compliance copilot & assistant integration*
+- `[Oct 18, 2026 10:24:12]` **fix(stream): handle unexpected RTSP socket disconnects gracefully** — *Verified component: low-latency MJPEG & WebSocket stream transport*
