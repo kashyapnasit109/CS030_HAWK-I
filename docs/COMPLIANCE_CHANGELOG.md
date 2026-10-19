@@ -494,3 +494,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 19, 2026 10:38:18]` **fix(perf): guard against race conditions in bulk rule commit transactions** — *Verified component: tensor memory management & latency optimization*
 - `[Oct 19, 2026 11:20:56]` **docs(stream): update compliance engine operational deployment guide** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 19, 2026 13:38:40]` **feat(assignment): add multi-grid 3x3 viewport hardware acceleration flags** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
+- `[Oct 19, 2026 14:03:05]` **refactor(compliance): extract reusable canvas drawing primitives into utility layer** — *Verified component: compliance engine core & rule execution*
