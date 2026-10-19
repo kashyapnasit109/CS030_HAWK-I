@@ -492,3 +492,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 19, 2026 09:39:15]` **feat(diagnostics): integrate dual-envelope incandescent flame color masks** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 19, 2026 10:08:50]` **test(wall): unit test Section 65B SHA-256 fingerprint reproducibility** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Oct 19, 2026 10:38:18]` **fix(perf): guard against race conditions in bulk rule commit transactions** — *Verified component: tensor memory management & latency optimization*
+- `[Oct 19, 2026 11:20:56]` **docs(stream): update compliance engine operational deployment guide** — *Verified component: low-latency MJPEG & WebSocket stream transport*
