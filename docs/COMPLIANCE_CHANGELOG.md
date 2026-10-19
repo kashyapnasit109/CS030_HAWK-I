@@ -498,3 +498,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 19, 2026 16:07:14]` **perf(wall): minimize thread context switching in camera worker pool** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
 - `[Oct 19, 2026 16:23:26]` **feat(security): add after-hours curfew schedule validator with holiday calendar** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Oct 19, 2026 17:33:19]` **test(compliance): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: compliance engine core & rule execution*
+- `[Oct 19, 2026 19:15:24]` **test(stream): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: low-latency MJPEG & WebSocket stream transport*
