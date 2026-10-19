@@ -489,3 +489,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 18, 2026 14:01:00]` **docs(compliance): document camera compatibility capability matrix requirements** — *Verified component: compliance engine core & rule execution*
 - `[Oct 18, 2026 15:50:01]` **docs(pipeline): add sequence diagram for ring buffer frame ingestion** — *Verified component: camera ring buffer & video ingestion*
 - `[Oct 18, 2026 20:57:28]` **refactor(rules): decouple camera frame ingestion from computer vision workers** — *Verified component: deterministic rule evaluator & spatial logic*
+- `[Oct 19, 2026 09:39:15]` **feat(diagnostics): integrate dual-envelope incandescent flame color masks** — *Verified component: hardware decoders & operational telemetry*
