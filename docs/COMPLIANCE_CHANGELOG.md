@@ -499,3 +499,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 19, 2026 16:23:26]` **feat(security): add after-hours curfew schedule validator with holiday calendar** — *Verified component: SHA-256 seal verification & audit log hashing*
 - `[Oct 19, 2026 17:33:19]` **test(compliance): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: compliance engine core & rule execution*
 - `[Oct 19, 2026 19:15:24]` **test(stream): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Oct 19, 2026 23:00:49]` **fix(diagnostics): resolve memory leak in detached HTML5 video canvas contexts** — *Verified component: hardware decoders & operational telemetry*
