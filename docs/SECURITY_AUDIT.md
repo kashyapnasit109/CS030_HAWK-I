@@ -902,3 +902,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Monitored chemical fume hood glass sash opening height in research labs
 - Alerted laboratory supervisor when sash is left open above safe aerodynamic mark
 - Protected researchers from volatile toxic vapor exposure
+
+## [2026-10-19 17:15] test(bsa-compliance): add unit test suite for implement HMAC-SHA256 evidence signing using hardware machine secret
+- Derived HMAC key from server TPM hardware ID and SOC master key
+- Embedded HMAC signature in exported incident JSON evidence bundles
+- Provided standalone CLI utility for independent courtroom audit validation
