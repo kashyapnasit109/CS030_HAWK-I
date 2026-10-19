@@ -495,3 +495,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 19, 2026 11:20:56]` **docs(stream): update compliance engine operational deployment guide** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 19, 2026 13:38:40]` **feat(assignment): add multi-grid 3x3 viewport hardware acceleration flags** — *Verified component: camera-to-rule assignment studio & compatibility matrix*
 - `[Oct 19, 2026 14:03:05]` **refactor(compliance): extract reusable canvas drawing primitives into utility layer** — *Verified component: compliance engine core & rule execution*
+- `[Oct 19, 2026 16:07:14]` **perf(wall): minimize thread context switching in camera worker pool** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
