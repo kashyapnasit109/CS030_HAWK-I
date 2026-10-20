@@ -501,3 +501,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 19, 2026 19:15:24]` **test(stream): verify WebSocket reconnect stability under simulated packet loss** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 19, 2026 23:00:49]` **fix(diagnostics): resolve memory leak in detached HTML5 video canvas contexts** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 20, 2026 10:20:32]` **feat(detector): add natural language query engine for compliance violation logs** — *Verified component: YOLOv8 & YOLO-Pose inference models*
+- `[Oct 20, 2026 11:02:53]` **fix(copilot): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: prime compliance copilot & assistant integration*
