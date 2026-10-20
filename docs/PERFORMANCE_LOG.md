@@ -907,3 +907,8 @@ Tracking inference latency, throughput, and resource utilization.
 - Queried local GPS stratum-1 NTP server before generating forensic timestamp
 - Flagged evidence records generated during clock drift > 50 milliseconds
 - Recorded clock uncertainty window in evidence certificate metadata
+
+## [2026-10-20 16:00] test(bsa-compliance): add unit test suite for add standalone forensic verification script for external judicial auditors
+- Created verify_evidence.py script for offline evidence bundle validation
+- Asserted block-by-block SHA-256 integrity without needing backend server
+- Printed detailed cryptographic checklist with clear verification badges
