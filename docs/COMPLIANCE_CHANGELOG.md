@@ -504,3 +504,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 20, 2026 11:02:53]` **fix(copilot): fix keypoint index mapping for occluded ankle/knee joints** — *Verified component: prime compliance copilot & assistant integration*
 - `[Oct 20, 2026 11:16:32]` **fix(perf): prevent duplicate incident generation during sustained loitering** — *Verified component: tensor memory management & latency optimization*
 - `[Oct 20, 2026 11:23:28]` **test(compliance): add stress test for concurrent multi-stream ingest degradation** — *Verified component: compliance engine core & rule execution*
+- `[Oct 20, 2026 11:41:08]` **docs(compliance): update compliance engine operational deployment guide** — *Verified component: compliance engine core & rule execution*
