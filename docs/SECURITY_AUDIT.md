@@ -571,3 +571,10 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - FAISS index for sub-millisecond similarity search
 - Top-K retrieval with re-ranking
 
+
+## [2026-10-21 02:26] Commit #409
+### CI/CD Pipeline
+- GitHub Actions: lint → test → build → deploy
+- Test coverage target: 80% minimum
+- Automated rollback on health check failure
+
