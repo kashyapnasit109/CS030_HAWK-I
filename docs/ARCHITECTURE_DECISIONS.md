@@ -907,3 +907,8 @@ Key architectural choices and their rationale.
 - Linked each violation record to previous record's SHA-256 digest
 - Prevented database record deletion or tampering via cryptographic verification
 - Generated verifiable audit trail of all surveillance events
+
+## [2026-10-20 13:30] test(bsa-compliance): add unit test suite for implement X.509 RSA 2048-bit digital signature for courtroom PDF evidence
+- Applied RSA 2048-bit digital signature to exported courtroom PDF certificates
+- Rendered standard Adobe Acrobat blue ribbon trusted verification seal
+- Ensured tamper-evident PDF certification conforming to PAdES standards
