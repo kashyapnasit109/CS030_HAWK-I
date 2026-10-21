@@ -1,0 +1,136 @@
+{
+  "prompts": [
+    {
+      "id": "rule_1",
+      "camera_id": "ALL",
+      "rule": "Prioritize high-confidence face matches (>0.85) when tracking suspect across perimeter gates.",
+      "category": "perimeter",
+      "created_at": "2026-08-25T05:17:54.647227"
+    },
+    {
+      "id": "rule_2",
+      "camera_id": "CAM-04",
+      "rule": "Camera 04 has sunset glare between 17:00-18:30. Require multi-frame verification before flagging fire/smoke.",
+      "category": "environmental",
+      "created_at": "2026-08-25T05:17:54.647243"
+    },
+    {
+      "id": "rule_1787635302985",
+      "camera_id": "CAM-01",
+      "rule": "Test rule: check vehicle license plate at gate",
+      "category": "general",
+      "created_at": "2026-08-25T05:21:42.985745"
+    },
+    {
+      "id": "rule_1787635302988",
+      "camera_id": "CAM-04",
+      "rule": "Be vigilant on CAM-04 for lighting/shadow anomalies: Lighting glare reflection on glass",
+      "category": "environmental",
+      "created_at": "2026-08-25T05:21:42.988398"
+    },
+    {
+      "id": "rule_1787635317291",
+      "camera_id": "CAM-01",
+      "rule": "Test rule: check vehicle license plate at gate",
+      "category": "general",
+      "created_at": "2026-08-25T05:21:57.291909"
+    },
+    {
+      "id": "rule_1787635317294",
+      "camera_id": "CAM-04",
+      "rule": "Be vigilant on CAM-04 for lighting/shadow anomalies: Lighting glare reflection on glass",
+      "category": "environmental",
+      "created_at": "2026-08-25T05:21:57.294384"
+    }
+  ],
+  "subagents": [
+    {
+      "id": "agent_perimeter_sentry",
+      "name": "Perimeter Sentry",
+      "role": "perimeter_monitoring",
+      "system_prompt": "Monitor external boundary cameras for tailgating, unauthorized perimeter crossings, and anomalous vehicle stops.",
+      "tools": [
+        "query_camera_detections",
+        "verify_spatial_path"
+      ]
+    },
+    {
+      "id": "agent_reid_tracer",
+      "name": "Cross-Camera Re-ID Tracer",
+      "role": "suspect_tracking",
+      "system_prompt": "Programmatically query adjacent camera timestamps and compute cosine distance on face/body embeddings.",
+      "tools": [
+        "compute_reid_similarity",
+        "query_camera_detections"
+      ]
+    },
+    {
+      "id": "agent_forensic_auditor",
+      "name": "Forensic Evidence Auditor",
+      "role": "audit_and_compliance",
+      "system_prompt": "Verify chain-of-custody Merkle roots and construct court-admissible incident timelines.",
+      "tools": [
+        "verify_merkle_custody",
+        "generate_incident_triage"
+      ]
+    }
+  ],
+  "skills": {
+    "compute_temporal_velocity": {
+      "name": "compute_temporal_velocity",
+      "description": "Calculates physical walking velocity across adjacent cameras to verify human physical plausibility.",
+      "code": "def compute_temporal_velocity(cam_a_pos, cam_b_pos, delta_sec):\n    dist_m = ((cam_a_pos[0]-cam_b_pos[0])**2 + (cam_a_pos[1]-cam_b_pos[1])**2)**0.5\n    return round(dist_m / max(delta_sec, 0.1), 2)",
+      "created_at": "2026-08-25T05:17:54.647249"
+    },
+    "filter_aspect_ratio_anomaly": {
+      "name": "filter_aspect_ratio_anomaly",
+      "description": "Filters bounding boxes that deviate from typical human aspect ratios (0.3 to 0.7) to suppress reflections.",
+      "code": "def filter_aspect_ratio_anomaly(box):\n    w = box.get('x2', 0) - box.get('x1', 0)\n    h = box.get('y2', 0) - box.get('y1', 0)\n    if h <= 0: return False\n    aspect = w / h\n    return 0.2 <= aspect <= 0.85",
+      "created_at": "2026-08-25T05:17:54.647254"
+    }
+  },
+  "memory": [
+    {
+      "id": "mem_1",
+      "topic": "Maintenance Uniform Baseline",
+      "insight": "Facilities personnel wearing high-visibility orange vests are authorized in utility corridors 24/7.",
+      "source_incident_id": null,
+      "created_at": "2026-08-25T05:17:54.647259"
+    },
+    {
+      "id": "mem_2",
+      "topic": "Forklift Loading Bay False Alarms",
+      "insight": "Pallet delivery movements at Loading Bay 2 regularly trigger low-confidence fight bounding boxes; suppress if forklift motion is concurrent.",
+      "source_incident_id": null,
+      "created_at": "2026-08-25T05:17:54.647262"
+    },
+    {
+      "id": "mem_1787635302986",
+      "topic": "Gate 1 Delivery Pattern",
+      "insight": "Delivery trucks enter between 9-10 AM",
+      "source_incident_id": null,
+      "created_at": "2026-08-25T05:21:42.987001"
+    },
+    {
+      "id": "mem_1787635302987",
+      "topic": "Misclassification: Unknown vs John Doe",
+      "insight": "Operator flagged Unknown as false match on Camera CAM-04. Correction: 'John Doe'. Notes: Lighting glare reflection on glass.",
+      "source_incident_id": null,
+      "created_at": "2026-08-25T05:21:42.987713"
+    },
+    {
+      "id": "mem_1787635317292",
+      "topic": "Gate 1 Delivery Pattern",
+      "insight": "Delivery trucks enter between 9-10 AM",
+      "source_incident_id": null,
+      "created_at": "2026-08-25T05:21:57.292773"
+    },
+    {
+      "id": "mem_1787635317293",
+      "topic": "Misclassification: Unknown vs John Doe",
+      "insight": "Operator flagged Unknown as false match on Camera CAM-04. Correction: 'John Doe'. Notes: Lighting glare reflection on glass.",
+      "source_incident_id": null,
+      "created_at": "2026-08-25T05:21:57.293495"
+    }
+  ]
+}

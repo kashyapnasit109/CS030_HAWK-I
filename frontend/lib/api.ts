@@ -1053,6 +1053,230 @@ export async function recalibrateActiveLearning(): Promise<{
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Prime Agent: Continual Harness H = (ρ, G, K, M) & RLM Investigator Types & API
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface HarnessPrompt {
+  id: string;
+  camera_id: string;
+  rule: string;
+  category?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface HarnessSubagent {
+  id: string;
+  name: string;
+  role: string;
+  system_prompt: string;
+  tools: string[];
+  created_at: string;
+}
+
+export interface HarnessSkill {
+  name: string;
+  description: string;
+  code: string;
+  created_at: string;
+}
+
+export interface HarnessMemory {
+  id: string;
+  topic: string;
+  insight: string;
+  source_incident_id?: string | null;
+  created_at: string;
+}
+
+export interface HarnessStateResponse {
+  state: {
+    prompts: HarnessPrompt[];
+    subagents: HarnessSubagent[];
+    skills: Record<string, HarnessSkill>;
+    memory: HarnessMemory[];
+  };
+  rendered_system_prompt: string;
+  stats: {
+    prompt_rules_count: number;
+    subagents_count: number;
+    skills_count: number;
+    memories_count: number;
+    refinement_events_count: number;
+  };
+}
+
+export interface RLMInvestigationResult {
+  investigation_id: string;
+  status: string;
+  query: string;
+  target_reference?: string;
+  duration_ms: number;
+  subagents_fanned_out: number;
+  total_detections_found: number;
+  cameras_with_sightings: number;
+  average_confidence: number;
+  reconstructed_path: string;
+  movement_trail: Array<{
+    step: number;
+    camera_id: string;
+    timestamp_str: string;
+    confidence: number;
+    label: string;
+    frame_url?: string;
+  }>;
+  timeline_events: Array<{
+    camera_id: string;
+    timestamp: number;
+    timestamp_str: string;
+    confidence: number;
+    label: string;
+    frame_url?: string;
+    box?: Record<string, any>;
+  }>;
+  subagent_reports: Array<{
+    subagent: string;
+    camera_id: string;
+    matches: number;
+    peak_conf: number;
+  }>;
+  narrative: string;
+  created_at: string;
+}
+
+export interface AutonomousJobResult {
+  job_id: string;
+  goal: string;
+  target_reference?: string;
+  max_turns: number;
+  current_turn: number;
+  status: "RUNNING" | "RESOLVED" | "MAX_TURNS_REACHED";
+  created_at: string;
+  completed_at?: string;
+  heartbeats: Array<{ turn: number; timestamp: string; action: string }>;
+  gate_results: Array<{
+    gate_name: string;
+    passed: boolean;
+    score: number;
+    message: string;
+  }>;
+  final_report?: {
+    goal_completed: boolean;
+    turns_taken: number;
+    investigation: RLMInvestigationResult;
+    summary: string;
+  };
+}
+
+export async function getHarnessState(): Promise<HarnessStateResponse> {
+  return apiFetch("/api/prime/harness");
+}
+
+export async function createHarnessPrompt(payload: {
+  camera_id: string;
+  rule: string;
+  category?: string;
+}): Promise<HarnessPrompt> {
+  return apiFetch("/api/prime/harness/prompt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteHarnessPrompt(ruleId: string): Promise<{ status: string; id: string }> {
+  return apiFetch(`/api/prime/harness/prompt/${encodeURIComponent(ruleId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function createHarnessMemory(payload: {
+  topic: string;
+  insight: string;
+  source_incident_id?: string;
+}): Promise<HarnessMemory> {
+  return apiFetch("/api/prime/harness/memory", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteHarnessMemory(memoryId: string): Promise<{ status: string; id: string }> {
+  return apiFetch(`/api/prime/harness/memory/${encodeURIComponent(memoryId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function triggerHarnessRefine(payload: {
+  trigger: string;
+  reference_label: string;
+  predicted_label: string;
+  rating: string;
+  notes?: string;
+  camera_id?: string;
+  correction_label?: string;
+}): Promise<any> {
+  return apiFetch("/api/prime/harness/refine", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getHarnessRefinements(): Promise<any[]> {
+  return apiFetch("/api/prime/harness/refinements");
+}
+
+export async function runPrimeInvestigation(payload: {
+  query: string;
+  reference_label?: string;
+  camera_ids?: string[];
+  min_confidence?: number;
+}): Promise<RLMInvestigationResult> {
+  return apiFetch("/api/prime/investigate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getPrimeInvestigations(limit = 20): Promise<RLMInvestigationResult[]> {
+  return apiFetch(`/api/prime/investigations?limit=${limit}`);
+}
+
+export async function startAutonomousGoal(payload: {
+  goal_description: string;
+  target_reference?: string;
+  camera_ids?: string[];
+  max_turns?: number;
+}): Promise<AutonomousJobResult> {
+  return apiFetch("/api/prime/autonomous/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getAutonomousJobs(): Promise<AutonomousJobResult[]> {
+  return apiFetch("/api/prime/autonomous/jobs");
+}
+
+export async function getAiPresets(): Promise<{
+  presets: Array<{
+    id: string;
+    name: string;
+    base_url: string;
+    description: string;
+    recommended_models: string[];
+  }>;
+  current_config: any;
+}> {
+  return apiFetch("/api/prime/presets");
+}
+
+
 
 
 

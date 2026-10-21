@@ -46,11 +46,11 @@ class FeedbackUpdateRequest(BaseModel):
 
 
 @router.post("/submit")
-def submit_model_feedback(payload: FeedbackSubmitRequest):
+async def submit_model_feedback(payload: FeedbackSubmitRequest):
     """
     Submit human feedback / rating for an AI detection match.
     Automatically extracts and indexes 512-D neural embeddings into positive
-    exemplars or hard negative rejection banks.
+    exemplars or hard negative rejection banks, and triggers Continual Harness /refine.
     """
     try:
         res = submit_feedback(
@@ -69,6 +69,23 @@ def submit_model_feedback(payload: FeedbackSubmitRequest):
             embedding=payload.embedding,
             notes=payload.notes,
         )
+
+        # Trigger Continual Harness /refine pipeline in background
+        try:
+            from ai_pipeline.continual_harness import continual_harness
+            refine_res = await continual_harness.refine_from_operator_feedback(
+                reference_label=payload.reference_label,
+                predicted_label=payload.predicted_label,
+                rating=payload.rating,
+                notes=payload.notes,
+                camera_id=payload.camera_id,
+                correction_label=payload.correction_label,
+                incident_id=payload.job_id
+            )
+            res["harness_refinement"] = refine_res
+        except Exception as ref_err:
+            print(f"[FeedbackRouter] Warning: Continual Harness refinement error: {ref_err}")
+
         return res
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to record model feedback: {str(e)}")

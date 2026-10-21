@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useState, useEffect, useMemo, useCallback, createContext, useContext } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, BASE_URL } from "@/lib/api";
 import {
   DashboardIcon,
   UploadIcon,
@@ -38,12 +38,14 @@ interface NavItem {
 
 const campusSafetyItems: NavItem[] = [
   { href: "/campus-map", icon: ShieldIcon,  label: "2.5D Campus Map",  roles: ["admin", "supervisor", "investigator", "operator"] },
+  { href: "/compliance", icon: ShieldIcon,  label: "Universal Compliance", roles: ["admin", "supervisor", "investigator", "operator"] },
   { href: "/incidents",  icon: AlertIcon,   label: "Emergency Hub",    roles: ["admin", "supervisor", "investigator", "operator"] },
   { href: "/iot-monitor",icon: SignalIcon,  label: "IoT Sensor Matrix",roles: ["admin", "supervisor", "investigator", "operator"] },
 ];
 
 const monitorItems: NavItem[] = [
   { href: "/",         icon: DashboardIcon, label: "Dashboard",   roles: ["admin", "supervisor", "investigator", "operator"] },
+  { href: "/supervision", icon: ScienceIcon, label: "Supervision Studio", roles: ["admin", "supervisor", "investigator", "operator"] },
   { href: "/pipeline", icon: ZapIcon,       label: "AI Neural Pipeline", roles: ["admin", "supervisor", "investigator", "operator"] },
   { href: "/live",     icon: LiveIcon,      label: "Live Wall",   roles: ["admin", "supervisor", "operator"] },
   { href: "/playback", icon: CameraIcon,    label: "Recordings",  roles: ["admin", "supervisor", "operator"] },
@@ -389,7 +391,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8001/api/auth/login", {
+      const res = await fetch(`${BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: usernameInput, password: passwordInput })
@@ -426,7 +428,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8001/api/auth/register", {
+      const res = await fetch(`${BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -463,7 +465,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8001/api/auth/mfa-verify", {
+      const res = await fetch(`${BASE_URL}/api/auth/mfa-verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: usernameInput, code: mfaCode })
@@ -549,7 +551,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     setLoading(true);
     setLoginError("");
     try {
-      const res = await fetch("http://localhost:8000/api/auth/login", {
+      const res = await fetch(`${BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: roleName, password: "hawki" }),
@@ -1085,7 +1087,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                       >
                         <div style={{ width: "40px", height: "40px", borderRadius: "4px", background: "#000", overflow: "hidden", flexShrink: 0 }}>
                           {alert.snapshot_url ? (
-                            <img src={`http://localhost:8001${alert.snapshot_url}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <img src={`${BASE_URL}${alert.snapshot_url}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           ) : (
                             <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><AlertIcon size={18} style={{ color: "var(--text-muted)" }} /></div>
                           )}
@@ -1191,7 +1193,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
         {/* Dynamic Legacy / Offline status */}
         <div style={{ marginTop: "auto", borderTop: "1px solid var(--border)", paddingTop: "12px" }}>
-          <a href="http://localhost:8001/docs" target="_blank" rel="noopener">
+          <a href={`${BASE_URL}/docs`} target="_blank" rel="noopener">
             <div className="nav-item">
               <SignalIcon size={16} />
               Swagger API Docs

@@ -101,7 +101,53 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "use_for_query": True,
     "use_for_translation": True,
     "use_for_reports": True,
+    "use_continual_harness": True,
 }
+
+GATEWAY_PRESETS = [
+    {
+        "id": "prime_intellect",
+        "name": "Prime Intellect (Decentralized AI / Prime-RL)",
+        "base_url": "https://api.primeintellect.ai/v1",
+        "description": "High-throughput decentralized inference with support for custom LoRA adapters and RL models",
+        "recommended_models": ["meta-llama/Llama-3.3-70B-Instruct", "Qwen/Qwen2.5-72B-Instruct", "Qwen/Qwen2.5-Coder-32B-Instruct"]
+    },
+    {
+        "id": "openai",
+        "name": "OpenAI Official",
+        "base_url": "https://api.openai.com/v1",
+        "description": "GPT-4o, GPT-4o-mini, o1, o3-mini",
+        "recommended_models": ["gpt-4o", "gpt-4o-mini"]
+    },
+    {
+        "id": "openrouter",
+        "name": "OpenRouter Multi-Provider",
+        "base_url": "https://openrouter.ai/api/v1",
+        "description": "Universal routing across Claude, Gemini, DeepSeek, Llama",
+        "recommended_models": ["anthropic/claude-3.5-sonnet", "deepseek/deepseek-chat", "meta-llama/llama-3.3-70b-instruct"]
+    },
+    {
+        "id": "groq",
+        "name": "Groq LPU (Ultra Fast)",
+        "base_url": "https://api.groq.com/openai/v1",
+        "description": "Sub-100ms inference for real-time edge dispatch",
+        "recommended_models": ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"]
+    },
+    {
+        "id": "agentrouter",
+        "name": "AgentRouter (DeepSeek v4 Flash)",
+        "base_url": "https://agentrouter.org/v1",
+        "description": "High-speed reasoning router with DeepSeek v4 Flash for compliance compilation & SOP generation",
+        "recommended_models": ["deepseek-v4-flash"]
+    },
+    {
+        "id": "local_ollama",
+        "name": "Local Ollama Instance",
+        "base_url": "http://localhost:11434/v1",
+        "description": "Private, zero-cost on-premise inference",
+        "recommended_models": ["llama3.2", "qwen2.5", "mistral"]
+    }
+]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -666,12 +712,21 @@ def generate_report_narrative(matches: list[dict], title: str, case_number: str,
             "type": m.get("search_type"),
             "confidence": round(float(m.get("confidence", 0)), 3),
         })
+    harness_context = ""
+    if cfg.get("use_continual_harness", True):
+        try:
+            from ai_pipeline.continual_harness import continual_harness
+            harness_context = "\n\n" + continual_harness.build_system_prompt_context()
+        except Exception:
+            pass
+
     system = (
         "You are a forensic analyst writing the executive summary of a CCTV investigation "
         "report for law enforcement. Write ONE professional, factual paragraph (90–140 words). "
         "State the number of matches, the cameras and time window involved, the dominant "
         "detection type, and the confidence profile. Do not invent identities or facts not in "
         "the data. Neutral, courtroom-appropriate tone. Plain text only."
+        + harness_context
     )
     user = json.dumps({
         "title": title, "case_number": case_number, "investigator": investigator,

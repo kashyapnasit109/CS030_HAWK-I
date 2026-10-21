@@ -1,0 +1,106 @@
+[
+  {
+    "refinement_id": "ref_1787635302986",
+    "timestamp": "2026-08-25T05:21:42.986545",
+    "trigger": "Manual prompt creation for CAM-01",
+    "change_type": "create_prompt",
+    "details": {
+      "id": "rule_1787635302985",
+      "camera_id": "CAM-01",
+      "rule": "Test rule: check vehicle license plate at gate",
+      "category": "general",
+      "created_at": "2026-08-25T05:21:42.985745"
+    }
+  },
+  {
+    "refinement_id": "ref_1787635302987",
+    "timestamp": "2026-08-25T05:21:42.987398",
+    "trigger": "Created memory on 'Gate 1 Delivery Pattern'",
+    "change_type": "create_memory",
+    "details": {
+      "id": "mem_1787635302986",
+      "topic": "Gate 1 Delivery Pattern",
+      "insight": "Delivery trucks enter between 9-10 AM",
+      "source_incident_id": null,
+      "created_at": "2026-08-25T05:21:42.987001"
+    }
+  },
+  {
+    "refinement_id": "ref_1787635302988",
+    "timestamp": "2026-08-25T05:21:42.988079",
+    "trigger": "Created memory on 'Misclassification: Unknown vs John Doe'",
+    "change_type": "create_memory",
+    "details": {
+      "id": "mem_1787635302987",
+      "topic": "Misclassification: Unknown vs John Doe",
+      "insight": "Operator flagged Unknown as false match on Camera CAM-04. Correction: 'John Doe'. Notes: Lighting glare reflection on glass.",
+      "source_incident_id": null,
+      "created_at": "2026-08-25T05:21:42.987713"
+    }
+  },
+  {
+    "refinement_id": "ref_1787635302988",
+    "timestamp": "2026-08-25T05:21:42.988763",
+    "trigger": "Manual prompt creation for CAM-04",
+    "change_type": "create_prompt",
+    "details": {
+      "id": "rule_1787635302988",
+      "camera_id": "CAM-04",
+      "rule": "Be vigilant on CAM-04 for lighting/shadow anomalies: Lighting glare reflection on glass",
+      "category": "environmental",
+      "created_at": "2026-08-25T05:21:42.988398"
+    }
+  },
+  {
+    "refinement_id": "ref_1787635317292",
+    "timestamp": "2026-08-25T05:21:57.292416",
+    "trigger": "Manual prompt creation for CAM-01",
+    "change_type": "create_prompt",
+    "details": {
+      "id": "rule_1787635317291",
+      "camera_id": "CAM-01",
+      "rule": "Test rule: check vehicle license plate at gate",
+      "category": "general",
+      "created_at": "2026-08-25T05:21:57.291909"
+    }
+  },
+  {
+    "refinement_id": "ref_1787635317293",
+    "timestamp": "2026-08-25T05:21:57.293128",
+    "trigger": "Created memory on 'Gate 1 Delivery Pattern'",
+    "change_type": "create_memory",
+    "details": {
+      "id": "mem_1787635317292",
+      "topic": "Gate 1 Delivery Pattern",
+      "insight": "Delivery trucks enter between 9-10 AM",
+      "source_incident_id": null,
+      "created_at": "2026-08-25T05:21:57.292773"
+    }
+  },
+  {
+    "refinement_id": "ref_1787635317293",
+    "timestamp": "2026-08-25T05:21:57.293942",
+    "trigger": "Created memory on 'Misclassification: Unknown vs John Doe'",
+    "change_type": "create_memory",
+    "details": {
+      "id": "mem_1787635317293",
+      "topic": "Misclassification: Unknown vs John Doe",
+      "insight": "Operator flagged Unknown as false match on Camera CAM-04. Correction: 'John Doe'. Notes: Lighting glare reflection on glass.",
+      "source_incident_id": null,
+      "created_at": "2026-08-25T05:21:57.293495"
+    }
+  },
+  {
+    "refinement_id": "ref_1787635317294",
+    "timestamp": "2026-08-25T05:21:57.294777",
+    "trigger": "Manual prompt creation for CAM-04",
+    "change_type": "create_prompt",
+    "details": {
+      "id": "rule_1787635317294",
+      "camera_id": "CAM-04",
+      "rule": "Be vigilant on CAM-04 for lighting/shadow anomalies: Lighting glare reflection on glass",
+      "category": "environmental",
+      "created_at": "2026-08-25T05:21:57.294384"
+    }
+  }
+]

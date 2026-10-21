@@ -79,7 +79,7 @@ if ORIGINAL_VIDEO.exists() and not any(UPLOADS_DIR.glob("*.meta.json")):
     (UPLOADS_DIR / "subway.meta.json").write_text(json.dumps(meta, indent=2))
 
 # Register routers
-from routers import videos, search, export, references, cameras, auth, cases, watchlists, audit, settings, enhance, ai_gateway, iot, campus_safety, feedback  # noqa: E402
+from routers import videos, search, export, references, cameras, auth, cases, watchlists, audit, settings, enhance, ai_gateway, iot, campus_safety, feedback, prime_copilot, supervision_studio, compliance  # noqa: E402
 
 app = FastAPI(
     title="VIGINT API",
@@ -90,6 +90,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -113,6 +114,9 @@ app.include_router(ai_gateway.router, prefix="/api/ai-gateway", tags=["AI Gatewa
 app.include_router(iot.router, tags=["IoT & Sensor Grid"])
 app.include_router(campus_safety.router, tags=["Campus Safety & Escalation"])
 app.include_router(feedback.router, tags=["Active Learning & Model Feedback"])
+app.include_router(prime_copilot.router, tags=["Prime Agent & Continual Harness"])
+app.include_router(supervision_studio.router)
+app.include_router(compliance.router)
 
 
 

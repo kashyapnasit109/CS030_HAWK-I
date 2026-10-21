@@ -265,3 +265,108 @@ CREATE INDEX IF NOT EXISTS idx_case_evidence_case ON case_evidence(case_id, adde
 CREATE INDEX IF NOT EXISTS idx_feedback_rating ON model_feedback(rating);
 CREATE INDEX IF NOT EXISTS idx_feedback_label ON model_feedback(reference_label);
 
+
+
+
+-- Compliance Rules Master
+CREATE TABLE IF NOT EXISTS compliance_rules (
+    rule_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    domain TEXT NOT NULL,
+    severity TEXT NOT NULL DEFAULT 'High',
+    enabled INTEGER NOT NULL DEFAULT 1,
+    camera_ids TEXT NOT NULL,              -- JSON array: ["GATE-01", "LOBBY-02"]
+    natural_language_prompt TEXT NULL,
+    trigger_type TEXT NOT NULL DEFAULT 'event', -- event, schedule, threshold, spatial
+    conditions_json TEXT NOT NULL,         -- Structured AST of conditions
+    actions_json TEXT NOT NULL,            -- Array of action definitions
+    dataset_id TEXT NULL,                  -- Target dataset for structured record output
+    dashboard_config TEXT NULL,            -- Custom widget specification
+    version INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL DEFAULT 'active', -- draft, pending_approval, active, paused
+    created_at REAL NOT NULL,
+    updated_at REAL NOT NULL
+);
+
+-- Compliance Rule Versions & Audit History
+CREATE TABLE IF NOT EXISTS compliance_rule_versions (
+    version_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    rule_id TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    snapshot_json TEXT NOT NULL,
+    changed_by TEXT NOT NULL,
+    change_summary TEXT NULL,
+    created_at REAL NOT NULL,
+    FOREIGN KEY (rule_id) REFERENCES compliance_rules(rule_id) ON DELETE CASCADE
+);
+
+-- Metadata-Driven Datasets Registry
+CREATE TABLE IF NOT EXISTS compliance_datasets (
+    dataset_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NULL,
+    domain TEXT NOT NULL,
+    schema_json TEXT NOT NULL,            -- JSON array of field definitions [{name, type, required}]
+    retention_days INTEGER NOT NULL DEFAULT 90,
+    created_at REAL NOT NULL
+);
+
+-- Generic Structured Record Store for Datasets
+CREATE TABLE IF NOT EXISTS compliance_dataset_records (
+    record_id TEXT PRIMARY KEY,
+    dataset_id TEXT NOT NULL,
+    rule_id TEXT NOT NULL,
+    event_time REAL NOT NULL,
+    entity_id TEXT NULL,
+    status TEXT NOT NULL,                 -- e.g. ON_TIME, LATE, COMPLIANT, VIOLATION
+    confidence REAL NOT NULL DEFAULT 1.0,
+    keyframe_url TEXT NULL,
+    evidence_hash TEXT NULL,
+    payload_json TEXT NOT NULL,           -- Structured attributes conforming to dataset schema
+    created_at REAL NOT NULL,
+    FOREIGN KEY (dataset_id) REFERENCES compliance_datasets(dataset_id) ON DELETE CASCADE,
+    FOREIGN KEY (rule_id) REFERENCES compliance_rules(rule_id) ON DELETE CASCADE
+);
+
+-- Compliance Violations & Evidence Table
+CREATE TABLE IF NOT EXISTS compliance_violations (
+    violation_id TEXT PRIMARY KEY,
+    rule_id TEXT NOT NULL,
+    camera_id TEXT NOT NULL,
+    camera_name TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    timestamp REAL NOT NULL,
+    relational_triplet TEXT NULL,
+    calibrated_confidence REAL NOT NULL,
+    keyframe_url TEXT NOT NULL,
+    footage_clip_url TEXT NULL,
+    sha256_hash TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'OPEN', -- OPEN, ACKNOWLEDGED, DISPATCHED, RESOLVED
+    assigned_officer TEXT NULL,
+    resolution_notes TEXT NULL,
+    action_dispatch_status TEXT NULL,
+    created_at REAL NOT NULL,
+    FOREIGN KEY (rule_id) REFERENCES compliance_rules(rule_id) ON DELETE CASCADE
+);
+
+-- Actions Outbox (Idempotent Execution & Delivery Tracking)
+CREATE TABLE IF NOT EXISTS compliance_actions_outbox (
+    action_id TEXT PRIMARY KEY,
+    violation_id TEXT NULL,
+    rule_id TEXT NOT NULL,
+    action_type TEXT NOT NULL,           -- email, webhook, siren, in_app, dataset_record
+    payload_json TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING', -- PENDING, DELIVERED, FAILED
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    response_detail TEXT NULL,
+    idempotency_key TEXT UNIQUE NOT NULL,
+    created_at REAL NOT NULL,
+    delivered_at REAL NULL
+);
+
+-- Performance Indexes
+CREATE INDEX IF NOT EXISTS idx_comp_rules_domain ON compliance_rules(domain, status);
+CREATE INDEX IF NOT EXISTS idx_comp_records_dataset ON compliance_dataset_records(dataset_id, event_time);
+CREATE INDEX IF NOT EXISTS idx_comp_violations_rule_time ON compliance_violations(rule_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_comp_actions_status ON compliance_actions_outbox(status);

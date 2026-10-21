@@ -7,6 +7,7 @@ import ToastProvider, { showToast } from "@/components/ToastProvider";
 import EnhanceModal from "@/components/EnhanceModal";
 import AddSuspectModal from "@/components/AddSuspectModal";
 import FeedbackModal from "@/components/FeedbackModal";
+import PrimeInvestigationModal from "@/components/PrimeInvestigationModal";
 import { getJobStatus, cancelSearchJob, cancelAllSearchJobs, exportReport, resolveStorageUrl, downloadFramesZip, submitModelFeedback, MatchResult, SearchJob, apiFetch, addCaseEvidence, getActiveCase } from "@/lib/api";
 
 import {
@@ -878,6 +879,11 @@ export default function ResultsPage() {
   const [feedbackModalMatch, setFeedbackModalMatch] = useState<{ match: MatchResult; initialRating: "good" | "bad" } | null>(null);
   const [ratedMatches, setRatedMatches] = useState<Record<string, { rating: "good" | "bad"; correction?: string }>>({});
 
+  // Prime RLM Multi-Camera Investigation Modal State
+  const [primeModalOpen, setPrimeModalOpen] = useState(false);
+  const [primeQuery, setPrimeQuery] = useState("");
+  const [primeRefLabel, setPrimeRefLabel] = useState("");
+
   const handleQuickRating = async (m: MatchResult, rating: "good" | "bad", key: string) => {
     setRatedMatches((prev) => ({ ...prev, [key]: { rating } }));
     try {
@@ -1335,6 +1341,29 @@ export default function ResultsPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Prime RLM Investigation Trigger */}
+                <button
+                  onClick={() => {
+                    const q = job?.query || matches[0]?.label || "Target from search results";
+                    setPrimeQuery(q);
+                    setPrimeRefLabel(matches[0]?.label || "");
+                    setPrimeModalOpen(true);
+                  }}
+                  className="btn btn-sm"
+                  style={{
+                    fontWeight: 800,
+                    background: "linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)",
+                    color: "#000",
+                    border: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    boxShadow: "0 0 15px rgba(6,182,212,0.3)",
+                  }}
+                >
+                  <SparklesIcon size={13} /> Ψ Prime RLM
+                </button>
               </div>
             </div>
 
@@ -2086,6 +2115,14 @@ export default function ResultsPage() {
             }}
           />
         )}
+
+        {/* PRIME AGENT RLM MULTI-CAMERA INVESTIGATION MODAL */}
+        <PrimeInvestigationModal
+          isOpen={primeModalOpen}
+          onClose={() => setPrimeModalOpen(false)}
+          initialQuery={primeQuery}
+          initialReferenceLabel={primeRefLabel}
+        />
 
         <style>{`
           .result-card:hover .play-icon { opacity: 1 !important; }

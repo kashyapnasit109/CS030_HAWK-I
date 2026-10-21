@@ -147,11 +147,36 @@ img { max-width: 100%; display: block; }
 .sidebar {
   background: var(--bg-surface);
   border-right: 1px solid var(--border);
-  padding: 16px 10px;
+  padding: 16px 10px 32px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  height: calc(100vh - 60px);
+  max-height: calc(100vh - 60px);
+  position: sticky;
+  top: 60px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.28) transparent;
+}
+
+/* Dedicated sleek scrollbar for Sidebar */
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.65);
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
 }
 
 .nav-item {
@@ -210,6 +235,7 @@ img { max-width: 100%; display: block; }
   max-height: calc(100vh - 60px);
   min-width: 0;
   will-change: contents;
+  overscroll-behavior: contain;
 }
 
 /* Per-route fade — keyed on pathname so it replays on every navigation while the
@@ -982,3 +1008,27 @@ body::before {
   pointer-events: none;
   z-index: -1;
 }
+
+/* ─── Performance & Smooth Scroll GPU Acceleration ─── */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.card {
+  contain: paint layout;
+  will-change: auto;
+}
+
+.main-content {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+

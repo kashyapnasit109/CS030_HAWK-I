@@ -21,8 +21,17 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import cv2
-import numpy as np
-from ultralytics import YOLO
+try:
+    from ultralytics import YOLO
+except Exception as _yolo_err:
+    print(f"[hazard_engine] Warning: ultralytics / torch unavailable ({_yolo_err}). Using defensive fallback mode.")
+    class YOLO:
+        def __init__(self, *args, **kwargs):
+            self.names = {0: "person", 1: "bicycle", 2: "car"}
+        def __call__(self, *args, **kwargs):
+            return []
+        def track(self, *args, **kwargs):
+            return []
 
 from ai_pipeline.campus_safety_cv import detect_optical_fire_smoke, detect_smoke_dispersion
 

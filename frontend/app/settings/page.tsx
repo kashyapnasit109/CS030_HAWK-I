@@ -18,11 +18,20 @@ import {
   clearAllModelFeedback,
   recalibrateActiveLearning,
   resolveStorageUrl,
+  getHarnessState,
+  createHarnessPrompt,
+  deleteHarnessPrompt,
+  createHarnessMemory,
+  deleteHarnessMemory,
+  triggerHarnessRefine,
+  getHarnessRefinements,
+  getAiPresets,
   type GatewayConfig,
   type GatewayModel,
   type GatewayRequirements,
   type ModelFeedbackItem,
   type ModelFeedbackStats,
+  type HarnessStateResponse,
 } from "@/lib/api";
 
 const CAP_LABELS: Record<string, string> = {
@@ -32,7 +41,7 @@ const CAP_LABELS: Record<string, string> = {
 };
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<"general" | "ai" | "feedback" | "ai_gateway" | "ai_models" | "network" | "forensic" | "security">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "ai" | "feedback" | "ai_gateway" | "continual_harness" | "ai_models" | "network" | "forensic" | "security">("general");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -430,6 +439,104 @@ export default function SettingsPage() {
     }
   };
 
+  // ─── Continual Harness State H = (ρ, G, K, M) ──────────────────────────
+  const [harnessData, setHarnessData] = useState<HarnessStateResponse | null>(null);
+  const [harnessLoading, setHarnessLoading] = useState(false);
+  const [newRuleCam, setNewRuleCam] = useState("ALL");
+  const [newRuleText, setNewRuleText] = useState("");
+  const [newMemTopic, setNewMemTopic] = useState("");
+  const [newMemInsight, setNewMemInsight] = useState("");
+  const [refinements, setRefinements] = useState<any[]>([]);
+  const [refining, setRefining] = useState(false);
+
+  const loadHarnessData = async () => {
+    setHarnessLoading(true);
+    try {
+      const [hState, refList] = await Promise.all([
+        getHarnessState(),
+        getHarnessRefinements()
+      ]);
+      setHarnessData(hState);
+      setRefinements(refList || []);
+    } catch (err: any) {
+      console.warn("Failed to load harness data:", err);
+    } finally {
+      setHarnessLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "continual_harness") {
+      loadHarnessData();
+    }
+  }, [activeTab]);
+
+  const handleAddPromptRule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRuleText.trim()) return showToast("Enter a prompt directive rule", "info");
+    try {
+      await createHarnessPrompt({ camera_id: newRuleCam, rule: newRuleText.trim() });
+      showToast("Operational prompt rule (ρ) added to Continual Harness!", "success");
+      setNewRuleText("");
+      loadHarnessData();
+    } catch (err: any) {
+      showToast(err.message || "Failed to add prompt rule", "error");
+    }
+  };
+
+  const handleDeleteRule = async (ruleId: string) => {
+    try {
+      await deleteHarnessPrompt(ruleId);
+      showToast("Prompt directive deleted", "success");
+      loadHarnessData();
+    } catch (err: any) {
+      showToast(err.message || "Failed to delete rule", "error");
+    }
+  };
+
+  const handleAddMemory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMemTopic.trim() || !newMemInsight.trim()) return showToast("Provide topic and lesson insight", "info");
+    try {
+      await createHarnessMemory({ topic: newMemTopic.trim(), insight: newMemInsight.trim() });
+      showToast("Operational memory (M) saved to Continual Harness!", "success");
+      setNewMemTopic("");
+      setNewMemInsight("");
+      loadHarnessData();
+    } catch (err: any) {
+      showToast(err.message || "Failed to add memory", "error");
+    }
+  };
+
+  const handleDeleteMem = async (memId: string) => {
+    try {
+      await deleteHarnessMemory(memId);
+      showToast("Memory entry deleted", "success");
+      loadHarnessData();
+    } catch (err: any) {
+      showToast(err.message || "Failed to delete memory", "error");
+    }
+  };
+
+  const handleTriggerManualRefine = async () => {
+    setRefining(true);
+    try {
+      await triggerHarnessRefine({
+        trigger: "Manual operator calibration cycle",
+        reference_label: "Facility Security Profile",
+        predicted_label: "Surveillance Baseline",
+        rating: "good",
+        notes: "Automated harness optimization cycle executed by security administrator."
+      });
+      showToast("Continual Harness /refine pipeline successfully executed!", "success");
+      loadHarnessData();
+    } catch (err: any) {
+      showToast(err.message || "Refinement failed", "error");
+    } finally {
+      setRefining(false);
+    }
+  };
+
   const handleOpenEditFeedback = (item: ModelFeedbackItem) => {
     setEditingFeedback(item);
     setEditRating(item.rating);
@@ -561,6 +668,7 @@ export default function SettingsPage() {
             { id: "ai", label: "AI Calibration", Icon: SignalIcon },
             { id: "feedback", label: "Active Learning & Suggestions", Icon: SparklesIcon },
             { id: "ai_gateway", label: "AI Gateway", Icon: RouterIcon },
+            { id: "continual_harness", label: "Prime Continual Harness H=(ρ,G,K,M)", Icon: ZapIcon },
             { id: "ai_models", label: "AI Models Manager", Icon: PackageIcon },
             { id: "network", label: "LAN & CCTV Discovery", Icon: CameraIcon },
             { id: "forensic", label: "Forensic Integrity", Icon: ShieldIcon },
@@ -1785,6 +1893,237 @@ export default function SettingsPage() {
                         </div>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Prime Continual Harness H = (ρ, G, K, M) Tab */}
+              {activeTab === "continual_harness" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                  {/* Header & Stats Banner */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+                    <div>
+                      <h2 style={{ color: "var(--text-primary)", fontSize: "1.25rem", fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                        <ZapIcon size={22} style={{ color: "var(--accent)" }} /> Prime Agent Continual Harness H = (ρ, G, K, M)
+                      </h2>
+                      <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "4px 0 0 0" }}>
+                        Self-improving surveillance state: live prompt directives (ρ), subagent topology (G), analytical skills (K), and operational memory (M) refined online via /refine.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleTriggerManualRefine}
+                      disabled={refining}
+                      className="btn btn-primary btn-sm"
+                      style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 800 }}
+                    >
+                      <SparklesIcon size={14} />
+                      {refining ? "Refining Harness..." : "Trigger /refine Cycle"}
+                    </button>
+                  </div>
+
+                  {/* 4 Pillars Summary Cards */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+                    <div style={{ padding: "16px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 700, color: "var(--accent)" }}>ρ (Rho) Directives</div>
+                      <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "var(--text-primary)", marginTop: 4 }}>
+                        {harnessData?.stats.prompt_rules_count ?? 0}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>Active Camera Rules</div>
+                    </div>
+
+                    <div style={{ padding: "16px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 700, color: "#818CF8" }}>G (Gamma) Subagents</div>
+                      <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "var(--text-primary)", marginTop: 4 }}>
+                        {harnessData?.stats.subagents_count ?? 0}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>Specialized Personas</div>
+                    </div>
+
+                    <div style={{ padding: "16px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 700, color: "#34D399" }}>K (Kappa) Skills</div>
+                      <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "var(--text-primary)", marginTop: 4 }}>
+                        {harnessData?.stats.skills_count ?? 0}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>Python CV Functions</div>
+                    </div>
+
+                    <div style={{ padding: "16px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: "0.72rem", textTransform: "uppercase", fontWeight: 700, color: "#F472B6" }}>M (Mu) Memory</div>
+                      <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "var(--text-primary)", marginTop: 4 }}>
+                        {harnessData?.stats.memories_count ?? 0}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>False Alarm Precedents</div>
+                    </div>
+                  </div>
+
+                  {/* Section 1: Prompt Directives (ρ) & Operational Memory (M) */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                    {/* Prompt Directives (ρ) */}
+                    <div style={{ padding: 18, borderRadius: 10, background: "var(--bg-elevated)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 14 }}>
+                      <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                        <CameraIcon size={16} style={{ color: "var(--accent)" }} /> Prompt Directives &amp; Camera Rules (ρ)
+                      </h3>
+                      
+                      <form onSubmit={handleAddPromptRule} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8 }}>
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="Camera ID (ALL, CAM-01)"
+                            value={newRuleCam}
+                            onChange={(e) => setNewRuleCam(e.target.value)}
+                            style={{ fontSize: "0.8rem" }}
+                          />
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="Operational instruction / environmental rule..."
+                            value={newRuleText}
+                            onChange={(e) => setNewRuleText(e.target.value)}
+                            style={{ fontSize: "0.8rem" }}
+                          />
+                        </div>
+                        <button type="submit" className="btn btn-secondary btn-sm" style={{ alignSelf: "flex-end", fontWeight: 700 }}>
+                          + Add Rule (ρ)
+                        </button>
+                      </form>
+
+                      <div style={{ maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, paddingRight: 4 }}>
+                        {harnessData?.state.prompts.map((p) => (
+                          <div key={p.id} style={{ padding: 10, borderRadius: 8, background: "var(--bg-card)", border: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "start", gap: 8 }}>
+                            <div>
+                              <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--accent)", background: "rgba(6,182,212,0.1)", padding: "2px 6px", borderRadius: 4 }}>
+                                {p.camera_id}
+                              </span>
+                              <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "var(--text-primary)" }}>{p.rule}</p>
+                            </div>
+                            <button type="button" onClick={() => handleDeleteRule(p.id)} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+                              <TrashIcon size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Operational Memory & Lessons (M) */}
+                    <div style={{ padding: 18, borderRadius: 10, background: "var(--bg-elevated)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 14 }}>
+                      <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                        <ShieldCheckIcon size={16} style={{ color: "#F472B6" }} /> Operational Memory &amp; False Alarm Mitigations (M)
+                      </h3>
+
+                      <form onSubmit={handleAddMemory} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <input
+                          type="text"
+                          className="input-field"
+                          placeholder="Topic / Category (e.g. Uniform Baseline)"
+                          value={newMemTopic}
+                          onChange={(e) => setNewMemTopic(e.target.value)}
+                          style={{ fontSize: "0.8rem" }}
+                        />
+                        <input
+                          type="text"
+                          className="input-field"
+                          placeholder="Insight / mitigation rule learned from past incidents..."
+                          value={newMemInsight}
+                          onChange={(e) => setNewMemInsight(e.target.value)}
+                          style={{ fontSize: "0.8rem" }}
+                        />
+                        <button type="submit" className="btn btn-secondary btn-sm" style={{ alignSelf: "flex-end", fontWeight: 700 }}>
+                          + Add Memory (M)
+                        </button>
+                      </form>
+
+                      <div style={{ maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, paddingRight: 4 }}>
+                        {harnessData?.state.memory.map((m) => (
+                          <div key={m.id} style={{ padding: 10, borderRadius: 8, background: "var(--bg-card)", border: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "start", gap: 8 }}>
+                            <div>
+                              <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#F472B6" }}>
+                                {m.topic}
+                              </span>
+                              <p style={{ margin: "3px 0 0 0", fontSize: "0.8rem", color: "var(--text-primary)" }}>{m.insight}</p>
+                            </div>
+                            <button type="button" onClick={() => handleDeleteMem(m.id)} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+                              <TrashIcon size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Subagents (G) and Analytical Skills (K) */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                    {/* Subagents (G) */}
+                    <div style={{ padding: 18, borderRadius: 10, background: "var(--bg-elevated)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 12 }}>
+                      <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                        <UsersIcon size={16} style={{ color: "#818CF8" }} /> Autonomous Subagent Swarm (G)
+                      </h3>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {harnessData?.state.subagents.map((ag) => (
+                          <div key={ag.id} style={{ padding: 12, borderRadius: 8, background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span style={{ fontWeight: 800, fontSize: "0.85rem", color: "var(--text-primary)" }}>{ag.name}</span>
+                              <span style={{ fontSize: "0.7rem", color: "#818CF8", background: "rgba(129,140,248,0.1)", padding: "2px 6px", borderRadius: 4 }}>
+                                {ag.role}
+                              </span>
+                            </div>
+                            <p style={{ margin: "6px 0 8px 0", fontSize: "0.78rem", color: "var(--text-secondary)" }}>{ag.system_prompt}</p>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                              {ag.tools.map((t, idx) => (
+                                <span key={idx} style={{ fontSize: "0.68rem", fontFamily: "monospace", background: "rgba(255,255,255,0.05)", padding: "2px 5px", borderRadius: 4, color: "var(--text-muted)" }}>
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Python Analytical Skills (K) */}
+                    <div style={{ padding: 18, borderRadius: 10, background: "var(--bg-elevated)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 12 }}>
+                      <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                        <CpuIcon size={16} style={{ color: "#34D399" }} /> Python Analytical Skills (K)
+                      </h3>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {Object.entries(harnessData?.state.skills || {}).map(([name, skill]) => (
+                          <div key={name} style={{ padding: 12, borderRadius: 8, background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                            <div style={{ fontWeight: 800, fontSize: "0.85rem", color: "var(--text-primary)" }}>{skill.name}</div>
+                            <p style={{ margin: "4px 0 8px 0", fontSize: "0.78rem", color: "var(--text-secondary)" }}>{skill.description}</p>
+                            <pre style={{ margin: 0, padding: 8, borderRadius: 6, background: "#0a0b10", fontSize: "0.72rem", color: "#34D399", overflowX: "auto", fontFamily: "monospace" }}>
+                              {skill.code}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 3: /refine Evolution Log */}
+                  <div style={{ padding: 18, borderRadius: 10, background: "var(--bg-elevated)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                        <SparklesIcon size={16} style={{ color: "var(--accent)" }} /> /refine State Evolution &amp; Rollback History
+                      </h3>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{refinements.length} modification events logged</span>
+                    </div>
+
+                    <div style={{ maxHeight: 200, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+                      {refinements.length === 0 ? (
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", margin: 0 }}>No refinement events recorded yet.</p>
+                      ) : (
+                        refinements.map((ref, idx) => (
+                          <div key={idx} style={{ padding: 10, borderRadius: 6, background: "var(--bg-card)", border: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.78rem" }}>
+                            <div>
+                              <span style={{ fontWeight: 700, color: "var(--accent)", marginRight: 8 }}>[{ref.change_type}]</span>
+                              <span style={{ color: "var(--text-primary)" }}>{ref.trigger}</span>
+                            </div>
+                            <span style={{ color: "var(--text-muted)", fontSize: "0.7rem" }}>{ref.timestamp}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

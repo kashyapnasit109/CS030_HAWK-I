@@ -5,6 +5,7 @@ import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import EnhanceModal from "@/components/EnhanceModal";
 import FeedbackModal from "@/components/FeedbackModal";
+import PrimeInvestigationModal from "@/components/PrimeInvestigationModal";
 import {
   startHazardSearch,
   getHazardJobStatus,
@@ -113,6 +114,11 @@ export default function IncidentsCommandHub() {
 
   // Active Hazard Modality Tab (Separated specialized testing workflows)
   const [activeHazardModality, setActiveHazardModality] = useState<HazardModality>("compound_crisis");
+
+  // Prime RLM Multi-Camera Investigation Modal State
+  const [primeModalOpen, setPrimeModalOpen] = useState(false);
+  const [primeQuery, setPrimeQuery] = useState("");
+  const [primeRefLabel, setPrimeRefLabel] = useState("");
 
 
 
@@ -663,6 +669,28 @@ export default function IncidentsCommandHub() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <button
+              onClick={() => {
+                const targetTitle = selectedIncident ? selectedIncident.title : "Active incident across campus cameras";
+                setPrimeQuery(targetTitle);
+                setPrimeRefLabel(selectedIncident ? selectedIncident.title : "");
+                setPrimeModalOpen(true);
+              }}
+              className="btn btn-sm"
+              style={{
+                fontWeight: 800,
+                background: "linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)",
+                color: "#000",
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                boxShadow: "0 0 15px rgba(6,182,212,0.4)",
+              }}
+            >
+              <ZapIcon size={14} /> Ψ Prime RLM Investigation
+            </button>
+
             <button
               onClick={() => setActiveTab("hazard_search")}
               className={`btn btn-sm ${activeTab === "hazard_search" ? "btn-primary" : "btn-secondary"}`}
@@ -2277,6 +2305,14 @@ export default function IncidentsCommandHub() {
             }}
           />
         )}
+
+        {/* PRIME AGENT RLM MULTI-CAMERA INVESTIGATION MODAL */}
+        <PrimeInvestigationModal
+          isOpen={primeModalOpen}
+          onClose={() => setPrimeModalOpen(false)}
+          initialQuery={primeQuery}
+          initialReferenceLabel={primeRefLabel}
+        />
       </AppLayout>
     </ToastProvider>
   );

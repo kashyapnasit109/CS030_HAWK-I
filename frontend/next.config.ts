@@ -12,11 +12,13 @@ const nextConfig: NextConfig = {
   // Compress responses
   compress: true,
 
-  // Images optimisation (pass-through for localhost backend URLs)
+  // Images optimisation (pass-through for local backend URLs)
   images: {
     remotePatterns: [
       { protocol: "http", hostname: "localhost" },
       { protocol: "http", hostname: "127.0.0.1" },
+      { protocol: "http", hostname: "172.20.10.11" },
+      { protocol: "http", hostname: "**" },
     ],
   },
 
@@ -37,6 +39,19 @@ const nextConfig: NextConfig = {
       {
         source: "/api/:path*",
         destination: "http://127.0.0.1:8000/api/:path*",
+      },
+    ];
+  },
+
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+          { key: "Access-Control-Allow-Headers", value: "*" },
+        ],
       },
     ];
   },

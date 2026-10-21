@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import ToastProvider, { showToast } from "@/components/ToastProvider";
 import AddSuspectModal from "@/components/AddSuspectModal";
+import PrimeInvestigationModal from "@/components/PrimeInvestigationModal";
 import {
   listVideos, listReferences, uploadReference,
   startImageSearch, startKeywordSearch, startLprSearch, startObjectSearch, startActivityAnalysis, getJobStatus,
@@ -79,6 +80,12 @@ export default function SearchPage() {
   const [job, setJob] = useState<SearchJob | null>(null);
   const [polling, setPolling] = useState(false);
   const [pollError, setPollError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Prime RLM Multi-Camera Investigation Modal State
+  const [primeModalOpen, setPrimeModalOpen] = useState(false);
+  const [primeQuery, setPrimeQuery] = useState("");
+  const [primeRefLabel, setPrimeRefLabel] = useState("");
   const [framesProcessed, setFramesProcessed] = useState(0);
   const [framesMatched, setFramesMatched] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -745,8 +752,8 @@ export default function SearchPage() {
               )}
             </div>
 
-            {/* Run & Cancel Buttons */}
-            <div style={{ display: "flex", gap: 10 }}>
+            {/* Run & Cancel & Prime RLM Buttons */}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button
                 className="btn btn-primary btn-lg"
                 style={{ flex: 1, justifyContent: "center" }}
@@ -757,6 +764,31 @@ export default function SearchPage() {
                   ? <><HourglassIcon size={16} /> Processing AI Pipeline...</>
                   : <><SearchIcon size={16} /> Run Intelligence Search</>}
               </button>
+
+              <button
+                type="button"
+                className="btn btn-lg"
+                style={{
+                  background: "linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)",
+                  color: "#000",
+                  fontWeight: 800,
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  boxShadow: "0 0 20px rgba(6,182,212,0.3)",
+                }}
+                onClick={() => {
+                  const q = keyword || plateText || targetClassesStr || "Target suspect investigation";
+                  const refLabel = selectedRefs.size > 0 ? refs.find((r) => selectedRefs.has(r.id))?.label : "";
+                  setPrimeQuery(q);
+                  setPrimeRefLabel(refLabel || "");
+                  setPrimeModalOpen(true);
+                }}
+              >
+                <SparklesIcon size={16} /> Ψ Prime RLM Fan-Out
+              </button>
+
               {polling && (
                 <button
                   className="btn btn-secondary btn-lg"
@@ -1012,6 +1044,13 @@ export default function SearchPage() {
             </div>
           </div>
         )}
+        {/* PRIME AGENT RLM MULTI-CAMERA INVESTIGATION MODAL */}
+        <PrimeInvestigationModal
+          isOpen={primeModalOpen}
+          onClose={() => setPrimeModalOpen(false)}
+          initialQuery={primeQuery}
+          initialReferenceLabel={primeRefLabel}
+        />
       </AppLayout>
     </ToastProvider>
   );

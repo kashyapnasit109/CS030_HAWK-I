@@ -58,6 +58,12 @@ backend/storage/thumbnails/*
 !backend/storage/thumbnails/.gitkeep
 backend/storage/enhanced/*
 !backend/storage/enhanced/.gitkeep
+backend/storage/compliance_evidence/*
+!backend/storage/compliance_evidence/.gitkeep
+backend/storage/supervision/*
+!backend/storage/supervision/.gitkeep
+backend/storage/investigations/*
+!backend/storage/investigations/.gitkeep
 
 # Generated evidence reports
 secure_evidence_report_*.pdf
