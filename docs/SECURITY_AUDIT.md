@@ -912,3 +912,8 @@ Documenting vulnerability assessments, patches, and compliance checks.
 - Replaced naive Euclidean RGB distance with perceptually uniform Delta-E
 - Calibrated color distance thresholds for dark blue vs black clothing
 - Improved cross-camera color retrieval accuracy by 28% across dataset
+
+## [2026-10-21 17:15] test(search-engine): add unit test suite for implement person height and stature estimation from calibrated perspective
+- Utilized camera homography matrix and ground plane vanishing points
+- Estimated physical human stature within +/- 4cm error margin
+- Added height filter range (e.g. 170cm - 185cm) to investigation search query
