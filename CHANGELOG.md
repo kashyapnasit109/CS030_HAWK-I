@@ -907,3 +907,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Generated high-resolution QR code encoding deep link to verification endpoint
 - Allowed judges and attorneys to instantly verify authenticity via mobile scanner
 - Rendered crisp vector QR graphics to prevent printing degradation
+
+## [2026-10-21 11:45] test(search-engine): add unit test suite for add suspect trajectory reconstruction with animated campus map polylines
+- Plotted sequential camera sightings on Leaflet GIS campus map
+- Connected sighting markers with animated directional polylines
+- Displayed estimated travel time and speed between observation points
