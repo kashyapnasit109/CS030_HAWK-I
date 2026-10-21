@@ -515,3 +515,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 21, 2026 18:13:37]` **refactor(twin): modularize SQLite rule assignment transaction isolation** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Oct 21, 2026 19:50:06]` **test(stream): add stress test for concurrent multi-stream ingest degradation** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 21, 2026 20:21:00]` **fix(stream): fix SQLite schema migration for compliance camera rules table** — *Verified component: low-latency MJPEG & WebSocket stream transport*
+- `[Oct 21, 2026 23:09:48]` **fix(perf): align normalized coordinate projection on ultra-wide aspect ratios** — *Verified component: tensor memory management & latency optimization*
