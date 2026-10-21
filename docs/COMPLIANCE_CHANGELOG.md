@@ -512,3 +512,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 20, 2026 20:59:27]` **fix(stream): resolve thread-safety collision during concurrent WebSocket broadcast** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 21, 2026 10:01:32]` **feat(stream): add multi-grid 3x3 viewport hardware acceleration flags** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 21, 2026 13:05:03]` **refactor(security): restructure rule compatibility matrix into declarative lookup** — *Verified component: SHA-256 seal verification & audit log hashing*
+- `[Oct 21, 2026 18:13:37]` **refactor(twin): modularize SQLite rule assignment transaction isolation** — *Verified component: digital twin topology & blast radius analyzer*
