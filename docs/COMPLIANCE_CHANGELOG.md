@@ -521,3 +521,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 22, 2026 09:28:47]` **perf(twin): cache static rule conditions to avoid redundant JSON parsing** — *Verified component: digital twin topology & blast radius analyzer*
 - `[Oct 22, 2026 10:36:43]` **docs(detector): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: YOLOv8 & YOLO-Pose inference models*
 - `[Oct 22, 2026 10:44:17]` **docs(compliance): document Section 63 BNSS 2023 admissibility specifications** — *Verified component: compliance engine core & rule execution*
+- `[Oct 22, 2026 10:51:52]` **docs(stream): document camera compatibility capability matrix requirements** — *Verified component: low-latency MJPEG & WebSocket stream transport*
