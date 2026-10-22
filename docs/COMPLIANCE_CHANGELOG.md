@@ -847,3 +847,8 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - Built AST parser supporting complex boolean queries: 'red shirt AND backpack'
 - Validated attribute tokens against predefined campus taxonomy
 - Generated optimized SQL query filters with indexed column constraints
+
+## [2026-10-22 09:15] test(search-engine): add unit test suite for implement suspect apparel color change anomaly detector
+- Identified suspects who entered building in one clothing color and exited in another
+- Flagged rapid clothing change in restrooms during ongoing active incidents
+- Linked disparate sightings into unified suspect behavioral dossier
