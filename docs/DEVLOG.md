@@ -917,3 +917,8 @@ Sprint-by-sprint engineering progress and technical decisions.
 - Classified presence of backpack, shoulder bag, or handheld luggage
 - Achieved 89.4% classification accuracy on cropped person torso ROIs
 - Enabled precise filtering: 'suspect carrying backpack leaving via North Gate'
+
+## [2026-10-22 20:30] test(video-stream): add unit test suite for add standardized ZIP evidence bundle packaging with cryptographic manifest
+- Structured archive with /video, /metadata, and /certificates directories
+- Generated root MANIFEST.json containing individual file SHA-256 hashes
+- Signed manifest with server digital key for external validation
