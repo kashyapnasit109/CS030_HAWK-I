@@ -193,25 +193,35 @@ export default function LiveComplianceWall({
 
         ws.onmessage = (event) => {
           try {
-            const msg = JSON.parse(event.data);
+            if (typeof event.data !== "string") return;
+            const raw = event.data.trim();
+            if (!raw || raw === "pong" || !raw.startsWith("{") || !raw.endsWith("}")) return;
+
+            const msg = JSON.parse(raw);
+            if (!msg || !msg.type) return;
+
             if (msg.type === "DETECTION_FRAME") {
               const frameData: FrameDetectionData = msg.data;
-              setLiveDetections((prev) => ({
-                ...prev,
-                [frameData.camera_id]: frameData,
-              }));
+              if (frameData && frameData.camera_id) {
+                setLiveDetections((prev) => ({
+                  ...prev,
+                  [frameData.camera_id]: frameData,
+                }));
+              }
             } else if (msg.type === "COMPLIANCE_VIOLATION") {
               const v = msg.data;
-              setActiveViolations((prev) => [v, ...prev.slice(0, 9)]);
-              showToast(
-                `🚨 VIOLATION: ${v.rule_name} on ${v.camera_name || v.camera_id}`,
-                "error"
-              );
+              if (v) {
+                setActiveViolations((prev) => [v, ...prev.slice(0, 9)]);
+                showToast(
+                  `🚨 VIOLATION: ${v.rule_name || "Rule Violation"} on ${v.camera_name || v.camera_id}`,
+                  "error"
+                );
+              }
             } else if (msg.type === "ASSIGNMENT_SYNC") {
               fetchCameras();
             }
           } catch (err) {
-            console.error("WebSocket message parse error:", err);
+            console.warn("[ComplianceWall] Non-critical WS payload parse warning:", err);
           }
         };
 

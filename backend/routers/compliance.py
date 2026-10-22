@@ -31,20 +31,41 @@ router = APIRouter(prefix="/api/compliance", tags=["Compliance Engine"])
 
 PRESETS_FILE = Path(__file__).parent.parent / "storage" / "preset_rules_library.json"
 
-# In-memory active WebSocket clients
-_WS_CLIENTS: List[WebSocket] = []
+# Thread-safe WebSocket connection registry & dispatch queues
+_MAIN_LOOP: Optional[asyncio.AbstractEventLoop] = None
+_CLIENT_QUEUES: Dict[int, asyncio.Queue] = {}
 
-async def broadcast_ws_event(event_type: str, data: Dict[str, Any]):
-    message = json.dumps({"type": event_type, "timestamp": time.time(), "data": data})
-    disconnected = []
-    for ws in _WS_CLIENTS:
+def broadcast_ws_event(event_type: str, data: Dict[str, Any]):
+    """
+    Thread-safe non-blocking event dispatcher.
+    Called directly by multi-camera background worker threads in compliance_engine.
+    Enqueues JSON frames to per-client asyncio.Queues on the FastAPI main event loop.
+    """
+    global _MAIN_LOOP, _CLIENT_QUEUES
+    if not _CLIENT_QUEUES:
+        return
+    try:
+        message = json.dumps({"type": event_type, "timestamp": time.time(), "data": data})
+    except Exception:
+        return
+
+    if _MAIN_LOOP and not _MAIN_LOOP.is_closed():
+        def _enqueue():
+            for cid, q in list(_CLIENT_QUEUES.items()):
+                if q.full():
+                    try:
+                        q.get_nowait()  # Drop oldest frame so client queue never stalls
+                    except Exception:
+                        pass
+                try:
+                    q.put_nowait(message)
+                except Exception:
+                    pass
+
         try:
-            await ws.send_text(message)
+            _MAIN_LOOP.call_soon_threadsafe(_enqueue)
         except Exception:
-            disconnected.append(ws)
-    for ws in disconnected:
-        if ws in _WS_CLIENTS:
-            _WS_CLIENTS.remove(ws)
+            pass
 
 # Wire broadcaster and load initial assignments
 compliance_engine.set_broadcaster(broadcast_ws_event)
@@ -742,11 +763,11 @@ async def execute_violation_triage(violation_id: str, req: TriageActionRequest):
         conn.commit()
 
         # Broadcast via WebSocket
-        asyncio.create_task(broadcast_ws_event("VIOLATION_TRIAGED", {
+        broadcast_ws_event("VIOLATION_TRIAGED", {
             "violation_id": violation_id,
             "status": req.action.upper(),
             "officer": req.officer
-        }))
+        })
 
         return {"success": True, "violation_id": violation_id, "status": req.action.upper()}
     finally:
@@ -805,7 +826,7 @@ async def ingest_observation(obs: IngestObservationRequest):
         if res:
             triggered.append(res)
             # Broadcast WebSocket alert
-            asyncio.create_task(broadcast_ws_event("COMPLIANCE_VIOLATION", res))
+            broadcast_ws_event("COMPLIANCE_VIOLATION", res)
 
     return {
         "status": "PROCESSED",
@@ -819,14 +840,34 @@ async def ingest_observation(obs: IngestObservationRequest):
 @router.websocket("/ws/stream")
 async def compliance_websocket_endpoint(websocket: WebSocket):
     """High-speed WebSocket feed for live incident alerts, camera metrics, and dashboard updates."""
+    global _MAIN_LOOP, _CLIENT_QUEUES
+    try:
+        _MAIN_LOOP = asyncio.get_running_loop()
+    except Exception:
+        pass
+
     await websocket.accept()
-    _WS_CLIENTS.append(websocket)
+    client_q: asyncio.Queue = asyncio.Queue(maxsize=40)
+    client_id = id(websocket)
+    _CLIENT_QUEUES[client_id] = client_q
+
+    async def _send_worker():
+        try:
+            while True:
+                payload = await client_q.get()
+                await websocket.send_text(payload)
+                client_q.task_done()
+        except (asyncio.CancelledError, WebSocketDisconnect, Exception):
+            pass
+
+    sender_task = asyncio.create_task(_send_worker())
+
     try:
         # Send connection established
         await websocket.send_text(json.dumps({
             "type": "CONNECTION_ESTABLISHED",
             "message": "Connected to VIGINT Compliance Real-Time Stream",
-            "active_clients": len(_WS_CLIENTS),
+            "active_clients": len(_CLIENT_QUEUES),
             "config_version": compliance_engine.config_version,
             "timestamp": time.time()
         }))
@@ -846,7 +887,7 @@ async def compliance_websocket_endpoint(websocket: WebSocket):
             # Keep-alive heartbeat receiver or client command
             data = await websocket.receive_text()
             if data == "ping":
-                await websocket.send_text("pong")
+                await websocket.send_text(json.dumps({"type": "PONG", "timestamp": time.time()}))
             else:
                 try:
                     payload = json.loads(data)
@@ -859,11 +900,12 @@ async def compliance_websocket_endpoint(websocket: WebSocket):
                 except Exception:
                     pass
     except WebSocketDisconnect:
-        if websocket in _WS_CLIENTS:
-            _WS_CLIENTS.remove(websocket)
+        pass
     except Exception:
-        if websocket in _WS_CLIENTS:
-            _WS_CLIENTS.remove(websocket)
+        pass
+    finally:
+        sender_task.cancel()
+        _CLIENT_QUEUES.pop(client_id, None)
 
 
 # ── Operational Intelligence & Digital Twin Endpoints ────────────────────────

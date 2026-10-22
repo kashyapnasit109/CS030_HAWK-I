@@ -92,22 +92,22 @@ class ComplianceExecutionEngine:
         self.ws_broadcaster = broadcaster_fn
 
     def broadcast_sync(self, event_type: str, data: Dict[str, Any]):
-        """Safe thread-to-async WebSocket dispatcher."""
+        """Safe thread dispatcher."""
         if self.ws_broadcaster:
             try:
-                import asyncio
-                loop = None
-                try:
-                    loop = asyncio.get_event_loop()
-                except Exception:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-
-                if loop and loop.is_running():
-                    asyncio.run_coroutine_threadsafe(self.ws_broadcaster(event_type, data), loop)
-                elif loop:
-                    loop.run_until_complete(self.ws_broadcaster(event_type, data))
-            except Exception as e:
+                import inspect
+                if inspect.iscoroutinefunction(self.ws_broadcaster):
+                    import asyncio
+                    loop = None
+                    try:
+                        loop = asyncio.get_running_loop()
+                    except Exception:
+                        pass
+                    if loop and loop.is_running():
+                        asyncio.run_coroutine_threadsafe(self.ws_broadcaster(event_type, data), loop)
+                else:
+                    self.ws_broadcaster(event_type, data)
+            except Exception:
                 pass
 
     def reload_assignments(self) -> int:
