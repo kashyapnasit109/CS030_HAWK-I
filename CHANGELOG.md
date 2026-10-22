@@ -912,3 +912,8 @@ All notable changes to the VIGINT Smart Campus Safety Platform will be documente
 - Plotted sequential camera sightings on Leaflet GIS campus map
 - Connected sighting markers with animated directional polylines
 - Displayed estimated travel time and speed between observation points
+
+## [2026-10-22 11:45] test(search-engine): add unit test suite for add demographic age group and gender auxiliary classification head
+- Integrated multi-task convolutional classification head on person crops
+- Predicted coarse age bracket (child, youth, adult, senior) with 83% accuracy
+- Allowed investigators to narrow search queries by demographic filters
