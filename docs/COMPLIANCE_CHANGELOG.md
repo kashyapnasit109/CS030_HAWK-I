@@ -518,3 +518,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 21, 2026 23:09:48]` **fix(perf): align normalized coordinate projection on ultra-wide aspect ratios** — *Verified component: tensor memory management & latency optimization*
 - `[Oct 22, 2026 08:15:14]` **feat(pipeline): integrate dual-envelope incandescent flame color masks** — *Verified component: camera ring buffer & video ingestion*
 - `[Oct 22, 2026 09:07:48]` **docs(twin): add sequence diagram for ring buffer frame ingestion** — *Verified component: digital twin topology & blast radius analyzer*
+- `[Oct 22, 2026 09:28:47]` **perf(twin): cache static rule conditions to avoid redundant JSON parsing** — *Verified component: digital twin topology & blast radius analyzer*
