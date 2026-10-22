@@ -524,3 +524,4 @@ Statutory evidence ledger and incremental capability audit log (Aug 2026 – Oct
 - `[Oct 22, 2026 10:51:52]` **docs(stream): document camera compatibility capability matrix requirements** — *Verified component: low-latency MJPEG & WebSocket stream transport*
 - `[Oct 22, 2026 10:54:53]` **feat(diagnostics): introduce dwell time trajectory velocity smoothing filter** — *Verified component: hardware decoders & operational telemetry*
 - `[Oct 22, 2026 12:51:09]` **test(wall): test bulk assignment atomic rollback upon constraint failure** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
+- `[Oct 22, 2026 15:36:30]` **fix(wall): rectify millisecond jitter in aggregate FPS reporting** — *Verified component: live monitoring wall & dynamic HTML5 canvas overlays*
