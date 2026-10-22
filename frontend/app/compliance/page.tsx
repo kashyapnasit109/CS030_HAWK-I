@@ -37,10 +37,19 @@ import {
   WarningIcon,
 } from "@/components/Icons";
 
+import LiveComplianceWall from "@/components/compliance/LiveComplianceWall";
+import AssignmentStudio from "@/components/compliance/AssignmentStudio";
+import OperationalDiagnostics from "@/components/compliance/OperationalDiagnostics";
+
 const API_BASE =
   typeof window !== "undefined"
     ? `http://${window.location.hostname || "localhost"}:8000/api/compliance`
     : "http://localhost:8000/api/compliance";
+
+const WS_BASE =
+  typeof window !== "undefined"
+    ? `ws://${window.location.hostname || "localhost"}:8000/api/compliance/ws/stream`
+    : "ws://localhost:8000/api/compliance/ws/stream";
 
 interface ComplianceRule {
   rule_id: string;
@@ -107,6 +116,9 @@ interface DatasetRecord {
 
 export default function UniversalComplianceStudio() {
   const [activeTab, setActiveTab] = useState<
+    | "wall"
+    | "assignments"
+    | "diagnostics"
     | "studio"
     | "twin"
     | "coverage"
@@ -115,10 +127,9 @@ export default function UniversalComplianceStudio() {
     | "copilot"
     | "presets"
     | "dashboards"
-    | "wall"
     | "incidents"
     | "datasets"
-  >("studio");
+  >("wall");
 
   // Core Rules state
   const [rules, setRules] = useState<ComplianceRule[]>([]);
@@ -691,6 +702,9 @@ export default function UniversalComplianceStudio() {
           }}
         >
           {[
+            { id: "wall", label: "Live Compliance Wall", icon: CameraIcon },
+            { id: "assignments", label: "Rule Assignment Studio", icon: TargetIcon },
+            { id: "diagnostics", label: "Operational Diagnostics", icon: ActivityIcon },
             { id: "studio", label: "Rule Studio", icon: SparklesIcon },
             { id: "twin", label: "Digital Twin & Blast Radius", icon: CpuIcon },
             { id: "coverage", label: "Coverage Gap Analyzer", icon: TargetIcon },
@@ -699,7 +713,6 @@ export default function UniversalComplianceStudio() {
             { id: "copilot", label: "Ask VIGINT Copilot", icon: ScienceIcon },
             { id: "presets", label: "1,000+ Presets", icon: FolderIcon },
             { id: "dashboards", label: "Dynamic Dashboards", icon: TrendingUpIcon },
-            { id: "wall", label: "Live Wall", icon: CameraIcon },
             { id: "incidents", label: "Incidents & Evidence", icon: AlertIcon },
             { id: "datasets", label: "Data Models", icon: FileTextIcon },
           ].map((t) => {
@@ -1577,18 +1590,23 @@ export default function UniversalComplianceStudio() {
           </div>
         )}
 
-        {/* ── TAB: LIVE WALL ── */}
+        {/* ── TAB: LIVE COMPLIANCE WALL ── */}
         {activeTab === "wall" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-            {["GATE-01: Main Campus Entrance", "LOBBY-02: Academic Reception"].map((cam, idx) => (
-              <div key={idx} style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "16px" }}>
-                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-primary)", marginBottom: "12px" }}>{cam}</div>
-                <div style={{ position: "relative", width: "100%", height: "260px", backgroundColor: "#000", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
-                  <img src="/storage/thumbnails/subway.jpg" alt="Feed" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.85 }} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <LiveComplianceWall
+            apiBase={API_BASE}
+            wsBase={WS_BASE}
+            onNavigateToAssignments={() => setActiveTab("assignments")}
+          />
+        )}
+
+        {/* ── TAB: CAMERA-TO-RULE ASSIGNMENT STUDIO ── */}
+        {activeTab === "assignments" && (
+          <AssignmentStudio apiBase={API_BASE} />
+        )}
+
+        {/* ── TAB: OPERATIONAL DIAGNOSTICS & TELEMETRY ── */}
+        {activeTab === "diagnostics" && (
+          <OperationalDiagnostics apiBase={API_BASE} />
         )}
 
         {/* ── TAB: INCIDENTS & EVIDENCE ── */}

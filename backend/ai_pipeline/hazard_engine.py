@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import cv2
+import numpy as np
 try:
     from ultralytics import YOLO
 except Exception as _yolo_err:

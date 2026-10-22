@@ -9,6 +9,7 @@ import os
 import json
 import time
 import asyncio
+from collections import defaultdict
 from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, BackgroundTasks
 from pydantic import BaseModel, Field
@@ -24,6 +25,7 @@ from ai_pipeline.coverage_analyzer import CoverageAnalyzer
 from ai_pipeline.incident_correlator import IncidentCorrelator
 from ai_pipeline.predictive_engine import PredictiveComplianceEngine
 from ai_pipeline.ask_vigint_copilot import AskVigintCopilot
+from ai_pipeline.compliance_engine import compliance_engine
 
 router = APIRouter(prefix="/api/compliance", tags=["Compliance Engine"])
 
@@ -44,8 +46,25 @@ async def broadcast_ws_event(event_type: str, data: Dict[str, Any]):
         if ws in _WS_CLIENTS:
             _WS_CLIENTS.remove(ws)
 
+# Wire broadcaster and load initial assignments
+compliance_engine.set_broadcaster(broadcast_ws_event)
+try:
+    compliance_engine.reload_assignments()
+except Exception as _e:
+    print(f"[compliance] Warning during initial assignment reload: {_e}")
+
 
 # ── Pydantic Request Models ──────────────────────────────────────────────────
+class BulkAssignRulesRequest(BaseModel):
+    camera_ids: List[str] = Field(..., description="Target camera IDs")
+    rule_ids: List[str] = Field(..., description="Target rule IDs")
+    assignment_config: Optional[Dict[str, Any]] = Field(default={}, description="Specific configuration for this assignment")
+    exclude_incompatible: Optional[bool] = Field(default=False, description="Whether to exclude incompatible camera-rule pairs")
+
+class RuleCompatibilityCheckRequest(BaseModel):
+    camera_ids: List[str] = Field(..., description="Camera IDs to test")
+    rule_ids: List[str] = Field(..., description="Rule IDs to test")
+
 class CompileRuleRequest(BaseModel):
     prompt: str = Field(..., description="Natural language compliance rule requirement")
     camera_ids: Optional[List[str]] = Field(default=["GATE-01"], description="Target RTSP camera IDs")
@@ -279,7 +298,22 @@ async def save_rule(req: SaveRuleRequest):
                VALUES (?, ?, ?, 'admin', ?, ?);""",
             (rule_id, version, json.dumps(snapshot), req.change_summary, now)
         )
+
+        # Synchronize many-to-many camera assignments
+        cursor.execute("DELETE FROM compliance_camera_rules WHERE rule_id = ?;", (rule_id,))
+        for cid in req.camera_ids:
+            asgn_id = f"ASGN-{rule_id}-{cid}"
+            cursor.execute(
+                """INSERT INTO compliance_camera_rules
+                   (assignment_id, tenant_id, camera_id, rule_id, rule_version, enabled, assignment_config, status, created_at, updated_at, synced_at, config_version)
+                   VALUES (?, 'default', ?, ?, ?, ?, '{}', 'ACTIVE', ?, ?, ?, ?);""",
+                (asgn_id, cid, rule_id, version, 1 if req.enabled else 0, now, now, now, compliance_engine.config_version + 1)
+            )
+
         conn.commit()
+
+        # Reload engine execution configuration
+        compliance_engine.reload_assignments()
 
         return {
             "success": True,
@@ -297,11 +331,18 @@ async def toggle_rule_active(rule_id: str, enabled: bool = True):
     conn = get_connection()
     try:
         cursor = conn.cursor()
+        now = time.time()
         cursor.execute(
             "UPDATE compliance_rules SET enabled = ?, updated_at = ? WHERE rule_id = ?;",
-            (1 if enabled else 0, time.time(), rule_id)
+            (1 if enabled else 0, now, rule_id)
+        )
+        cursor.execute(
+            "UPDATE compliance_camera_rules SET enabled = ?, updated_at = ? WHERE rule_id = ?;",
+            (1 if enabled else 0, now, rule_id)
         )
         conn.commit()
+
+        compliance_engine.reload_assignments()
         return {"success": True, "rule_id": rule_id, "enabled": enabled}
     finally:
         conn.close()
@@ -313,10 +354,320 @@ async def delete_rule(rule_id: str):
     try:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM compliance_rules WHERE rule_id = ?;", (rule_id,))
+        cursor.execute("DELETE FROM compliance_camera_rules WHERE rule_id = ?;", (rule_id,))
         conn.commit()
+
+        compliance_engine.reload_assignments()
         return {"success": True, "deleted_rule_id": rule_id}
     finally:
         conn.close()
+
+
+# ── Camera Registry with Real Health & Telemetry ─────────────────────────────
+@router.get("/cameras")
+def get_compliance_cameras():
+    """Returns registered cameras enriched with stream health, metrics, and active rules."""
+    from ai_pipeline.camera_manager import list_cameras
+    cams = list_cameras()
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT ar.camera_id, ar.rule_id, ar.enabled, r.name, r.severity
+            FROM compliance_camera_rules ar
+            JOIN compliance_rules r ON ar.rule_id = r.rule_id
+            WHERE ar.enabled = 1 AND r.enabled = 1;
+        """)
+        rows = cursor.fetchall()
+        cam_rules_map = defaultdict(list)
+        for r in rows:
+            cam_rules_map[r["camera_id"]].append({
+                "rule_id": r["rule_id"],
+                "name": r["name"],
+                "severity": r["severity"]
+            })
+    finally:
+        conn.close()
+
+    enriched = []
+    for c in cams:
+        cid = c.get("id") or c.get("camera_id")
+        telem = compliance_engine.telemetry.get(cid, {})
+        attached = cam_rules_map.get(cid, [])
+
+        # Determine connection health status
+        is_conn = c.get("is_connected", False)
+        status = "ONLINE" if is_conn else "OFFLINE"
+        if is_conn and telem.get("last_frame_ts", 0) > 0 and (time.time() - telem.get("last_frame_ts", 0)) > 5.0:
+            status = "STALE"
+        if c.get("error"):
+            status = "ERROR"
+
+        rec = {
+            "camera_id": cid,
+            "id": cid,
+            "name": c.get("name", f"Camera {cid}"),
+            "brand": c.get("brand", "generic"),
+            "url": c.get("url", ""),
+            "status": status,
+            "is_connected": is_conn,
+            "fps": telem.get("fps") or c.get("fps", 25.0),
+            "width": c.get("width", 1280),
+            "height": c.get("height", 720),
+            "last_frame_age": round(time.time() - telem["last_frame_ts"], 1) if telem.get("last_frame_ts") else c.get("last_frame_age"),
+            "supported_capabilities": [
+                "person", "object", "crowd", "pose", "fall", "fire_smoke", "weapon", "tracking"
+            ],
+            "active_rules": attached,
+            "active_rule_count": len(attached),
+            "inference_status": telem.get("status", "IDLE"),
+            "inference_ms": telem.get("inference_ms", 0.0),
+            "tracked_count": telem.get("tracked_count", 0),
+            "error": telem.get("last_error") or c.get("error")
+        }
+        enriched.append(rec)
+
+    return {"total": len(enriched), "cameras": enriched}
+
+
+# ── Camera-to-Rule Many-to-Many Assignment Studio ───────────────────────────
+@router.get("/assignments")
+def list_assignments(camera_id: Optional[str] = None, rule_id: Optional[str] = None):
+    """Lists all active and configured camera-rule assignments."""
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT
+                ar.assignment_id, ar.tenant_id, ar.camera_id, ar.rule_id, ar.rule_version,
+                ar.enabled, ar.assignment_config, ar.status, ar.status_reason, ar.created_at,
+                ar.updated_at, ar.synced_at, ar.config_version,
+                r.name as rule_name, r.category as rule_category, r.domain as rule_domain,
+                r.severity as rule_severity,
+                c.name as camera_name, c.is_connected as camera_connected
+            FROM compliance_camera_rules ar
+            JOIN compliance_rules r ON ar.rule_id = r.rule_id
+            LEFT JOIN cameras c ON ar.camera_id = c.camera_id
+            WHERE 1=1
+        """
+        params = []
+        if camera_id:
+            query += " AND ar.camera_id = ?"
+            params.append(camera_id)
+        if rule_id:
+            query += " AND ar.rule_id = ?"
+            params.append(rule_id)
+
+        query += " ORDER BY ar.updated_at DESC;"
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        assignments = []
+        for r in rows:
+            assignments.append({
+                "assignment_id": r["assignment_id"],
+                "tenant_id": r["tenant_id"],
+                "camera_id": r["camera_id"],
+                "camera_name": r["camera_name"] or r["camera_id"],
+                "camera_connected": bool(r["camera_connected"]),
+                "rule_id": r["rule_id"],
+                "rule_name": r["rule_name"],
+                "rule_category": r["rule_category"],
+                "rule_domain": r["rule_domain"],
+                "rule_severity": r["rule_severity"],
+                "rule_version": r["rule_version"],
+                "enabled": bool(r["enabled"]),
+                "assignment_config": json.loads(r["assignment_config"]) if r["assignment_config"] else {},
+                "status": r["status"],
+                "status_reason": r["status_reason"],
+                "created_at": r["created_at"],
+                "updated_at": r["updated_at"],
+                "synced_at": r["synced_at"],
+                "config_version": r["config_version"]
+            })
+        return {"total": len(assignments), "assignments": assignments}
+    finally:
+        conn.close()
+
+
+@router.post("/assignments/bulk")
+def bulk_assign_rules(req: BulkAssignRulesRequest):
+    """
+    Applies multiple rules to multiple cameras in a single atomic transaction.
+    Validates compatibility, persists assignments, and notifies the execution engine.
+    """
+    if not req.camera_ids or not req.rule_ids:
+        raise HTTPException(status_code=400, detail="Must select at least one camera and one rule.")
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+
+        # Load rules info for validation
+        q_marks = ",".join("?" for _ in req.rule_ids)
+        cursor.execute(f"SELECT rule_id, name, conditions_json, version FROM compliance_rules WHERE rule_id IN ({q_marks});", req.rule_ids)
+        rule_rows = {r["rule_id"]: dict(r) for r in cursor.fetchall()}
+
+        # Load cameras info
+        q_cam_marks = ",".join("?" for _ in req.camera_ids)
+        cursor.execute(f"SELECT camera_id, name, is_connected FROM cameras WHERE camera_id IN ({q_cam_marks});", req.camera_ids)
+        cam_rows = {c["camera_id"]: dict(c) for c in cursor.fetchall()}
+
+        now = time.time()
+        applied = []
+        incompatible_skipped = []
+
+        for cid in req.camera_ids:
+            cam = cam_rows.get(cid, {"camera_id": cid, "is_connected": 1})
+            for rid in req.rule_ids:
+                rule = rule_rows.get(rid)
+                if not rule:
+                    continue
+
+                asgn_id = f"ASGN-{rid}-{cid}"
+                r_conds = json.loads(rule.get("conditions_json", "{}")) if rule.get("conditions_json") else {}
+
+                # Compatibility assessment
+                is_compat = True
+                reason = "Compatible"
+                # If rule requires custom spatial points and none given
+                if r_conds.get("spatial", {}).get("points") and len(r_conds["spatial"]["points"]) < 3:
+                    reason = "Missing valid spatial zone polygon"
+
+                if not is_compat:
+                    if req.exclude_incompatible:
+                        incompatible_skipped.append({"camera_id": cid, "rule_id": rid, "reason": reason})
+                        continue
+                    status = "INCOMPATIBLE"
+                else:
+                    status = "ACTIVE"
+
+                cursor.execute(
+                    """INSERT INTO compliance_camera_rules
+                       (assignment_id, tenant_id, camera_id, rule_id, rule_version, enabled, assignment_config, status, status_reason, created_at, updated_at, synced_at)
+                       VALUES (?, 'default', ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)
+                       ON CONFLICT(camera_id, rule_id) DO UPDATE SET
+                       enabled = 1,
+                       rule_version = excluded.rule_version,
+                       assignment_config = excluded.assignment_config,
+                       status = excluded.status,
+                       status_reason = excluded.status_reason,
+                       updated_at = excluded.updated_at;""",
+                    (asgn_id, cid, rid, rule.get("version", 1), json.dumps(req.assignment_config or {}), status, reason, now, now, now)
+                )
+                applied.append({"camera_id": cid, "rule_id": rid, "assignment_id": asgn_id, "status": status})
+
+        # Keep compliance_rules.camera_ids synchronized for backward compatibility
+        for rid in req.rule_ids:
+            cursor.execute("SELECT camera_id FROM compliance_camera_rules WHERE rule_id = ? AND enabled = 1;", (rid,))
+            active_cids = [row["camera_id"] for row in cursor.fetchall()]
+            cursor.execute("UPDATE compliance_rules SET camera_ids = ?, updated_at = ? WHERE rule_id = ?;", (json.dumps(active_cids), now, rid))
+
+        conn.commit()
+
+        # Reload engine and get acknowledged configuration version
+        compliance_engine.reload_assignments()
+
+        return {
+            "success": True,
+            "applied_count": len(applied),
+            "skipped_count": len(incompatible_skipped),
+            "config_version": compliance_engine.config_version,
+            "assignments": applied,
+            "incompatible_skipped": incompatible_skipped
+        }
+    finally:
+        conn.close()
+
+
+@router.post("/assignments/{assignment_id}/toggle")
+def toggle_assignment(assignment_id: str, enabled: bool = True):
+    """Enables or disables an existing camera-to-rule assignment."""
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        now = time.time()
+        cursor.execute(
+            "UPDATE compliance_camera_rules SET enabled = ?, updated_at = ? WHERE assignment_id = ?;",
+            (1 if enabled else 0, now, assignment_id)
+        )
+        conn.commit()
+        compliance_engine.reload_assignments()
+        return {"success": True, "assignment_id": assignment_id, "enabled": enabled}
+    finally:
+        conn.close()
+
+
+@router.delete("/assignments/{assignment_id}")
+def delete_assignment(assignment_id: str):
+    """Removes a camera-to-rule assignment without deleting the underlying rule."""
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM compliance_camera_rules WHERE assignment_id = ?;", (assignment_id,))
+        conn.commit()
+        compliance_engine.reload_assignments()
+        return {"success": True, "deleted_assignment_id": assignment_id}
+    finally:
+        conn.close()
+
+
+@router.post("/rule-compatibility")
+def check_rule_compatibility(req: RuleCompatibilityCheckRequest):
+    """
+    Evaluates compatibility between a set of rules and cameras before committing assignments.
+    Provides actionable guidance on missing zones, unsupported classes, or hardware constraints.
+    """
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        q_r = ",".join("?" for _ in req.rule_ids)
+        cursor.execute(f"SELECT rule_id, name, conditions_json FROM compliance_rules WHERE rule_id IN ({q_r});", req.rule_ids)
+        rules = cursor.fetchall()
+
+        q_c = ",".join("?" for _ in req.camera_ids)
+        cursor.execute(f"SELECT camera_id, name, is_connected FROM cameras WHERE camera_id IN ({q_c});", req.camera_ids)
+        cameras = cursor.fetchall()
+
+        matrix = []
+        for c in cameras:
+            cid = c["camera_id"]
+            for r in rules:
+                rid = r["rule_id"]
+                conds = json.loads(r["conditions_json"]) if r["conditions_json"] else {}
+                warnings = []
+                reasons = []
+                is_compat = True
+
+                if not c["is_connected"]:
+                    warnings.append(f"Camera '{c['name']}' is currently OFFLINE; detections will commence upon reconnect.")
+
+                # Check spatial zone requirements
+                sp = conds.get("spatial", {})
+                if sp.get("points") and len(sp["points"]) < 3:
+                    is_compat = False
+                    reasons.append("Geofence requires at least 3 polygonal boundary points.")
+
+                matrix.append({
+                    "camera_id": cid,
+                    "camera_name": c["name"],
+                    "rule_id": rid,
+                    "rule_name": r["name"],
+                    "compatible": is_compat,
+                    "reasons": reasons,
+                    "warnings": warnings
+                })
+
+        return {"matrix": matrix, "all_compatible": all(m["compatible"] for m in matrix)}
+    finally:
+        conn.close()
+
+
+# ── Operational Diagnostics & Debugging Panel ────────────────────────────────
+@router.get("/diagnostics")
+def get_operational_diagnostics():
+    """Live diagnostic snapshot for operators and developers."""
+    return compliance_engine.get_diagnostics()
 
 
 # ── Violations & Incident Triage ─────────────────────────────────────────────
@@ -471,16 +822,42 @@ async def compliance_websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     _WS_CLIENTS.append(websocket)
     try:
+        # Send connection established
         await websocket.send_text(json.dumps({
             "type": "CONNECTION_ESTABLISHED",
             "message": "Connected to VIGINT Compliance Real-Time Stream",
-            "active_clients": len(_WS_CLIENTS)
+            "active_clients": len(_WS_CLIENTS),
+            "config_version": compliance_engine.config_version,
+            "timestamp": time.time()
         }))
+
+        # Send initial authoritative system diagnostics
+        try:
+            diag = compliance_engine.get_diagnostics()
+            await websocket.send_text(json.dumps({
+                "type": "INITIAL_STATE",
+                "data": diag,
+                "timestamp": time.time()
+            }))
+        except Exception:
+            pass
+
         while True:
-            # Keep-alive heartbeat receiver
+            # Keep-alive heartbeat receiver or client command
             data = await websocket.receive_text()
             if data == "ping":
                 await websocket.send_text("pong")
+            else:
+                try:
+                    payload = json.loads(data)
+                    cmd = payload.get("command")
+                    if cmd == "PING":
+                        await websocket.send_text(json.dumps({"type": "PONG", "timestamp": time.time()}))
+                    elif cmd == "RELOAD_ASSIGNMENTS":
+                        cnt = compliance_engine.reload_assignments()
+                        await websocket.send_text(json.dumps({"type": "ASSIGNMENT_RELOADED", "count": cnt}))
+                except Exception:
+                    pass
     except WebSocketDisconnect:
         if websocket in _WS_CLIENTS:
             _WS_CLIENTS.remove(websocket)

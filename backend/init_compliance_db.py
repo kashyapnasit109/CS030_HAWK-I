@@ -107,11 +107,31 @@ CREATE TABLE IF NOT EXISTS compliance_actions_outbox (
     delivered_at REAL NULL
 );
 
+-- Many-to-Many Camera-to-Rule Assignments
+CREATE TABLE IF NOT EXISTS compliance_camera_rules (
+    assignment_id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL DEFAULT 'default',
+    camera_id TEXT NOT NULL,
+    rule_id TEXT NOT NULL,
+    rule_version INTEGER NOT NULL DEFAULT 1,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    assignment_config TEXT DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'ACTIVE', -- ACTIVE, PENDING, INCOMPATIBLE, DISABLED
+    status_reason TEXT NULL,
+    created_at REAL NOT NULL,
+    updated_at REAL NOT NULL,
+    synced_at REAL NULL,
+    config_version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(camera_id, rule_id)
+);
+
 -- Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_comp_rules_domain ON compliance_rules(domain, status);
 CREATE INDEX IF NOT EXISTS idx_comp_records_dataset ON compliance_dataset_records(dataset_id, event_time);
 CREATE INDEX IF NOT EXISTS idx_comp_violations_rule_time ON compliance_violations(rule_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_comp_actions_status ON compliance_actions_outbox(status);
+CREATE INDEX IF NOT EXISTS idx_comp_cam_rules_cam ON compliance_camera_rules(camera_id, enabled);
+CREATE INDEX IF NOT EXISTS idx_comp_cam_rules_rule ON compliance_camera_rules(rule_id, enabled);
 """
 
 DEFAULT_DATASETS = [
@@ -185,6 +205,45 @@ DEFAULT_DATASETS = [
     }
 ]
 
+def sync_registered_cameras(conn):
+    """Synchronizes registered cameras from cameras.json into sqlite cameras table."""
+    cameras_file = Path(__file__).parent / "storage" / "cameras" / "cameras.json"
+    if not cameras_file.exists():
+        return
+    try:
+        data = json.loads(cameras_file.read_text(encoding="utf-8"))
+        cursor = conn.cursor()
+        for cid, cinfo in data.items():
+            name = cinfo.get("name", f"Camera {cid}")
+            url = cinfo.get("url", "")
+            brand = cinfo.get("brand", "generic")
+            is_conn = 1 if cinfo.get("is_connected", False) else 0
+            w = cinfo.get("width", 1280)
+            h = cinfo.get("height", 720)
+            fps = cinfo.get("fps", 25.0)
+            added = cinfo.get("added_at", time.time())
+            err = cinfo.get("error")
+
+            cursor.execute(
+                """INSERT INTO cameras
+                   (camera_id, name, url, brand, is_connected, is_running, detection_active, width, height, fps, error, added_at, continuous_recording, ptz_capable)
+                   VALUES (?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?, ?, 1, 0)
+                   ON CONFLICT(camera_id) DO UPDATE SET
+                   name = excluded.name,
+                   url = excluded.url,
+                   brand = excluded.brand,
+                   is_connected = excluded.is_connected,
+                   width = excluded.width,
+                   height = excluded.height,
+                   fps = excluded.fps,
+                   error = excluded.error;""",
+                (cid, name, url, brand, is_conn, w, h, fps, err, added)
+            )
+        conn.commit()
+        print(f"Synchronized {len(data)} camera streams to database.")
+    except Exception as e:
+        print(f"Warning: Failed to sync registered cameras: {e}")
+
 def migrate():
     conn = get_connection()
     try:
@@ -204,14 +263,35 @@ def migrate():
                 )
                 print(f"Seeded default dataset: {ds['name']}")
                 
-        # Also append to schema.sql for fresh setups if not already present
-        schema_path = Path(__file__).parent / "storage" / "schema.sql"
-        if schema_path.exists():
-            content = schema_path.read_text(encoding="utf-8")
-            if "compliance_rules" not in content:
-                print("Appending compliance schema to schema.sql...")
-                schema_path.write_text(content + "\n\n" + SCHEMA_COMPLIANCE_SQL, encoding="utf-8")
-                
+        # Synchronize real cameras
+        sync_registered_cameras(conn)
+
+        # Migrate existing rules into compliance_camera_rules assignments if empty
+        cursor.execute("SELECT COUNT(*) as cnt FROM compliance_camera_rules;")
+        asgn_count = cursor.fetchone()["cnt"]
+        if asgn_count == 0:
+            cursor.execute("SELECT rule_id, camera_ids, version, enabled FROM compliance_rules;")
+            rules = cursor.fetchall()
+            for r in rules:
+                rule_id = r["rule_id"]
+                r_version = r["version"] or 1
+                r_enabled = r["enabled"] or 1
+                c_ids = []
+                try:
+                    c_ids = json.loads(r["camera_ids"]) if r["camera_ids"] else []
+                except Exception:
+                    pass
+                for cid in c_ids:
+                    asgn_id = f"ASGN-{rule_id}-{cid}"
+                    cursor.execute(
+                        """INSERT OR IGNORE INTO compliance_camera_rules
+                           (assignment_id, tenant_id, camera_id, rule_id, rule_version, enabled, assignment_config, status, created_at, updated_at, synced_at)
+                           VALUES (?, 'default', ?, ?, ?, ?, '{}', 'ACTIVE', ?, ?, ?);""",
+                        (asgn_id, cid, rule_id, r_version, r_enabled, time.time(), time.time(), time.time())
+                    )
+            conn.commit()
+            print("Populated initial camera-rule assignments from legacy rule records.")
+
         conn.commit()
         print("Compliance database migration completed successfully!")
     finally:

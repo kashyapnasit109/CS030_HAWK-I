@@ -254,6 +254,13 @@ class CameraStream:
                         self.is_connected = True
                         self.error = None
                         self.reconnect_attempts = 0
+
+                    # Ingest decoded frame into compliance ring buffer
+                    try:
+                        from ai_pipeline.compliance_stream_buffer import ingest_frame_to_buffer
+                        ingest_frame_to_buffer(self.camera_id, frame, self.last_frame_time)
+                    except Exception:
+                        pass
                 else:
                     time.sleep(0.04)
 
@@ -421,6 +428,33 @@ def add_camera(
     }
     _save_cameras(cameras)
 
+    # Synchronize to SQLite database
+    try:
+        from database import get_connection
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO cameras
+                   (camera_id, name, url, brand, is_connected, is_running, width, height, fps, error, added_at, continuous_recording, ptz_capable)
+                   VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 1, 0)
+                   ON CONFLICT(camera_id) DO UPDATE SET
+                   name = excluded.name,
+                   url = excluded.url,
+                   brand = excluded.brand,
+                   is_connected = excluded.is_connected,
+                   width = excluded.width,
+                   height = excluded.height,
+                   fps = excluded.fps,
+                   error = excluded.error;""",
+                (camera_id, name, final_url, brand, 1 if connected else 0, stream.width, stream.height, stream.fps, stream.error, time.time())
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"[camera_manager] Warning: SQLite camera sync failed: {e}")
+
     if connected:
         stream.start_capture()
         _active_streams[camera_id] = stream
@@ -438,6 +472,20 @@ def remove_camera(camera_id: str) -> bool:
     # Stop detection
     stop_live_detection(camera_id)
 
+    # Remove from SQLite database
+    try:
+        from database import get_connection
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM cameras WHERE camera_id = ?;", (camera_id,))
+            cursor.execute("DELETE FROM compliance_camera_rules WHERE camera_id = ?;", (camera_id,))
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"[camera_manager] Warning: SQLite camera delete failed: {e}")
+
     # Remove from registry
     cameras = _load_cameras()
     if camera_id in cameras:
@@ -450,9 +498,43 @@ def remove_camera(camera_id: str) -> bool:
 def list_cameras() -> list[dict]:
     """List all registered cameras with live status."""
     cameras = _load_cameras()
+
+    # Also load any registered cameras from SQLite
+    try:
+        from database import get_connection
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT camera_id, name, url, brand, is_connected, width, height, fps, error, added_at FROM cameras;")
+            rows = cursor.fetchall()
+            for r in rows:
+                cid = r["camera_id"]
+                if cid not in cameras:
+                    cameras[cid] = {
+                        "id": cid,
+                        "name": r["name"],
+                        "url": r["url"],
+                        "brand": r["brand"] or "generic",
+                        "added_at": r["added_at"] or time.time(),
+                        "is_connected": bool(r["is_connected"]),
+                        "width": r["width"] or 1280,
+                        "height": r["height"] or 720,
+                        "fps": r["fps"] or 25.0,
+                        "error": r["error"],
+                    }
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
     result = []
     for cam_id, cam_data in cameras.items():
         status = cam_data.copy()
+        if "id" not in status:
+            status["id"] = cam_id
+        if "camera_id" not in status:
+            status["camera_id"] = cam_id
+
         if cam_id in _active_streams:
             live_status = _active_streams[cam_id].get_status()
             status.update({
@@ -474,10 +556,45 @@ def get_camera_stream(camera_id: str) -> Optional[CameraStream]:
         return _active_streams[camera_id]
 
     cameras = _load_cameras()
-    if camera_id not in cameras:
+    
+    # Check alias mapping for demo cameras
+    alias_map = {
+        "GATE-01": "cam-01",
+        "LOBBY-02": "cam-02",
+        "PERIM-03": "cam-03",
+        "PARK-04": "cam-04",
+    }
+    
+    target_id = camera_id
+    if camera_id not in cameras and camera_id in alias_map:
+        target_id = alias_map[camera_id]
+
+    if target_id not in cameras:
+        # Check SQLite table
+        try:
+            from database import get_connection
+            conn = get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT url, name FROM cameras WHERE camera_id = ?;", (camera_id,))
+                row = cursor.fetchone()
+                if row and row["url"] and row["url"] != "demo":
+                    cameras[camera_id] = {
+                        "id": camera_id,
+                        "name": row["name"],
+                        "url": row["url"],
+                        "is_connected": True
+                    }
+                    target_id = camera_id
+            finally:
+                conn.close()
+        except Exception:
+            pass
+
+    if target_id not in cameras:
         return None
 
-    cam_data = cameras[camera_id]
+    cam_data = cameras[target_id]
     stream = CameraStream(camera_id, cam_data["url"], cam_data.get("name", ""))
     if stream.connect():
         stream.start_capture()
