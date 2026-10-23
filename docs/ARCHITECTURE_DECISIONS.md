@@ -922,3 +922,8 @@ Key architectural choices and their rationale.
 - Maintained rolling in-memory buffer of last 300 encoded JPEG frames per camera
 - Sliced exact pre-alarm and post-alarm footage slices without disk I/O lag
 - Handled brief transient violations with fallback frame duplication
+
+## [2026-10-23 13:30] test(video-stream): add unit test suite for implement Server-Sent Events (SSE) progress streaming for large exports
+- Streamed compression percentage and file packaging status to frontend UI
+- Eliminated browser HTTP request timeout during multi-gigabyte forensic exports
+- Provided cancel button allowing investigator to abort export in flight
